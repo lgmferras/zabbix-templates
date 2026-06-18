@@ -1,0 +1,62 @@
+{
+  "zabbix_export": {
+    "version": "7.4",
+    "template_groups": [
+      {
+        "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+        "name": "Templates/Applications"
+      }
+    ],
+    "templates": [
+      {
+        "uuid": "1447e0a5b0264273b084e7e316e8a858",
+        "template": "Kairos by Zabbix agent active",
+        "name": "Kairos by Zabbix agent active",
+        "groups": [
+          {
+            "name": "Templates/Applications"
+          }
+        ],
+        "items": [
+          {
+            "uuid": "f6d3ace8a825470988d099683aff8905",
+            "name": "State of service Kairos - Notify Connect",
+            "type": "ZABBIX_ACTIVE",
+            "key": "kairos.NotifyKairosConnect",
+            "valuemap": {
+              "name": "NETHOTEL Value Mapping"
+            },
+            "timeout": "30s",
+            "triggers": [
+              {
+                "uuid": "49cf68654ffc4dd3ad754ecf41950a4a",
+                "expression": "last(/Kairos by Zabbix agent active/kairos.NotifyKairosConnect)=0",
+                "recovery_mode": "RECOVERY_EXPRESSION",
+                "recovery_expression": "last(/Kairos by Zabbix agent active/kairos.NotifyKairosConnect)=1",
+                "name": "Kairos - Processo Notify Connect está parado",
+                "priority": "HIGH",
+                "manual_close": "YES"
+              }
+            ]
+          }
+        ],
+        "valuemaps": [
+          {
+            "uuid": "e8464a98f3f54d09a79c0131a301cd24",
+            "name": "NETHOTEL Value Mapping",
+            "mappings": [
+              {
+                "value": "1",
+                "newvalue": "Running"
+              },
+              {
+                "value": "0",
+                "newvalue": "Stoped"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
