@@ -1,0 +1,298 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "51f1cb40aaa5411f8d75bfc125cc479d",
+                "template": "Windows_Backup_by_Zabbix_agent_2",
+                "name": "Windows Backup by zabbix agent 2",
+                "description": "Monitoramento do Windows Server Backup via Event Log e wbadmin.\n\nFontes de dados:\n- Event Log Microsoft-Windows-Backup (ID 1 = início, ID 4 = sucesso)\n- wbadmin get versions (verifica existência de backups registrados)\n\nMacros configuráveis por host:\n- {$WIN.BACKUP.AGE.WARN}: horas até alerta WARNING\n- {$WIN.BACKUP.AGE.DISASTER}: horas até alerta DISASTER\n- {$WIN.BACKUP.MAX_RUNTIME}: duração máxima tolerada do processo de backup\n\nAutor: Luis Gustavo Ferras - Systrix",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "659e1f024cc64c459b54bda379765a6a",
+                        "name": "Windows Backup - Idade do último backup (horas)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "win.backup.age_hours",
+                        "delay": "15m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "h",
+                        "description": "Horas desde o último backup identificado via wbadmin. Retorna -1 se não conseguir extrair o horário.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "windows-backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "587d5a6b15434968b487eea553bde3cd",
+                                "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1",
+                                "name": "Windows Backup - Nenhum evento de backup encontrado no Event Log",
+                                "opdata": "Sem Event ID 4 em Microsoft-Windows-Backup",
+                                "priority": "DISASTER",
+                                "description": "Não foi encontrado nenhum evento de sucesso (Event ID 4) no Event Log Microsoft-Windows-Backup.",
+                                "manual_close": "YES"
+                            },
+                            {
+                                "uuid": "fdd3dbcc0157464da1f7913d2c2bc60a",
+                                "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)>{$WIN.BACKUP.AGE.DISASTER} and last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<>-1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<={$WIN.BACKUP.AGE.DISASTER} or last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1",
+                                "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.DISASTER}",
+                                "opdata": "Idade: {ITEM.LASTVALUE}",
+                                "priority": "DISASTER",
+                                "description": "O último backup está muito atrasado (limite 48h).",
+                                "manual_close": "YES"
+                            },
+                            {
+                                "uuid": "de1273683eb74dccb666a3d02ff88cd5",
+                                "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)>{$WIN.BACKUP.AGE.WARN} and last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<>-1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<={$WIN.BACKUP.AGE.WARN} or last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1",
+                                "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.WARN}",
+                                "opdata": "Idade: {ITEM.LASTVALUE}",
+                                "priority": "WARNING",
+                                "description": "O último backup está atrasado (limite 26h).",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "37f54a6106974fd899cc312100b5eb47",
+                        "name": "Windows Backup - Existe backup registrado (wbadmin get versions)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "win.backup.exists",
+                        "delay": "10m",
+                        "history": "90d",
+                        "description": "Retorna 1 se 'wbadmin get versions' funcionar; 0 caso contrário.",
+                        "valuemap": {
+                            "name": "WB Yes/No"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "windows-backup"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "292c150fd47545378c0807ecd987fca4",
+                                "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.exists)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.exists)=1",
+                                "name": "Windows Backup - Nenhum backup registrado (wbadmin get versions falha)",
+                                "priority": "HIGH",
+                                "description": "O Windows Server Backup não possui versões registradas ou o comando wbadmin falhou.",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d3e577cd923442ec8d23f41da19e1546",
+                        "name": "Windows Backup - Último backup com evento de sucesso (Event ID 4)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "win.backup.last_ok",
+                        "delay": "30m",
+                        "history": "90d",
+                        "description": "Retorna 1 se existir um evento recente de sucesso do Windows Backup (Log Microsoft-Windows-Backup, Event ID 4).",
+                        "valuemap": {
+                            "name": "WB Yes/No"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "windows-backup"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "79ac3d2a47374e369be47fd10eda9d93",
+                                "expression": "max(/Windows_Backup_by_Zabbix_agent_2/win.backup.last_ok,{$WIN.BACKUP.AGE.DISASTER})=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.last_ok)=1",
+                                "name": "Windows Backup - Sem evento de sucesso (ID 4) nas últimas {$WIN.BACKUP.AGE.DISASTER}",
+                                "opdata": "Sem Event ID 4 nas últimas {$WIN.BACKUP.AGE.DISASTER}",
+                                "priority": "WARNING",
+                                "description": "Não foi encontrado evento de sucesso (ID 4) nas últimas 48 horas.",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7d974ddcb8864570a1445056e98f7f73",
+                        "name": "Windows Backup - Data/hora do último backup (texto)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "win.backup.last_time",
+                        "delay": "30m",
+                        "history": "90d",
+                        "value_type": "TEXT",
+                        "description": "Data/hora do último backup extraída do wbadmin (string para auditoria).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "windows-backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0490345b1f3841b6bf124f6d838e6063",
+                        "name": "Windows Backup - Backup em execução (processo wbengine)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "win.backup.running",
+                        "delay": "2m",
+                        "history": "90d",
+                        "description": "Retorna 1 se o processo wbengine estiver rodando.",
+                        "valuemap": {
+                            "name": "WB Running"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "windows-backup"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "769d09154ba44de1b291d160b69343d7",
+                                "expression": "min(/Windows_Backup_by_Zabbix_agent_2/win.backup.running,{$WIN.BACKUP.MAX_RUNTIME})=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.running)=0",
+                                "name": "Windows Backup - Backup em execução há mais de {$WIN.BACKUP.MAX_RUNTIME}",
+                                "opdata": "wbengine rodando há mais de {$WIN.BACKUP.MAX_RUNTIME}",
+                                "priority": "INFO",
+                                "description": "O processo wbengine ficou rodando continuamente por 4 horas (pode indicar travamento ou backup muito longo).",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "application"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "windows-backup"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$WIN.BACKUP.AGE.DISASTER}",
+                        "value": "48h",
+                        "description": "Tempo sem backup para DISASTER (ex: 48h)"
+                    },
+                    {
+                        "macro": "{$WIN.BACKUP.AGE.WARN}",
+                        "value": "26h",
+                        "description": "Tempo sem backup para WARNING (ex: 26h)"
+                    },
+                    {
+                        "macro": "{$WIN.BACKUP.MAX_RUNTIME}",
+                        "value": "4h",
+                        "description": "Duração máxima tolerada do backup (ex: 4h)"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "e40d77c6039c47e0940a7f1a9e391abb",
+                        "name": "WB Running",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Running"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Not running"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "21ac3e9e0d48433195922bc0fac42449",
+                        "name": "WB Yes/No",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Yes/OK"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "No/Fail"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,260 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "762b3ab3afdf4708bfd1d4c5928d16c5",
+                "template": "Dual WAN Backup Link by Zabbix",
+                "name": "Dual WAN Backup Link by Zabbix",
+                "description": "Monitora a disponibilidade e qualidade do link WAN de backup via ICMP e verificação de serviço TCP/HTTPS.\n\nAplique ao host '{HOST.NAME} - WAN2' configurado com o IP público de backup do firewall.\n\nPré-requisito: nenhum agente Zabbix necessário (Simple checks executados pelo servidor).",
+                "groups": [
+                    {
+                        "name": "Templates/Network devices"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "5829e6b64f7349658fdc2812692e9e9b",
+                        "name": "WAN: ICMP ping",
+                        "type": "SIMPLE",
+                        "key": "icmpping",
+                        "delay": "3m",
+                        "history": "7d",
+                        "valuemap": {
+                            "name": "Service state"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "5e1398db1e7f48d2980a4f946f950bb8",
+                                "expression": "max(/Dual WAN Backup Link by Zabbix/icmpping,3m)=0",
+                                "name": "WAN2: ICMP indisponível",
+                                "event_name": "WAN2: Link inacessível via ICMP por 3 min",
+                                "opdata": "Último: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "Link WAN não responde a ICMP por 3 minutos consecutivos.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9d93a64ea8234d2f8504ffb51af1d0d1",
+                        "name": "WAN: Perda de pacotes ICMP",
+                        "type": "SIMPLE",
+                        "key": "icmppingloss",
+                        "delay": "3m",
+                        "history": "30d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "233c5a55bac149b3be64ea3545d763ea",
+                                "expression": "min(/Dual WAN Backup Link by Zabbix/icmppingloss,5m)>{$WAN.ICMP.LOSS.HIGH}",
+                                "name": "WAN2: Perda de pacotes ICMP alta",
+                                "event_name": "WAN2: Perda {ITEM.LASTVALUE1}% (limite {$WAN.ICMP.LOSS.HIGH}%)",
+                                "opdata": "Perda atual: {ITEM.LASTVALUE1}%",
+                                "priority": "WARNING",
+                                "description": "Perda de pacotes ICMP acima do limiar. Pode indicar degradação do link.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0ec146be8d9e47158962c3ad740c6376",
+                        "name": "WAN: Latência ICMP (RTT)",
+                        "type": "SIMPLE",
+                        "key": "icmppingsec",
+                        "delay": "3m",
+                        "history": "30d",
+                        "value_type": "FLOAT",
+                        "units": "ms",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "9dcc063f49df4ef3ad82e69cdb170c23",
+                                "expression": "avg(/Dual WAN Backup Link by Zabbix/icmppingsec,5m)>{$WAN.ICMP.RTT.WARN}",
+                                "name": "WAN2: Latência ICMP alta",
+                                "event_name": "WAN2: RTT médio {ITEM.LASTVALUE1}ms (limite {$WAN.ICMP.RTT.WARN}ms)",
+                                "opdata": "RTT atual: {ITEM.LASTVALUE1}ms",
+                                "priority": "WARNING",
+                                "description": "Latência ICMP média acima do limiar nos últimos 5 minutos.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1f2afdc30eae476a9b51f31ea64d9c7a",
+                        "name": "WAN: Serviço TCP porta {$WAN.HTTP.PORT}",
+                        "type": "SIMPLE",
+                        "key": "net.tcp.service[tcp,,{$WAN.HTTP.PORT}]",
+                        "delay": "5m",
+                        "history": "7d",
+                        "valuemap": {
+                            "name": "Service state"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "37e3615011dd49a8861f2ea79d519571",
+                                "expression": "max(/Dual WAN Backup Link by Zabbix/net.tcp.service[tcp,,{$WAN.HTTP.PORT}],10m)=0",
+                                "name": "WAN2: Serviço HTTPS:{$WAN.HTTP.PORT} indisponível",
+                                "event_name": "WAN2: HTTPS:{$WAN.HTTP.PORT} inacessível por 3 min",
+                                "opdata": "Último: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "A porta {$WAN.HTTP.PORT} da interface de gestão não responde.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "WAN2: ICMP indisponível",
+                                        "expression": "max(/Dual WAN Backup Link by Zabbix/icmpping,3m)=0"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "httptests": [
+                    {
+                        "uuid": "e380d876dbff4b96a21ef4649a8b84af",
+                        "name": "HTTPS:{$WAN.HTTP.PORT}",
+                        "delay": "5m",
+                        "attempts": "3",
+                        "steps": [
+                            {
+                                "name": "Homepage",
+                                "url": "https://{HOST.CONN}:{$WAN.HTTP.PORT}/",
+                                "timeout": "60s",
+                                "status_codes": "200,301,302,401,403"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "network"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "dual-wan"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$WAN.HTTP.PORT}",
+                        "value": "4444",
+                        "description": "Porta do serviço HTTPS de gestão do firewall"
+                    },
+                    {
+                        "macro": "{$WAN.ICMP.LOSS.HIGH}",
+                        "value": "50",
+                        "description": "Perda de pacotes ICMP (%) para trigger WARNING"
+                    },
+                    {
+                        "macro": "{$WAN.ICMP.RTT.WARN}",
+                        "value": "200",
+                        "description": "RTT ICMP médio (ms) para trigger WARNING"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "965d9af450e84ae9ae87ef654002f6ba",
+                        "name": "Service state",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Down"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Up"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,932 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "c280da880fa74a5aa19b24690c4a846b",
+                "template": "MSPClouds Backup Monitor",
+                "name": "MSPClouds Backup Monitor",
+                "description": "Monitoramento de Cloud Backup via API MSPClouds.\nRequisições limitadas: 2x por dia (8h) para economizar chamadas de API.\n\nMacros:\n- {$MSPCLOUDS.API.KEY}: Chave de API\n- {$MSPCLOUDS.API.URL}: URL base da API\n- {$MSPCLOUDS.BACKUP.MAX_AGE}: Tempo máximo sem backup bem-sucedido (padrão: 36h)\n\nv4: Adicionado item status.info (backups em execução); history 90d e trends 365d nos itens numéricos; opdata no trigger de warning",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "a435db9797664469a51a5edeb782dca7",
+                        "name": "MSPClouds: Quantidade de Alertas",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.alerts.count",
+                        "history": "90d",
+                        "description": "Quantidade total de alertas ativos",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.length()"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.alerts.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "alerts"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b486c0a3c5194954978f567d0e65d154",
+                        "name": "MSPClouds: Alertas Raw JSON",
+                        "type": "HTTP_AGENT",
+                        "key": "mspclouds.alerts.raw",
+                        "delay": "1h",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "description": "JSON completo do endpoint de alertas. Executado 1x por dia às 8h.",
+                        "timeout": "30s",
+                        "url": "{$MSPCLOUDS.API.URL}/alerts",
+                        "query_fields": [
+                            {
+                                "name": "api_key",
+                                "value": "{$MSPCLOUDS.API.KEY}"
+                            }
+                        ],
+                        "headers": [
+                            {
+                                "name": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "api"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "679ddca828614bdda09c112e85a3068f",
+                        "name": "MSPClouds: Nome da Empresa",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.company.name",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "description": "Nome da empresa/provedor",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.company.name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "info"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7045a5c23e874d02905059cba123b35d",
+                        "name": "MSPClouds: Backups com Erro",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.error",
+                        "history": "90d",
+                        "description": "Quantidade de backups finalizados com erro",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.status.error"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "620a7da1b09b4fe9a98fe3f22aef4b07",
+                                "expression": "last(/MSPClouds Backup Monitor/mspclouds.status.error)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/MSPClouds Backup Monitor/mspclouds.status.error)=0",
+                                "name": "MSPClouds: Existem {ITEM.LASTVALUE} backup(s) com ERRO",
+                                "opdata": "Verifique os alertas individuais de cada cliente",
+                                "priority": "HIGH",
+                                "description": "Um ou mais backups falharam.\n\nVerifique os alertas individuais de cada cliente (triggers com prioridade HIGH) para ver o motivo específico de cada falha.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d9d24b525b594e3e9ff298afb28408b3",
+                        "name": "MSPClouds: Backups em Execução",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.info",
+                        "history": "90d",
+                        "description": "Quantidade de backups atualmente em execução (em andamento)",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.status.info"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a048de43eaa4476f9a5494e67896a12f",
+                        "name": "MSPClouds: Backups sem Monitoramento",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.nomon",
+                        "history": "90d",
+                        "description": "Quantidade de backups sem monitoramento",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.status.nomon"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5629d763d45044c6b599c676503befff",
+                        "name": "MSPClouds: Status Raw JSON",
+                        "type": "HTTP_AGENT",
+                        "key": "mspclouds.status.raw",
+                        "delay": "1h",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "description": "JSON completo do endpoint de status. Executado 1x por dia às 8h.",
+                        "timeout": "30s",
+                        "url": "{$MSPCLOUDS.API.URL}/cloudbackup/reports/summary",
+                        "query_fields": [
+                            {
+                                "name": "api_key",
+                                "value": "{$MSPCLOUDS.API.KEY}"
+                            }
+                        ],
+                        "headers": [
+                            {
+                                "name": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "api"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b268996b0bb347dbace289b827564939",
+                        "name": "MSPClouds: Backups com Sucesso",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.success",
+                        "history": "90d",
+                        "description": "Quantidade de backups finalizados com sucesso",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.status.success"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4673a8d518074e1889baf383b3b5620b",
+                        "name": "MSPClouds: Total de Backups",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.total",
+                        "history": "90d",
+                        "description": "Quantidade total de tarefas de backup monitoradas",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.status.total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "11c5b24ce0f74a249cadc87546bb1c23",
+                        "name": "MSPClouds: Última Atualização",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.updated_at",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "description": "Data/hora da última atualização dos dados",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.updated_at"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6afabeb8e7ec47938852a964e861c56b",
+                        "name": "MSPClouds: Backups com Warning",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.status.warning",
+                        "history": "90d",
+                        "description": "Quantidade de backups finalizados com aviso",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.status.warning"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "mspclouds"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "d43acd47ef7d468d8298cc7a22812f70",
+                                "expression": "last(/MSPClouds Backup Monitor/mspclouds.status.warning)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/MSPClouds Backup Monitor/mspclouds.status.warning)=0",
+                                "name": "MSPClouds: Existem {ITEM.LASTVALUE} backup(s) com WARNING",
+                                "opdata": "Existem {ITEM.LASTVALUE} backup(s) com aviso",
+                                "priority": "WARNING",
+                                "description": "Um ou mais backups finalizaram com aviso.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "072efcdaaa9146c68eeb51c21c348e59",
+                        "name": "Descoberta de Alertas",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.discovery.alerts",
+                        "description": "Descobre alertas ativos",
+                        "item_prototypes": [
+                            {
+                                "uuid": "9d4df4e0eba94c27a1ae07027db73b77",
+                                "name": "MSPClouds Alerta [{#ALERT_CLIENT}]: {#ALERT_TYPE}",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.alert.message[{#ALERT_CLIENT},{#ALERT_TYPE},{#ALERT_CREATED}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "Detalhes do alerta",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$[?(@.client==\"{#ALERT_CLIENT}\" && @.type==\"{#ALERT_TYPE}\")].message.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "return JSON.stringify(JSON.parse(value), null, 2);"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.alerts.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "alert_type",
+                                        "value": "{#ALERT_TYPE}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#ALERT_CLIENT}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "alert"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.alerts.raw"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#ALERT_CLIENT}",
+                                "path": "$.['{#ALERT_CLIENT}']"
+                            },
+                            {
+                                "lld_macro": "{#ALERT_CREATED}",
+                                "path": "$.['{#ALERT_CREATED}']"
+                            },
+                            {
+                                "lld_macro": "{#ALERT_PRODUCT}",
+                                "path": "$.['{#ALERT_PRODUCT}']"
+                            },
+                            {
+                                "lld_macro": "{#ALERT_TYPE}",
+                                "path": "$.['{#ALERT_TYPE}']"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var data = JSON.parse(value);\nvar result = [];\nif (Array.isArray(data) && data.length > 0) {\n    data.forEach(function(alert) {\n        result.push({\n            \"{#ALERT_CLIENT}\": alert.client,\n            \"{#ALERT_TYPE}\": alert.type,\n            \"{#ALERT_PRODUCT}\": alert.product_keyword,\n            \"{#ALERT_CREATED}\": alert.created_at\n        });\n    });\n}\nreturn JSON.stringify(result);"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "733076c3d1e941b38dab2b8fa73bfd5e",
+                        "name": "Descoberta de Clientes e Backupsets",
+                        "type": "DEPENDENT",
+                        "key": "mspclouds.discovery.clients",
+                        "description": "Descobre automaticamente clientes e seus backupsets",
+                        "item_prototypes": [
+                            {
+                                "uuid": "d1a246ad346b4f3dace8588c974c0695",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Data do Último Backup",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.last_backup_date[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "Data/hora do último backup",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_backup_job_date.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "37d1a3333de04d0bb86f8fc74fe6a606",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Timestamp do Último Backup",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.last_backup_ts[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "units": "unixtime",
+                                "description": "Unix timestamp do último backup (para cálculos de tempo)",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_backup_job_date.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "// Converte \"YYYY-MM-DD HH:MM:SS\" para Unix timestamp\nvar d = new Date(value.replace(\" \", \"T\") + \"-03:00\");\nreturn Math.floor(d.getTime() / 1000);"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "937f77b27331495cace1d202f41e1561",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Idade do Último Sucesso",
+                                "type": "CALCULATED",
+                                "key": "mspclouds.client.last_success_age[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "delay": "1h",
+                                "units": "s",
+                                "params": "now()-last(//mspclouds.client.last_success_ts[{#CLIENT_ID},{#BACKUPSET_ID}])",
+                                "description": "Tempo decorrido desde o último backup bem-sucedido (em segundos)",
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "cbe6db2ffade48258f1b1b64432bdb67",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Data do Último Sucesso",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.last_success_date[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "Data do último backup bem-sucedido",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_success_backup_job_date.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "7fd1427459794fd2acc8b55ddff4adba",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Timestamp do Último Sucesso",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.last_success_ts[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "units": "unixtime",
+                                "description": "Unix timestamp do último backup bem-sucedido (para cálculos de tempo)",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_success_backup_job_date.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "// Converte \"YYYY-MM-DD HH:MM:SS\" para Unix timestamp\nvar d = new Date(value.replace(\" \", \"T\") + \"-03:00\");\nreturn Math.floor(d.getTime() / 1000);"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "91484d7559f0414aa12c43f78a3a40e3",
+                                        "expression": "now()-last(/MSPClouds Backup Monitor/mspclouds.client.last_success_ts[{#CLIENT_ID},{#BACKUPSET_ID}])>{$MSPCLOUDS.BACKUP.MAX_AGE}",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "now()-last(/MSPClouds Backup Monitor/mspclouds.client.last_success_ts[{#CLIENT_ID},{#BACKUPSET_ID}])<={$MSPCLOUDS.BACKUP.MAX_AGE}",
+                                        "name": "MSPClouds [{#CLIENT_NAME}]: Backup \"{#BACKUPSET_NAME}\" sem sucesso há mais de {$MSPCLOUDS.BACKUP.MAX_AGE}",
+                                        "opdata": "Último sucesso: {ITEM.LASTVALUE1}",
+                                        "url": "{?last(/MSPClouds Backup Monitor/mspclouds.client.report_url[{#CLIENT_ID},{#BACKUPSET_ID}])}",
+                                        "priority": "WARNING",
+                                        "description": "O backup do cliente {#CLIENT_NAME} não teve sucesso há mais tempo que o tolerado.\n\nBackupset: {#BACKUPSET_NAME}\nLogin: {#LOGIN_NAME}\nDestino: {#DESTINATION}\nThreshold configurado: {$MSPCLOUDS.BACKUP.MAX_AGE}\n\nClique na URL para ver o relatório detalhado.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "client",
+                                                "value": "{#CLIENT_NAME}"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "5cb04b62461744918cc24d35666b1c06",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: URL do Relatório",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.report_url[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "URL do relatório detalhado do último backup",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_backup_job_url.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ade3f5770a214afcbe5b5506928c4013",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Status",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.status[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "Status do último backup",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].status.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "72b8b5d8e4104fc0903fb1d81a553828",
+                                        "expression": "last(/MSPClouds Backup Monitor/mspclouds.client.status[{#CLIENT_ID},{#BACKUPSET_ID}])=\"error\"",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "last(/MSPClouds Backup Monitor/mspclouds.client.status[{#CLIENT_ID},{#BACKUPSET_ID}])=\"success\"",
+                                        "name": "MSPClouds [{#CLIENT_NAME}]: Backup \"{#BACKUPSET_NAME}\" com ERRO",
+                                        "opdata": "{?last(/MSPClouds Backup Monitor/mspclouds.client.status_desc[{#CLIENT_ID},{#BACKUPSET_ID}])}",
+                                        "url": "{?last(/MSPClouds Backup Monitor/mspclouds.client.report_url[{#CLIENT_ID},{#BACKUPSET_ID}])}",
+                                        "priority": "HIGH",
+                                        "description": "O backup do cliente {#CLIENT_NAME} falhou.\n\nBackupset: {#BACKUPSET_NAME}\nLogin: {#LOGIN_NAME}\nDestino: {#DESTINATION}\n\nClique na URL da trigger para ver o relatório detalhado do backup.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "client",
+                                                "value": "{#CLIENT_NAME}"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a607381277b84cc4b42ac7a0ae29ac2d",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Código do Status",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.status_code[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "Código interno do status (ex: BS_STOP_SUCCESS, BS_STOP_BY_QUOTA_EXCEEDED)",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_backup_job_status_code.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "47372aea27004cca8d4baaa1324fd6e2",
+                                "name": "MSPClouds [{#CLIENT_NAME}]: Descrição do Status",
+                                "type": "DEPENDENT",
+                                "key": "mspclouds.client.status_desc[{#CLIENT_ID},{#BACKUPSET_ID}]",
+                                "history": "7d",
+                                "value_type": "TEXT",
+                                "description": "Descrição do status do último backup (ex: Cota Excedida, Não realizado, Realizado com sucesso)",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.clients[?(@.id=={#CLIENT_ID})].backupsets[?(@.backup_set_id==\"{#BACKUPSET_ID}\")].last_backup_job_status_description.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "mspclouds.status.raw"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "backupset",
+                                        "value": "{#BACKUPSET_NAME}"
+                                    },
+                                    {
+                                        "tag": "client",
+                                        "value": "{#CLIENT_NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "mspclouds.status.raw"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#BACKUPSET_ID}",
+                                "path": "$.['{#BACKUPSET_ID}']"
+                            },
+                            {
+                                "lld_macro": "{#BACKUPSET_NAME}",
+                                "path": "$.['{#BACKUPSET_NAME}']"
+                            },
+                            {
+                                "lld_macro": "{#BACKUPSET_TYPE}",
+                                "path": "$.['{#BACKUPSET_TYPE}']"
+                            },
+                            {
+                                "lld_macro": "{#CLIENT_ID}",
+                                "path": "$.['{#CLIENT_ID}']"
+                            },
+                            {
+                                "lld_macro": "{#CLIENT_NAME}",
+                                "path": "$.['{#CLIENT_NAME}']"
+                            },
+                            {
+                                "lld_macro": "{#DESTINATION}",
+                                "path": "$.['{#DESTINATION}']"
+                            },
+                            {
+                                "lld_macro": "{#LOGIN_DESC}",
+                                "path": "$.['{#LOGIN_DESC}']"
+                            },
+                            {
+                                "lld_macro": "{#LOGIN_NAME}",
+                                "path": "$.['{#LOGIN_NAME}']"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var data = JSON.parse(value);\nvar result = [];\nif (data.clients && data.clients.length > 0) {\n    data.clients.forEach(function(client) {\n        if (client.backupsets && client.backupsets.length > 0) {\n            client.backupsets.forEach(function(bs) {\n                result.push({\n                    \"{#CLIENT_ID}\": client.id,\n                    \"{#CLIENT_NAME}\": client.name,\n                    \"{#BACKUPSET_ID}\": bs.backup_set_id,\n                    \"{#BACKUPSET_NAME}\": bs.backup_set_name,\n                    \"{#BACKUPSET_TYPE}\": bs.backup_set_type,\n                    \"{#LOGIN_NAME}\": bs.login_name,\n                    \"{#LOGIN_DESC}\": bs.login_description,\n                    \"{#DESTINATION}\": bs.destination_name\n                });\n            });\n        }\n    });\n}\nreturn JSON.stringify(result);"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$MSPCLOUDS.API.KEY}",
+                        "value": "311B-F97E-E275-3D35",
+                        "description": "Chave de API do MSPClouds"
+                    },
+                    {
+                        "macro": "{$MSPCLOUDS.API.URL}",
+                        "value": "https://mspclouds.com/api/v1",
+                        "description": "URL base da API MSPClouds"
+                    },
+                    {
+                        "macro": "{$MSPCLOUDS.BACKUP.MAX_AGE}",
+                        "value": "36h",
+                        "description": "Tempo máximo tolerado sem backup bem-sucedido (ex: 24h, 1d, 86400)"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "69e7e8f8d3ff4ea98f436433f4d78138",
+                        "name": "MSPClouds Backup Status",
+                        "mappings": [
+                            {
+                                "value": "success",
+                                "newvalue": "Sucesso"
+                            },
+                            {
+                                "value": "error",
+                                "newvalue": "Erro"
+                            },
+                            {
+                                "value": "warning",
+                                "newvalue": "Aviso"
+                            },
+                            {
+                                "value": "info",
+                                "newvalue": "Em execução"
+                            },
+                            {
+                                "value": "nomon",
+                                "newvalue": "Sem monitoramento"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

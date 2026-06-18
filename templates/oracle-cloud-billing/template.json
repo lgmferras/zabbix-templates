@@ -1,0 +1,153 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "a54c2e4f18164e77b90bf5d6af4c1267",
+                "template": "Oracle Cloud Billing Monthly by HTTP",
+                "name": "Oracle Cloud Billing Monthly by HTTP",
+                "description": "Monitors the current month OCI billing cost via the OCI Usage Reports API.\nFor Always Free tenants the cost should be R$ 0,00.\nAlerts if any unexpected charges are detected.\n\nRequires the same OCI API credentials as the other Oracle Cloud by HTTP templates.\nApply this template to the same host as Oracle Cloud by HTTP.",
+                "groups": [
+                    {
+                        "name": "Templates/Cloud"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "082d9bcd40ff47fb9ef5483e3d344a60",
+                        "name": "OCI: Custo mensal (fatura)",
+                        "type": "DEPENDENT",
+                        "key": "oci.billing.monthly.cost",
+                        "value_type": "FLOAT",
+                        "description": "Custo total acumulado no mês corrente em moeda local (BRL para conta BR). Deve ser 0,00 no Always Free.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.cost"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "12h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "oci.billing.monthly.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cost"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "348cc06d3dda454c9fc3e18e3d976b96",
+                                "expression": "last(/Oracle Cloud Billing Monthly by HTTP/oci.billing.monthly.cost) > {$OCI.BILLING.WARN.COST}",
+                                "name": "OCI Billing: Cobranças inesperadas detectadas na fatura mensal",
+                                "event_name": "OCI Billing: Custo mensal R$ {ITEM.LASTVALUE1} excede o esperado para Always Free",
+                                "opdata": "Custo atual: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O custo mensal OCI excedeu {$OCI.BILLING.WARN.COST}. A conta está no plano Always Free — qualquer cobrança acima deste valor requer investigação imediata.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "cost"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "45341a49fc9c44fca65c6e4d881450c9",
+                        "name": "OCI: Get monthly billing data",
+                        "type": "SCRIPT",
+                        "key": "oci.billing.monthly.get",
+                        "delay": "6h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "params": "function validateZabbixParams(requiredParams, allParams) {\n\trequiredParams.forEach(function (field) {\n\t\tif (typeof allParams !== 'object' || typeof allParams[field] === 'undefined' || allParams[field] === '') {\n\t\t\tthrow 'Required param is not set: ' + field + '.';\n\t\t}\n\t});\n}\n\nfunction OCI(service, action, params) {\n\tthis.zabbixLogPrefix = '[ OCI ] [ ' + service + ' ] [ ' + action + ' ]';\n\tthis.request = new HttpRequest();\n\n\tthis.hash = function (string) {\n\t\treturn sha256(string);\n\t};\n\n\tthis.sign = function (string) {\n\t\treturn sign('sha256', params['private_key'], string);\n\t};\n\n\tthis.encode = function (hash) {\n\t\tconst hexArr = hash.match(/.{1,2}/g);\n\t\tvar uInt8Array = new Uint8Array(hexArr.length);\n\t\thexArr.forEach(function (hex, idx) {\n\t\t\tuInt8Array[idx] = parseInt(hex, 16);\n\t\t});\n\t\treturn btoa(uInt8Array);\n\t};\n\n\tthis.getDate = function () {\n\t\tconst weekdayShortList = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];\n\t\tconst monthShortList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];\n\t\tconst today = new Date();\n\t\treturn weekdayShortList[today.getUTCDay()] + ', ' + today.getUTCDate() + ' ' + monthShortList[today.getUTCMonth()] + ' ' + today.getUTCFullYear() + ' ' + today.getUTCHours() + ':' + today.getUTCMinutes() + ':' + today.getUTCSeconds() + ' GMT';\n\t};\n\n\tthis.postRequest = function (apiPath, body) {\n\t\tconst sigHeaders = '(request-target) date host x-content-sha256 content-type content-length';\n\t\tconst contentTypeHeader = 'content-type: application/json';\n\t\tconst dateHeader = 'date: ' + this.getDate();\n\t\tconst hostHeader = 'host: ' + params['api_host'];\n\t\tconst requestTarget = '(request-target): post ' + apiPath;\n\t\tconst bodyHeader = 'x-content-sha256: ' + this.encode(this.hash(body));\n\t\tconst bodyLengthHeader = 'content-length: ' + body.length;\n\t\tconst signingString = requestTarget + '\\n' + dateHeader + '\\n' + hostHeader + '\\n' + bodyHeader + '\\n' + contentTypeHeader + '\\n' + bodyLengthHeader;\n\t\tconst signature = this.encode(this.sign(signingString));\n\t\tconst authHeader = 'Authorization: Signature version=\"1\",keyId=\"' + params['tenancy_ocid'] + '/' + params['user_ocid'] + '/' + params['fingerprint'] + '\",algorithm=\"rsa-sha256\",headers=\"' + sigHeaders + '\",signature=\"' + signature + '\"';\n\t\tconst reqHeaders = [contentTypeHeader, dateHeader, bodyHeader, bodyLengthHeader, authHeader];\n\t\tfor (var i = 0; i < reqHeaders.length; i++) {\n\t\t\tthis.request.addHeader(reqHeaders[i]);\n\t\t}\n\t\tif (params['http_proxy']) {\n\t\t\tthis.request.setProxy(params['http_proxy']);\n\t\t\tZabbix.log(4, this.zabbixLogPrefix + ' Using proxy: ' + params['http_proxy']);\n\t\t}\n\t\tconst response = this.request.post('https://' + params['api_host'] + apiPath, body);\n\t\tthis.request.clearHeader();\n\t\tif (this.request.getStatus() === parseInt(params['http_status_code'])) {\n\t\t\treturn response;\n\t\t}\n\t\tZabbix.log(3, this.zabbixLogPrefix + ' HTTP ' + this.request.getStatus() + ': ' + response);\n\t\tthrow 'Unexpected HTTP response code: ' + this.request.getStatus();\n\t};\n}\n\nfunction padTwo(n) {\n\treturn ('0' + n).slice(-2);\n}\n\nfunction toISOStr(d) {\n\treturn d.getUTCFullYear() + '-' + padTwo(d.getUTCMonth() + 1) + '-' + padTwo(d.getUTCDate()) + 'T' + padTwo(d.getUTCHours()) + ':' + padTwo(d.getUTCMinutes()) + ':' + padTwo(d.getUTCSeconds()) + 'Z';\n}\n\nconst params = JSON.parse(value);\nvalidateZabbixParams(['tenancy_ocid', 'user_ocid', 'private_key', 'fingerprint', 'api_host', 'http_status_code'], params);\nvar oci = new OCI('Billing', 'Get monthly cost', params);\n\nconst now = new Date();\nconst startTime = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));\nconst endTime = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));\nconst startTimeStr = toISOStr(startTime);\nconst endTimeStr = toISOStr(endTime);\n\nconst body = JSON.stringify({\n\t'tenantId': params['tenancy_ocid'],\n\t'timeUsageStarted': startTimeStr,\n\t'timeUsageEnded': endTimeStr,\n\t'granularity': 'MONTHLY',\n\t'queryType': 'COST'\n});\n\nconst response = oci.postRequest('/20200107/usage', body);\n\nvar data;\ntry {\n\tdata = JSON.parse(response);\n} catch (e) {\n\tZabbix.log(3, '[ OCI ] [ Billing ] Could not parse response: ' + response);\n\tthrow 'Could not parse API response.';\n}\n\nvar totalCost = 0;\nvar currency = '';\nif (data['items'] && Array.isArray(data['items'])) {\n\tconst items = data['items'];\n\tfor (var i = 0; i < items.length; i++) {\n\t\tif (items[i]['computedAmount']) {\n\t\t\ttotalCost += items[i]['computedAmount'];\n\t\t}\n\t\tif (!currency && items[i]['currency']) {\n\t\t\tcurrency = items[i]['currency'];\n\t\t}\n\t}\n}\ntotalCost = Math.round(totalCost * 100) / 100;\n\nreturn JSON.stringify({\n\t'cost': totalCost,\n\t'currency': currency\n});",
+                        "description": "Queries OCI Usage Reports API for the current month billing cost.\nReturns JSON: {\"cost\": <total_cost>, \"currency\": \"BRL\"}.",
+                        "timeout": "30s",
+                        "parameters": [
+                            {
+                                "name": "api_host",
+                                "value": "{$OCI.API.USAGE.HOST}"
+                            },
+                            {
+                                "name": "fingerprint",
+                                "value": "{$OCI.API.FINGERPRINT}"
+                            },
+                            {
+                                "name": "http_proxy",
+                                "value": "{$OCI.HTTP.PROXY}"
+                            },
+                            {
+                                "name": "http_status_code",
+                                "value": "{$OCI.HTTP.RETURN.CODE.OK}"
+                            },
+                            {
+                                "name": "private_key",
+                                "value": "{$OCI.API.PRIVATE.KEY}"
+                            },
+                            {
+                                "name": "tenancy_ocid",
+                                "value": "{$OCI.API.TENANCY}"
+                            },
+                            {
+                                "name": "user_ocid",
+                                "value": "{$OCI.API.USER}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "raw"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "software"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "oracle-cloud"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$OCI.API.USAGE.HOST}",
+                        "value": "usageapi.sa-saopaulo-1.oci.oraclecloud.com",
+                        "description": "Host da OCI Usage Reports API. Substituir a região conforme necessário."
+                    },
+                    {
+                        "macro": "{$OCI.BILLING.WARN.COST}",
+                        "value": "1",
+                        "description": "Custo mensal (em moeda local) acima do qual o trigger HIGH é ativado. Padrão: 1 (R$ 1,00)."
+                    }
+                ]
+            }
+        ]
+    }
+}

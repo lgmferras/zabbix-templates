@@ -1,0 +1,1620 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "9232212f202b469d9cdd496cd1227e7f",
+                "name": "Templates/IOT"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "425f0c17ae6e453fbd2728582e065666",
+                "template": "Dragino IOT",
+                "name": "Dragino IOT",
+                "groups": [
+                    {
+                        "name": "Templates/IOT"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "29572c7d2ab64a8a9668f63f50e4c2b4",
+                        "name": "Lora Gateway Altitude",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.altitute",
+                        "units": "metros",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*]['stat']['alti']"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.lorawan,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "fd71e8faae46482895e27a55b6d5e95c",
+                        "name": "Lora Beacon Bandwidth",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.beacon.bandwidth",
+                        "value_type": "FLOAT",
+                        "units": "Hz",
+                        "description": "Largura de Banda do Beacon (Hz):\nA largura da banda do canal de rádio usada para o beacon. 125000 Hz = 125 kHz, que é o padrão para a maioria dos canais LoRaWAN.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.beacon_bw_hz"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b2ffeda2a621492cbbcefa0006305bf5",
+                        "name": "Lora Beacon Data Rate",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.beacon.datarate",
+                        "description": "Taxa de Dados do Beacon: \nO Data Rate (que define o Spreading Factor e a codificação) usado para transmitir o beacon.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.beacon_datarate"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6889f86148a740a482490358eb125044",
+                        "name": "Lora Beacon Frequency",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.beacon.frequency",
+                        "value_type": "FLOAT",
+                        "units": "Hz",
+                        "description": "Frequência do Beacon (Hz): \nA frequência exata em Hertz usada para transmitir o beacon. \nEx: 869525000 Hz = 869.525 MHz.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.beacon_freq_hz"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1a6cbb47a702407388c6b80c4a40bd37",
+                        "name": "Lora Beacon Period",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.beacon.period",
+                        "units": "s",
+                        "description": "Período do Beacon (segundos): \nO intervalo entre as transmissões do beacon. Um valor de 0 significa que a transmissão de beacons está desativada, e, portanto, o suporte a dispositivos Classe B está desligado. O período padrão, quando ativo, é de 128 segundos.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.beacon_period"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "70884b6b0c764640a2a3e8ce06c95154",
+                        "name": "Lora Beacon Power",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.beacon.power",
+                        "units": "dBm",
+                        "description": "Potência do Beacon (dBm): \nA potência de transmissão do sinal de beacon, medida em dBm.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.beacon_power"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ed3dc22d21d9427686c94398b59054b6",
+                        "name": "CPU utilization",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.cpu.util",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "CPU utilization expressed in %.",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return (100 - value)"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.cpu.idle.time,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9b1c4188ab1441e2ba6245108499211b",
+                        "name": "Lora Gateway Description",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.description",
+                        "value_type": "TEXT",
+                        "description": "Descrição do Gateway:\nUm texto livre para você identificar o gateway (ex: \"Gateway Prédio A - Térreo\").",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.description"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "10d79539237e437abd6e8007cc54a14e",
+                        "name": "Lora Server CRC Disabled Forward",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.forward.crc.disabled",
+                        "value_type": "TEXT",
+                        "description": "Encaminhar sem CRC: \nSe true, encaminha pacotes que não possuem CRC (formato não padrão).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].forward_crc_disabled"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5ea947f61ca840e1ac5df7953d07ae67",
+                        "name": "Lora Server CRC Error Forward",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.forward.crc.error",
+                        "value_type": "TEXT",
+                        "description": "Encaminhar CRC com Erro: \nSe true, o gateway encaminha pacotes que falharam na verificação CRC. Útil para analisar a qualidade do sinal e interferências.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].forward_crc_error"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "185e5431fca04785ad5812e24878ab55",
+                        "name": "Lora Server CRC Valid Forward",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.forward.crc.valid",
+                        "value_type": "TEXT",
+                        "description": "Encaminhar CRC Válido:\nSe true, o gateway encaminha pacotes que passaram na verificação de redundância cíclica (CRC), ou seja, pacotes válidos.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].forward_crc_valid"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8f13aba7f6c541fb9f5a6dcae3aa3740",
+                        "name": "Lora Ghost Stream",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.ghoststream.enabled",
+                        "value_type": "TEXT",
+                        "description": "Similar ao radiostream, mas geralmente para um processo local (\"ghost\") no próprio gateway, também para fins de depuração avançada.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.ghoststream_enable"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f3ded8e4794c4b4da0d43aac0fdb48e6",
+                        "name": "Lora Gateway ID",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.id",
+                        "value_type": "TEXT",
+                        "description": "ID Único do Gateway (EUI): \nEste é o identificador exclusivo e global do seu gateway na rede LoRaWAN, similar a um endereço MAC. É um valor crucial para o registro na sua Network Server (ex: TTN, ChirpStack).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.gateway_ID"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a6188437171c440e8f88c9180672bd79",
+                        "name": "Lora Gateway Latitude",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.latitude",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*]['stat']['lati']"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.lorawan,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "22540601398b4adf8fc94bf6b6012740",
+                        "name": "Lora LBT (Listen Before Talk)",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.lbt.enabled",
+                        "value_type": "TEXT",
+                        "description": "Habilitar LBT (Listen Before Talk): \nSe true, o gateway \"escuta\" o canal antes de transmitir (downlink) para evitar colisões. \nÉ obrigatório em algumas regiões (como o Japão) para cumprir as regulações.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.lbt_enable"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3b6471b9ca16406aa358f2aee21282aa",
+                        "name": "Lora Gateway Longitude",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.longitude",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*]['stat']['long']"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.lorawan,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "08e79a13efb14555864eb515ab085821",
+                        "name": "Lora Gateway Platform",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.platform",
+                        "value_type": "TEXT",
+                        "description": "Plataforma do Concentrador: \nIndica o modelo do chip concentrador LoRa.\nEx.: \"SX1302\" é um chip moderno e eficiente da Semtech.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0]['stat']['pfrm']"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.lorawan,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "ebc3482e597045d6ac62c9dde5722024",
+                        "name": "Lora Region",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.regional.plan",
+                        "value_type": "TEXT",
+                        "description": "Plano Regional: \nDefine o plano de frequências e regulações a serem seguidas. \n\"EU\" corresponde ao plano EU868 (863-870 MHz), que é o padrão usado no Brasil (AU915 ou US915 também são comuns aqui).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.regional"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0f14690d8f8549909246b5ec55f9b1bf",
+                        "name": "Lora Status Interval",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.stat.interval",
+                        "units": "s",
+                        "description": "Intervalo de Status (segundos): \nA frequência, em segundos, com que o gateway envia uma mensagem de status para o Network Server. \nUm valor de 30 é muito comum.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.stat_interval"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9897f75281314cfe8e9f9902d4338bb7",
+                        "name": "Lora Watchdog",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.gateway.watchdog.enabled",
+                        "value_type": "TEXT",
+                        "description": "Habilitar Watchdog: \nSe true, ativa um \"cão de guarda\" (watchdog) que reinicia o processo do gateway se ele travar ou parar de responder, aumentando a confiabilidade.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.wd_enable"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7307e4a68c78456b91337a6de4952790",
+                        "name": "LoRa RX Packets Count",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.count",
+                        "description": "Quantidade total de pacotes RX",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk.length()"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "a0fe4ebec00344d98fdd1d5ccc862dcf",
+                        "name": "LoRa RX Packet Data Rate",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.datr",
+                        "value_type": "TEXT",
+                        "description": "Taxa de dados (ex: SF7BW125) dos pacotes RX",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk[*].datr"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes, espaços E ASPAS.\n// A principal mudança é adicionar as aspas (\") na expressão regular.\nvar str = value.replace(/\\[|\\]|\\s|\"/g, '');\n\n// Divide a string pela vírgula para criar o array de textos.\nvar arr = str.split(',');\n\n// Retorna o último elemento do array.\n// O .pop() funciona perfeitamente com arrays de texto.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "eb1950bb8d084fd69a3da258be84c5ee",
+                        "name": "LoRa RX Packet Frequency",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.freq",
+                        "value_type": "FLOAT",
+                        "units": "MHz",
+                        "description": "Retorna Última Frequência (MHz) de recepção dos pacotes",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk[*].freq"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "ad1579f4ee854ded90d8debfb7ba165b",
+                        "name": "LoRa RX Packet SNR",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.lsnr",
+                        "value_type": "FLOAT",
+                        "units": "dB",
+                        "description": "Retorna último valor SNR (Signal-to-Noise Ratio) dos pacotes RX",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk[*].lsnr"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "b501acb437864f418652900386ed3d24",
+                        "name": "LoRa RX Packet RSSI",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.rssi",
+                        "value_type": "FLOAT",
+                        "units": "dBm",
+                        "description": "Retorna Último Valor RSSI (intensidade do sinal recebido) dos pacotes RX",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk[*].rssi"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "d5ea0e08cc5e40b3afd02ccc9b3371ba",
+                        "name": "LoRa RX Packet Size",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.size",
+                        "units": "bytes",
+                        "description": "Tamanho em bytes do último pacote RX",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk[*].size"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "144c5e8903ba4298970b98f475fed6e0",
+                        "name": "LoRa RX Packet Status",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.rxpk.stat",
+                        "description": "Status dos pacotes RX (1 indica sucesso).",
+                        "valuemap": {
+                            "name": "lorawan.rxpk.stat"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[*].rxpk[*].stat"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Remove colchetes e espaços\nvar str = value.replace(/\\[|\\]|\\s/g, '');\n// Divide por vírgula\nvar arrStr = str.split(',');\n// Converte para array de números\nvar arr = arrStr.map(function(x) { return parseFloat(x); });\n\n// Retorna o último elemento do array.\n// O método .pop() remove o último elemento e o retorna.\nreturn arr.pop();"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "b8c1ed7ec9db438f8289151c2b1b4c42",
+                        "name": "Lora Server Address",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.address",
+                        "value_type": "TEXT",
+                        "description": "Endereço do Servidor: \nO endereço IP ou DNS do Network Server para onde os dados serão enviados.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].server_address"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b057e6b1023d4423b67b03fc6585db90",
+                        "name": "Lora Server Keep-Alive Interval",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.keepalive",
+                        "units": "s",
+                        "description": "Intervalo de Keep-Alive (segundos):\nFrequência com que o gateway envia um pequeno pacote para o servidor para manter a conexão ativa, especialmente útil para atravessar firewalls e NAT.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].keepalive_interval"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "932d330255ed4851b95fa55e3fd85500",
+                        "name": "Lora Server Name",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.name",
+                        "value_type": "TEXT",
+                        "description": "Nome do Primeiro Servidor: Um nome amigável para identificar esta configuração de servidor.\n\nTODO: Modificar para aceitar mais de 1 servidor",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].server_name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "82bd7b7b7c754136a46bdaecd712acf3",
+                        "name": "Lora Server Port Downlink",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.port.down",
+                        "description": "Porta de Downlink: \nA porta UDP no servidor de onde o gateway busca mensagens para os dispositivos (downlinks). O padrão é 1700.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].serv_port_down"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "217a4da0c7964e7fa6c43868b644bcef",
+                        "name": "Lora Server Port Uplink",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.port.up",
+                        "description": "Porta de Uplink:\nA porta UDP no servidor que escuta os dados vindos dos dispositivos (uplinks). O padrão é 1700.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].serv_port_up"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d2f4d1553c7f4dc3a05af5c5c0a1a753",
+                        "name": "Lora Server Pull Timeout (ms)",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.timeout.pull",
+                        "units": "ms",
+                        "description": "Timeout de Pull (ms): Tempo máximo em milissegundos que o gateway espera por dados ao solicitar downlinks do servidor.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].pull_timeout_ms"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ffed4c987f744786ab1f7911de79e814",
+                        "name": "Lora Server Push Timeout (ms)",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.timeout.push",
+                        "units": "ms",
+                        "description": "Timeout de Push (ms): \nTempo máximo em milissegundos que o gateway espera por uma confirmação ao enviar um uplink.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].push_timeout_ms"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9d887af2f4524bfda63c4c8345c516c6",
+                        "name": "Lora Server Type",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.server.type",
+                        "value_type": "TEXT",
+                        "description": "Tipo de Servidor: \nO protocolo usado para comunicação. \"semtech\" refere-se ao protocolo legado UDP Packet Forwarder, que ainda é muito utilizado.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway_conf.servers[0].server_type"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8ac9bb0435744e36840d5c3cefb473f2",
+                        "name": "Load average (1m avg)",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.system.loadavg.1m",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "^(\\S+)",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "00323718d40241ec887e24d2b18102ac",
+                        "name": "Load average (5m avg)",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.system.loadavg.5m",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "^\\S+\\s+(\\S+)",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "47a94bc9d1cd4ed2b045822268cc295b",
+                        "name": "Load average (15m avg)",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.system.loadavg.15m",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "^\\S+\\s+\\S+\\s+(\\S+)",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "05927e2e2fdc420798a9ee5f5096cd27",
+                        "name": "Number of processes",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.system.loadavg.procrun",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "^\\S+\\s+\\S+\\s+\\S+\\s+(\\d+)/",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9790b4ca52ba4abd90a8eac443657026",
+                        "name": "Process Total",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.system.loadavg.proctot",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "^\\S+\\s+\\S+\\s+\\S+\\s+\\d+/(\\d+)",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "88e21846912543dd8142aca02f92a79e",
+                        "name": "Lora Last Warning",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.warning.last",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    ".*WARNING:\\s*(.*)",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.warnings,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b148eec0915d420d8eacd04470dc8c9e",
+                        "name": "CPU Idle Time",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.cpu.idle.time,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "5m",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "params": "(grep 'cpu ' /proc/stat; sleep 1; grep 'cpu ' /proc/stat) | awk '{u=$2+$4; t=$2+$4+$5; if (NR==1){u1=u; t1=t;} else printf \"%.2f%%\\n\", ($2+$4-u1) * 100 / (t-t1); }'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "Time the CPU has spent doing nothing.",
+                        "preprocessing": [
+                            {
+                                "type": "STR_REPLACE",
+                                "parameters": [
+                                    "%",
+                                    ""
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9fba91953c404d62b88f9e10e909415a",
+                        "name": "Number of CPUs",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.cpu.number,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "4h",
+                        "params": "grep -c ^processor /proc/cpuinfo",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "Number of CPUs",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "544284683e8d436da549f5efa097a2f0",
+                        "name": "System Disk Discovery",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.disk.discovery,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "12h",
+                        "value_type": "TEXT",
+                        "params": "df -P | awk 'NR>1 {gsub(/\"/, \"\\\\\\\"\"); printf \"%s{\\\"{#FSNAME}\\\":\\\"%s\\\", \\\"{#MOUNTPOINT}\\\":\\\"%s\\\"}\", sep, $1, $6; sep=\",\"} END {print \"\"}' | sed '1s/^/[/;$s/$/]/'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "disk"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "81686283c65e4fdf81d22a5f91caf771",
+                        "name": "Lora Last Error",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.error.last,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "params": "out=$(logread | grep -i 'error' | tail -n 1) [ -z \"$out\" ] && echo \"No Errors\" || echo \"$out\"",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e82aa459a831442ebd30d4adefb30b6d",
+                        "name": "System name",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.hostname,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "12h",
+                        "value_type": "TEXT",
+                        "params": "uci show network.wan.hostname",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "inventory_link": "NAME",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "network\\.wan\\.hostname='(.*)'",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ec2a42905630489ca827d3eded204697",
+                        "name": "JSON Local Conf",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "params": "cat /etc/lora/local_conf.json",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "RAW local_conf.json",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9e7c1e78956443b5960336c5eea812bc",
+                        "name": "Logread Errors",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.logread.errors,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "params": "logread | grep 'error' || echo \"OK\"",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "Coleta linhas de erro do log do gateway",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f31378bc4f654acc95f661a7f0fb5e2f",
+                        "name": "Logread LoRaWAN",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.logread.lorawan,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "params": "echo -n '['; logread | grep 'LoRaWAN' | sed -n 's/.*JSON: \\(.*\\)/\\1/p' | awk '{printf \"%s%s\", sep, $0; sep=\",\"}'; echo ']'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "Coleta linhas de erro do log do gateway",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ef38b41ad4004052955b7cc14ef419b2",
+                        "name": "Logread Warnings",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.logread.warnings,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "params": "logread | grep 'WARNING'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "Coleta linhas de erro do log do gateway",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ca808efe72b4444d8253fc4944fc729a",
+                        "name": "Lora Errors Count",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.logread_error_count,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "30m",
+                        "params": "out=$(logread | grep 'error' | tail -n 1); [ -z \"$out\" ] && echo \"0\" || echo \"$out\"",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a9536929abbf4ae3a6f76c2623a14dbd",
+                        "name": "LoRa RX",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "params": "echo -n '['; logread | grep 'INFO' | sed -n 's/.*JSON: \\(.*\\)/\\1/p' | grep '\"rxpk\"' | awk '{printf \"%s%s\", sep, $0; sep=\",\"}'; echo ']'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "description": "Master LoRa RX",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ce324957d4c84949a681b4252a24ca8a",
+                        "name": "Memory utilization",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.memused,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "5m",
+                        "units": "%",
+                        "params": "free | awk 'NR==2{printf(\"%.0f\\n\",100*$3/$2)}'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "memory"
+                            },
+                            {
+                                "tag": "metric",
+                                "value": "memory_util_percent"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "8210a22eac254027b09422e423bd7d5d",
+                                "expression": "avg(/Dragino IOT/ssh.run[lorawan.memused,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa],5m)>={$CPU.UTIL.CRIT}",
+                                "name": "High Memory Utilization",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d7e45ff6a23a48e4a0b44cd59e18eedf",
+                        "name": "System Net if Discovery",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.net.if.discovery,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "1h",
+                        "value_type": "TEXT",
+                        "params": "cat /proc/net/dev | awk -F: 'NR>2 {gsub(/ /,\"\",$1); print \"{\\\"{#IFNAME}\\\":\\\"\"$1\"\\\"}\"}' | sed '1s/^/[/;$!s/$/,/;$s/$/]/'",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6f0745df9732472fa4bd26fdcb2555bd",
+                        "name": "System Load Average",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "value_type": "TEXT",
+                        "params": "cat /proc/loadavg",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s"
+                    },
+                    {
+                        "uuid": "e87f31f771974604a7b60aed162e81f8",
+                        "name": "System model",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.system.model,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "12h",
+                        "value_type": "TEXT",
+                        "params": "cat /var/iot/model.txt",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e484b7161ba34c6bbd072de52d6cb180",
+                        "name": "System Uptime",
+                        "type": "SSH",
+                        "key": "ssh.run[lorawan.system.uptime,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "10m",
+                        "units": "uptime",
+                        "params": "awk '{print int($1)}' /proc/uptime",
+                        "username": "{$USER.NAME}",
+                        "password": "{$USER.PASSWORD}",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            },
+                            {
+                                "tag": "metric",
+                                "value": "uptime_sec"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "78ec3947479e4c45a99bf83f837bca66",
+                                "expression": "last(/Dragino IOT/ssh.run[lorawan.system.uptime,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa])<10",
+                                "name": "{HOST.NAME} has been restarted",
+                                "event_name": "{HOST.NAME} has been restarted (uptime < 10m)",
+                                "priority": "WARNING",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "81e3e052407b4006ac2139051c2682bf",
+                        "name": "Discovery net.if.discovery",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.net.if.discovery",
+                        "filter": {
+                            "conditions": [
+                                {
+                                    "macro": "{#IFNAME}",
+                                    "value": "^(eth1).*"
+                                }
+                            ]
+                        },
+                        "item_prototypes": [
+                            {
+                                "uuid": "2931f0cd98c04c37b9c836353f87e0e7",
+                                "name": "Interface {#IFNAME}: Bits Received",
+                                "type": "SSH",
+                                "key": "ssh.run[lorawan.net.if.in.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                                "delay": "5m",
+                                "units": "bps",
+                                "params": "cat /proc/net/dev | grep -w '{#IFNAME}' | awk '{print $2}'",
+                                "username": "{$USER.NAME}",
+                                "password": "{$USER.PASSWORD}",
+                                "preprocessing": [
+                                    {
+                                        "type": "CHANGE_PER_SECOND"
+                                    },
+                                    {
+                                        "type": "MULTIPLIER",
+                                        "parameters": [
+                                            "8"
+                                        ]
+                                    }
+                                ],
+                                "timeout": "30s"
+                            },
+                            {
+                                "uuid": "beb2f774822c4ec8bc1248364e1ebbce",
+                                "name": "Interface {#IFNAME}: Bits Sent",
+                                "type": "SSH",
+                                "key": "ssh.run[lorawan.net.if.out.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                                "delay": "5m",
+                                "units": "bps",
+                                "params": "cat /proc/net/dev | grep -w '{#IFNAME}' | awk '{print $10}'",
+                                "username": "{$USER.NAME}",
+                                "password": "{$USER.PASSWORD}",
+                                "preprocessing": [
+                                    {
+                                        "type": "CHANGE_PER_SECOND"
+                                    },
+                                    {
+                                        "type": "MULTIPLIER",
+                                        "parameters": [
+                                            "8"
+                                        ]
+                                    }
+                                ],
+                                "timeout": "30s"
+                            },
+                            {
+                                "uuid": "ce77f0d580c3495a8572b8fb7db1b761",
+                                "name": "Interface {#IFNAME}: MAC",
+                                "type": "SSH",
+                                "key": "ssh.run[lorawan.net.mac.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                                "delay": "24h",
+                                "value_type": "TEXT",
+                                "params": "cat /sys/class/net/'{#IFNAME}'/address",
+                                "username": "{$USER.NAME}",
+                                "password": "{$USER.PASSWORD}",
+                                "timeout": "30s"
+                            }
+                        ],
+                        "graph_prototypes": [
+                            {
+                                "uuid": "243214de601d4748aee245db3e3ef24b",
+                                "name": "Interface {#IFNAME}: Network traffic",
+                                "yaxismax": "0",
+                                "graph_items": [
+                                    {
+                                        "drawtype": "GRADIENT_LINE",
+                                        "color": "1A7C11",
+                                        "item": {
+                                            "host": "Dragino IOT",
+                                            "key": "ssh.run[lorawan.net.if.in.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                                        }
+                                    },
+                                    {
+                                        "sortorder": "1",
+                                        "drawtype": "BOLD_LINE",
+                                        "color": "FF4000",
+                                        "item": {
+                                            "host": "Dragino IOT",
+                                            "key": "ssh.run[lorawan.net.if.out.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.net.if.discovery,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    },
+                    {
+                        "uuid": "f2b3cfcbe73d4e4fa7d4ff241f488b9f",
+                        "name": "Discovery vfs.fs.discovery",
+                        "type": "DEPENDENT",
+                        "key": "lorawan.vfs.fs.discovery",
+                        "filter": {
+                            "evaltype": "AND",
+                            "conditions": [
+                                {
+                                    "macro": "{#FSNAME}",
+                                    "value": "/overlay"
+                                },
+                                {
+                                    "macro": "{#MOUNTPOINT}",
+                                    "value": "/"
+                                }
+                            ]
+                        },
+                        "item_prototypes": [
+                            {
+                                "uuid": "a899814597d34d128cc1df2a586abf9c",
+                                "name": "File System: {#MOUNTPOINT} Used in %",
+                                "type": "SSH",
+                                "key": "ssh.run[lorawan.fs.{#MOUNTPOINT},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                                "delay": "10m",
+                                "units": "%",
+                                "params": "df -P {#MOUNTPOINT} | awk 'END{print $(NF-1)}' | tr -d '%'",
+                                "username": "{$USER.NAME}",
+                                "password": "{$USER.PASSWORD}",
+                                "timeout": "30s"
+                            }
+                        ],
+                        "graph_prototypes": [
+                            {
+                                "uuid": "217704c0b5b5471194207bfbd2e61646",
+                                "name": "FS [{#MOUNTPOINT}]: Space usage graph, in % (relative to max available)",
+                                "width": "600",
+                                "height": "340",
+                                "ymin_type_1": "FIXED",
+                                "ymax_type_1": "FIXED",
+                                "graph_items": [
+                                    {
+                                        "drawtype": "FILLED_REGION",
+                                        "color": "F63100",
+                                        "calc_fnc": "ALL",
+                                        "item": {
+                                            "host": "Dragino IOT",
+                                            "key": "ssh.run[lorawan.fs.{#MOUNTPOINT},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.disk.discovery,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "hardware"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$CPU.UTIL.CRIT}",
+                        "value": "90"
+                    },
+                    {
+                        "macro": "{$HOST.SSH_PORT}",
+                        "value": "2222"
+                    },
+                    {
+                        "macro": "{$LOAD_AVG_PER_CPU.MAX.WARN}",
+                        "value": "2"
+                    },
+                    {
+                        "macro": "{$USER.NAME}"
+                    },
+                    {
+                        "macro": "{$USER.PASSWORD}"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "2809a6b4358348ff86a9dce26c9d98cd",
+                        "name": "lorawan.gateway.beacon.period",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "disable"
+                            },
+                            {
+                                "value": "128",
+                                "newvalue": "enable"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a79284be1ab74aadb4097186c78c4237",
+                        "name": "lorawan.rxpk.stat",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Sucesso"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Erro"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e651e493d1514153a93f959f66149681",
+                        "name": "Zabbix agent ping status",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Up"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

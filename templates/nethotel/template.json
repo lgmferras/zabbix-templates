@@ -1,0 +1,930 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "a7fead13da804ca9a73bc6c1581f87da",
+                "template": "NETHOTEL by Zabbix agent active",
+                "name": "NETHOTEL by Zabbix agent active",
+                "description": "Template para monitoramento da aplicação NETHOTEL (sistema de gestão hoteleira).\nMonitora serviços críticos (Becape, Diária, NFE, NFCE, NFSE, Reservas, B2B) e backup do banco Firebird (.GBK).\n\nRequisitos:\n- Zabbix Agent 2 (active mode) instalado no servidor NETHOTEL\n- UserParameters configurados para cada item key\n- Diretório de backup: C:\\NETHOTEL\n\nMacros ajustáveis por host para personalizar thresholds.\n\nAutor: Systrix Telecom\nVersão: 2.0",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "6b233e0403b940029442d8e9aa6881ea",
+                        "name": "NETHOTEL Backup - Idade do último backup (horas)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.age_hours",
+                        "delay": "1m;10m/1-7,00:00-06:00",
+                        "value_type": "FLOAT",
+                        "units": "h",
+                        "description": "Número de horas desde o último backup. Valores acima de {$NETHOTEL.BACKUP.AGE.WARN}h indicam problema.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "2a3426c61ea242e7bd84af7f929c63b1",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)>{$NETHOTEL.BACKUP.AGE.DISASTER}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)<={$NETHOTEL.BACKUP.AGE.DISASTER}",
+                                "name": "NETHOTEL - Backup CRÍTICO (mais de {$NETHOTEL.BACKUP.AGE.DISASTER} horas sem backup)",
+                                "opdata": "Idade: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "ATENÇÃO: O último backup tem mais de {$NETHOTEL.BACKUP.AGE.DISASTER} horas! Risco de perda de dados.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "de107eae4c5c454e8ba27dd59886ce7d",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)>{$NETHOTEL.BACKUP.AGE.WARN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)<={$NETHOTEL.BACKUP.AGE.WARN}",
+                                "name": "NETHOTEL - Backup desatualizado (mais de {$NETHOTEL.BACKUP.AGE.WARN} horas)",
+                                "opdata": "Idade: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O último backup tem mais de {$NETHOTEL.BACKUP.AGE.WARN} horas. Verifique se o processo de backup está funcionando corretamente.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "NETHOTEL - Backup CRÍTICO (mais de {$NETHOTEL.BACKUP.AGE.DISASTER} horas sem backup)",
+                                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)>{$NETHOTEL.BACKUP.AGE.DISASTER}",
+                                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)<={$NETHOTEL.BACKUP.AGE.DISASTER}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e2ec3d784b614234a3c09fbeb537ad59",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)=-1",
+                                "name": "NETHOTEL - Nenhum arquivo de backup encontrado",
+                                "opdata": "Nenhum .GBK em C:\\NETHOTEL",
+                                "priority": "DISASTER",
+                                "description": "Não foram encontrados arquivos de backup .GBK no diretório C:\\NETHOTEL",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e78d9d2ba9394e8ab0b0d1b05c6f2c34",
+                        "name": "NETHOTEL Backup - Quantidade de arquivos de backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.file_count",
+                        "delay": "1h",
+                        "description": "Número de arquivos de backup .GBK (dias da semana). Esperado: {$NETHOTEL.BACKUP.EXPECTED_FILES}",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "79cfdb8de2634b79891c7992227c2280",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.file_count)<{$NETHOTEL.BACKUP.EXPECTED_FILES}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.file_count)={$NETHOTEL.BACKUP.EXPECTED_FILES}",
+                                "name": "NETHOTEL - Faltam arquivos de backup (menos de {$NETHOTEL.BACKUP.EXPECTED_FILES} dias)",
+                                "opdata": "Arquivos: {ITEM.LASTVALUE1} de {$NETHOTEL.BACKUP.EXPECTED_FILES}",
+                                "priority": "INFO",
+                                "description": "Existem menos de {$NETHOTEL.BACKUP.EXPECTED_FILES} arquivos de backup. Alguns dias da semana podem estar faltando.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "NETHOTEL - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)=-1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "03a6d5e2758d490daab94ea81c898c7d",
+                        "name": "NETHOTEL Backup - Nome do arquivo mais recente",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.latest_file",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "description": "Nome do arquivo de backup mais recente (ex: SEGEMA.GBK)",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e39d018d247d4d3298e468fd46ee4283",
+                        "name": "NETHOTEL Backup - Data/hora do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.latest_time",
+                        "delay": "1m;10m/1-7,00:00-06:00",
+                        "value_type": "TEXT",
+                        "description": "Data e hora do último backup realizado",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ac415350428940ea96e0d654b3d7d8d8",
+                        "name": "NETHOTEL Backup - gbak.exe em execução",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.running",
+                        "delay": "5m",
+                        "description": "Indica se o processo gbak.exe está em execução (backup em andamento). 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "1f6846ff2db8494690d274e77455e274",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=0",
+                                "name": "NETHOTEL - Backup em Execução",
+                                "opdata": "gbak.exe em execução",
+                                "priority": "INFO",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    },
+                                    {
+                                        "tag": "status",
+                                        "value": "backup_running"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "8bb2390ccec74b07946cf303f3e1db31",
+                                "expression": "min(/NETHOTEL by Zabbix agent active/nethotel.backup.running,{$NETHOTEL.BACKUP.MAX_RUNTIME})=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "min(/NETHOTEL by Zabbix agent active/nethotel.backup.running,{$NETHOTEL.BACKUP.MAX_RUNTIME})=0",
+                                "name": "NETHOTEL - Backup pode estar travado (rodando há mais de {$NETHOTEL.BACKUP.MAX_RUNTIME})",
+                                "opdata": "Rodando há mais de {$NETHOTEL.BACKUP.MAX_RUNTIME}",
+                                "priority": "WARNING",
+                                "description": "O processo gbak.exe está em execução há mais de {$NETHOTEL.BACKUP.MAX_RUNTIME}. Pode estar travado.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "NETHOTEL - Backup em Execução",
+                                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=1",
+                                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=0"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cb00b4ace2f04a12ad90757b0032630b",
+                        "name": "NETHOTEL Backup - Tamanho do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.size",
+                        "delay": "5m",
+                        "units": "B",
+                        "description": "Tamanho em bytes do arquivo de backup mais recente",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f30cf0c947e445e9a50e3d6b4024bfc1",
+                        "name": "NETHOTEL Backup - Backup do dia atual OK",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.today_ok",
+                        "delay": "1h",
+                        "description": "Verifica se o backup correspondente ao dia da semana atual foi realizado hoje. 1=OK, 0=Pendente.",
+                        "valuemap": {
+                            "name": "NETHOTEL Backup Status"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "d160fd1d9de44609a9ad8bc2b1ccb2a9",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.today_ok)=0 and time()>060000",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.today_ok)=1",
+                                "name": "NETHOTEL - Backup do dia não foi realizado",
+                                "opdata": "Status: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "Após as 06:00, o backup do dia atual ainda não foi realizado.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "NETHOTEL - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)=-1"
+                                    },
+                                    {
+                                        "name": "NETHOTEL - Processo de Backup (becape) está parado",
+                                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.becape)=0",
+                                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.becape)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "477b78454434495dab3694b48bf3d6e1",
+                        "name": "NETHOTEL Backup - Tamanho total dos backups",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.backup.total_size",
+                        "delay": "5m",
+                        "units": "B",
+                        "description": "Tamanho total de todos os arquivos de backup em bytes",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a0b05992f08d4417bb67602ada4666a4",
+                        "name": "State of service NETHOTEL - Becape",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.becape",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de backup do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "2fc44787b2444345a11b09339e290917",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.becape)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.becape)=1",
+                                "name": "NETHOTEL - Processo de Backup (becape) está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de backup do NETHOTEL está parado. Backups não estão sendo executados.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "dc28c0026689411e9248c1559c33902b",
+                        "name": "State of service NETHOTEL - Diária",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.diaria",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de diárias do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "billing"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "3731df2d7cab475392b569b30d8120bb",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.diaria)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.diaria)=1",
+                                "name": "NETHOTEL - Processo de Diárias está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de diárias do NETHOTEL está parado. Cobranças automáticas não estão sendo processadas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "billing"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6172fecd413a47939fed9002b2cbcf88",
+                        "name": "State of service NETHOTEL - NFCE",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.netnfce",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de NFC-e do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "fiscal"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "ea10fdccb475484fb212507428810c07",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.netnfce)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.netnfce)=1",
+                                "name": "NETHOTEL - Processo de NFCE está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de NFC-e do NETHOTEL está parado. Emissão de cupons fiscais comprometida.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "fiscal"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "50f70c0bedf34e7ebc1e9657e59f8003",
+                        "name": "State of service NETHOTEL - NFE",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.netnfe",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de NF-e do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "fiscal"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "549fa127c8104f12a050663785af2c9c",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.netnfe)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.netnfe)=1",
+                                "name": "NETHOTEL - Processo de NFE está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de NF-e do NETHOTEL está parado. Emissão de notas fiscais comprometida.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "fiscal"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9c92ebad4a2941c9a6622d829016dfb1",
+                        "name": "State of service NETHOTEL - NFSE",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.netnfse",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de NFS-e do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "fiscal"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "891ff183e8ba45faa23e8616d394204b",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.netnfse)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.netnfse)=1",
+                                "name": "NETHOTEL - Processo de NFSE está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de NFS-e do NETHOTEL está parado. Emissão de notas de serviço comprometida.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "fiscal"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "85c87fbf8e29463581ee70abc87cc494",
+                        "name": "State of service NETHOTEL - Reservas",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.reshotel",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de Reservas do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "reservations"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "825f7d28fab44c61a95d5d8d0dabb95a",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.reshotel)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.reshotel)=1",
+                                "name": "NETHOTEL - Processo de Reservas está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de Reservas do NETHOTEL está parado. Novas reservas não estão sendo processadas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "reservations"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3412ec8b3db7454da2c2f8fb3f3505ab",
+                        "name": "State of service NETHOTEL - B2B Reservas",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "nethotel.servicob2b",
+                        "delay": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "description": "Estado do serviço de B2B Reservas do NETHOTEL. 1=Running, 0=Stopped.",
+                        "valuemap": {
+                            "name": "NETHOTEL Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "nethotel"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "integration"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "67c4a5e261624914aabe9a4e6d10911b",
+                                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.servicob2b)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.servicob2b)=1",
+                                "name": "NETHOTEL - Processo de B2B Reservas está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O serviço de B2B Reservas do NETHOTEL está parado. Integrações B2B comprometidas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "nethotel"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "integration"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "application"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "nethotel"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.AGE.DISASTER}",
+                        "value": "48",
+                        "description": "Idade máxima do backup em horas antes de gerar DISASTER"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.AGE.WARN}",
+                        "value": "24",
+                        "description": "Idade máxima do backup em horas antes de gerar WARNING"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.EXPECTED_FILES}",
+                        "value": "7",
+                        "description": "Quantidade esperada de arquivos de backup (1 por dia da semana)"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.MAX_RUNTIME}",
+                        "value": "1h",
+                        "description": "Tempo máximo de execução do backup antes de considerar travado"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.MIN_SIZE}",
+                        "value": "524288000",
+                        "description": "Tamanho mínimo aceitável do backup em bytes (padrão: 500MB)"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.SIZE_DROP}",
+                        "value": "104857600",
+                        "description": "Queda de tamanho do backup em bytes para gerar alerta (padrão: 100MB)"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.BACKUP.STALE_HOURS}",
+                        "value": "30h",
+                        "description": "Período sem mudança no tamanho do backup para gerar alerta"
+                    },
+                    {
+                        "macro": "{$NETHOTEL.SERVICE.CHECK_INTERVAL}",
+                        "value": "3m",
+                        "description": "Intervalo de checagem dos serviços NETHOTEL"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "94f5dbdb59be446b9f2203b791baabba",
+                        "name": "NETHOTEL Backup Status",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "OK - Backup do dia realizado"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Pendente - Backup do dia não realizado"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "195b4f9215344df1872c92fe48bc7ac9",
+                        "name": "NETHOTEL Service State",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Running"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Stopped"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

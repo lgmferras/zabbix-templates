@@ -1,0 +1,284 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "4b0d7394ede74535bea6562784d31051",
+                "template": "Oracle Cloud Egress Monthly by HTTP",
+                "name": "Oracle Cloud Egress Monthly by HTTP",
+                "description": "Monitors monthly outbound network egress (NetworksBytesOut) for an OCI Compute instance.\nAlerts when approaching or exceeding the 10 TB/month Always Free limit.\n\nRequires the same OCI API credentials as the other Oracle Cloud by HTTP templates.\nApply this template to the same host as Oracle Cloud Compute by HTTP.",
+                "groups": [
+                    {
+                        "name": "Templates/Cloud"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "c2100c6330764be596725313384f57a4",
+                        "name": "OCI: Egress mensal (bytes)",
+                        "type": "DEPENDENT",
+                        "key": "oci.egress.monthly.bytes",
+                        "value_type": "FLOAT",
+                        "units": "B",
+                        "description": "Total de bytes de saída (NetworksBytesOut) acumulados no mês corrente.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.bytes"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "oci.egress.monthly.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "45161da95c3c4cf6b45bb7302b2074c7",
+                        "name": "OCI: Get monthly egress data",
+                        "type": "SCRIPT",
+                        "key": "oci.egress.monthly.get",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "params": "function validateZabbixParams(requiredParams, allParams) {\n\trequiredParams.forEach(function (field) {\n\t\tif (typeof allParams !== 'object' || typeof allParams[field] === 'undefined' || allParams[field] === '') {\n\t\t\tthrow 'Required param is not set: ' + field + '.';\n\t\t}\n\t});\n}\n\nfunction OCI(service, action, params) {\n\tthis.zabbixLogPrefix = '[ OCI ] [ ' + service + ' ] [ ' + action + ' ]';\n\tthis.request = new HttpRequest();\n\n\tthis.hash = function (string) {\n\t\treturn sha256(string);\n\t};\n\n\tthis.sign = function (string) {\n\t\treturn sign('sha256', params['private_key'], string);\n\t};\n\n\tthis.encode = function (hash) {\n\t\tconst hexArr = hash.match(/.{1,2}/g);\n\t\tvar uInt8Array = new Uint8Array(hexArr.length);\n\t\thexArr.forEach(function (hex, idx) {\n\t\t\tuInt8Array[idx] = parseInt(hex, 16);\n\t\t});\n\t\treturn btoa(uInt8Array);\n\t};\n\n\tthis.getDate = function () {\n\t\tconst weekdayShortList = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];\n\t\tconst monthShortList = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];\n\t\tconst today = new Date();\n\t\treturn weekdayShortList[today.getUTCDay()] + ', ' + today.getUTCDate() + ' ' + monthShortList[today.getUTCMonth()] + ' ' + today.getUTCFullYear() + ' ' + today.getUTCHours() + ':' + today.getUTCMinutes() + ':' + today.getUTCSeconds() + ' GMT';\n\t};\n\n\tthis.postRequest = function (apiPath, apiParams, body) {\n\t\tconst sigHeaders = '(request-target) date host x-content-sha256 content-type content-length';\n\t\tconst contentTypeHeader = 'content-type: application/json';\n\t\tconst dateHeader = 'date: ' + this.getDate();\n\t\tconst hostHeader = 'host: ' + params['api_host'];\n\t\tconst requestTarget = '(request-target): post ' + apiPath + apiParams;\n\t\tconst bodyHeader = 'x-content-sha256: ' + this.encode(this.hash(body));\n\t\tconst bodyLengthHeader = 'content-length: ' + body.length;\n\t\tconst signingString = requestTarget + '\\n' + dateHeader + '\\n' + hostHeader + '\\n' + bodyHeader + '\\n' + contentTypeHeader + '\\n' + bodyLengthHeader;\n\t\tconst signature = this.encode(this.sign(signingString));\n\t\tconst authHeader = 'Authorization: Signature version=\"1\",keyId=\"' + params['tenancy_ocid'] + '/' + params['user_ocid'] + '/' + params['fingerprint'] + '\",algorithm=\"rsa-sha256\",headers=\"' + sigHeaders + '\",signature=\"' + signature + '\"';\n\t\tconst reqHeaders = [contentTypeHeader, dateHeader, bodyHeader, bodyLengthHeader, authHeader];\n\t\tfor (var i = 0; i < reqHeaders.length; i++) {\n\t\t\tthis.request.addHeader(reqHeaders[i]);\n\t\t}\n\t\tif (params['http_proxy']) {\n\t\t\tthis.request.setProxy(params['http_proxy']);\n\t\t\tZabbix.log(4, this.zabbixLogPrefix + ' Using proxy: ' + params['http_proxy']);\n\t\t}\n\t\tconst response = this.request.post('https://' + params['api_host'] + apiPath + apiParams, body);\n\t\tthis.request.clearHeader();\n\t\tif (this.request.getStatus() === parseInt(params['http_status_code'])) {\n\t\t\treturn response;\n\t\t}\n\t\tZabbix.log(3, this.zabbixLogPrefix + ' HTTP ' + this.request.getStatus() + ': ' + response);\n\t\tthrow 'Unexpected HTTP response code: ' + this.request.getStatus();\n\t};\n}\n\nfunction padTwo(n) {\n\treturn ('0' + n).slice(-2);\n}\n\nfunction toISOStr(d) {\n\treturn d.getUTCFullYear() + '-' + padTwo(d.getUTCMonth() + 1) + '-' + padTwo(d.getUTCDate()) + 'T' + padTwo(d.getUTCHours()) + ':' + padTwo(d.getUTCMinutes()) + ':' + padTwo(d.getUTCSeconds()) + 'Z';\n}\n\nconst params = JSON.parse(value);\nvalidateZabbixParams(['tenancy_ocid', 'user_ocid', 'private_key', 'fingerprint', 'api_host', 'instance_id', 'http_status_code', 'compartment_id', 'limit_tb'], params);\nvar oci = new OCI('Egress', 'Get monthly egress', params);\n\nconst now = new Date();\nconst startTime = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));\nconst startTimeStr = toISOStr(startTime);\nconst endTimeStr = toISOStr(now);\n\nconst mql = 'NetworksBytesOut[1d]{resourceId=' + params['instance_id'] + '}.rate()';\nconst body = JSON.stringify({\n\t'namespace': 'oci_computeagent',\n\t'query': mql,\n\t'startTime': startTimeStr,\n\t'endTime': endTimeStr\n});\n\nconst response = oci.postRequest('/20180401/metrics/actions/summarizeMetricsData', '?compartmentId=' + encodeURIComponent(params['compartment_id']), body);\n\nvar data;\ntry {\n\tdata = JSON.parse(response);\n} catch (e) {\n\tZabbix.log(3, '[ OCI ] [ Egress ] Could not parse response: ' + response);\n\tthrow 'Could not parse API response.';\n}\n\nvar totalBytes = 0;\nif (Array.isArray(data) && data.length > 0 && Array.isArray(data[0]['aggregatedDatapoints'])) {\n\tconst points = data[0]['aggregatedDatapoints'];\n\tfor (var i = 0; i < points.length; i++) {\n\t\ttotalBytes += points[i]['value'] * 86400;\n\t}\n}\n\nconst limitBytes = parseFloat(params['limit_tb']) * 1e12;\nconst pct = limitBytes > 0 ? Math.round(totalBytes / limitBytes * 10000) / 100 : 0;\nconst remainingBytes = Math.max(0, limitBytes - totalBytes);\n\nreturn JSON.stringify({\n\t'bytes': totalBytes,\n\t'pct': pct,\n\t'remaining_bytes': remainingBytes\n});",
+                        "description": "Queries OCI Monitoring API for the month-to-date total of NetworksBytesOut.\nNetworksBytesOut is a cumulative counter; .rate() gives bytes/second per day,\nwhich is multiplied by 86400 to obtain daily bytes, then summed for the month.\nReturns JSON: {\"bytes\": <total>, \"pct\": <percent_of_limit>, \"remaining_bytes\": <remaining>}.",
+                        "timeout": "30s",
+                        "parameters": [
+                            {
+                                "name": "api_host",
+                                "value": "{$OCI.API.TELEMETRY.HOST}"
+                            },
+                            {
+                                "name": "compartment_id",
+                                "value": "{$OCI.COMPUTE.COMPARTMENT.ID}"
+                            },
+                            {
+                                "name": "fingerprint",
+                                "value": "{$OCI.API.FINGERPRINT}"
+                            },
+                            {
+                                "name": "http_proxy",
+                                "value": "{$OCI.HTTP.PROXY}"
+                            },
+                            {
+                                "name": "http_status_code",
+                                "value": "{$OCI.HTTP.RETURN.CODE.OK}"
+                            },
+                            {
+                                "name": "instance_id",
+                                "value": "{$OCI.COMPUTE.INSTANCE.ID}"
+                            },
+                            {
+                                "name": "limit_tb",
+                                "value": "{$OCI.EGRESS.LIMIT.TB}"
+                            },
+                            {
+                                "name": "private_key",
+                                "value": "{$OCI.API.PRIVATE.KEY}"
+                            },
+                            {
+                                "name": "tenancy_ocid",
+                                "value": "{$OCI.API.TENANCY}"
+                            },
+                            {
+                                "name": "user_ocid",
+                                "value": "{$OCI.API.USER}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "raw"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "40da733b46794dd2a348abf83e8ad605",
+                        "name": "OCI: Egress mensal (%)",
+                        "type": "DEPENDENT",
+                        "key": "oci.egress.monthly.pct",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Percentual do limite mensal de egresso utilizado ({$OCI.EGRESS.LIMIT.TB} TB).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.pct"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "oci.egress.monthly.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "6f145d9cb2754ebd897dbe629c861609",
+                                "expression": "last(/Oracle Cloud Egress Monthly by HTTP/oci.egress.monthly.pct) >= {$OCI.EGRESS.WARN.PCT}",
+                                "name": "OCI Egress: Uso mensal de egresso alto (>= {$OCI.EGRESS.WARN.PCT}%)",
+                                "event_name": "OCI Egress: Uso mensal de egresso alto ({ITEM.LASTVALUE1} de {$OCI.EGRESS.LIMIT.TB} TB)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O egresso mensal da instância OCI ultrapassou {$OCI.EGRESS.WARN.PCT}% do limite de {$OCI.EGRESS.LIMIT.TB} TB do Free Tier.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "OCI Egress: Uso mensal de egresso crítico (>= {$OCI.EGRESS.HIGH.PCT}%)",
+                                        "expression": "last(/Oracle Cloud Egress Monthly by HTTP/oci.egress.monthly.pct) >= {$OCI.EGRESS.HIGH.PCT}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "904ffcf246994a639c7eb541d62cb197",
+                                "expression": "last(/Oracle Cloud Egress Monthly by HTTP/oci.egress.monthly.pct) >= {$OCI.EGRESS.HIGH.PCT}",
+                                "name": "OCI Egress: Uso mensal de egresso crítico (>= {$OCI.EGRESS.HIGH.PCT}%)",
+                                "event_name": "OCI Egress: Uso mensal de egresso crítico ({ITEM.LASTVALUE1} de {$OCI.EGRESS.LIMIT.TB} TB)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O egresso mensal da instância OCI ultrapassou {$OCI.EGRESS.HIGH.PCT}% do limite de {$OCI.EGRESS.LIMIT.TB} TB do Free Tier. Risco de cobranças.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "OCI Egress: Uso mensal de egresso em nível de desastre (>= {$OCI.EGRESS.DISASTER.PCT}%)",
+                                        "expression": "last(/Oracle Cloud Egress Monthly by HTTP/oci.egress.monthly.pct) >= {$OCI.EGRESS.DISASTER.PCT}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ad9eaca104e54e7780d03fa6494c9d5d",
+                                "expression": "last(/Oracle Cloud Egress Monthly by HTTP/oci.egress.monthly.pct) >= {$OCI.EGRESS.DISASTER.PCT}",
+                                "name": "OCI Egress: Uso mensal de egresso em nível de desastre (>= {$OCI.EGRESS.DISASTER.PCT}%)",
+                                "event_name": "OCI Egress: Uso mensal de egresso em nível de desastre ({ITEM.LASTVALUE1} de {$OCI.EGRESS.LIMIT.TB} TB)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "O egresso mensal da instância OCI ultrapassou {$OCI.EGRESS.DISASTER.PCT}% do limite de {$OCI.EGRESS.LIMIT.TB} TB. Cobranças adicionais são iminentes.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a3ce9383ee81496caec2e865e55b728e",
+                        "name": "OCI: Egress mensal restante",
+                        "type": "DEPENDENT",
+                        "key": "oci.egress.monthly.remaining",
+                        "value_type": "FLOAT",
+                        "units": "B",
+                        "description": "Bytes restantes do limite mensal de egresso ({$OCI.EGRESS.LIMIT.TB} TB) para o mês corrente.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.remaining_bytes"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "oci.egress.monthly.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "software"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "oracle-cloud"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$OCI.EGRESS.DISASTER.PCT}",
+                        "value": "95",
+                        "description": "Percentual de uso de egresso mensal para alerta de nível DISASTER"
+                    },
+                    {
+                        "macro": "{$OCI.EGRESS.HIGH.PCT}",
+                        "value": "90",
+                        "description": "Percentual de uso de egresso mensal para alerta de nível HIGH"
+                    },
+                    {
+                        "macro": "{$OCI.EGRESS.LIMIT.TB}",
+                        "value": "10",
+                        "description": "Limite mensal de egresso em TB (OCI Always Free = 10 TB/mês)"
+                    },
+                    {
+                        "macro": "{$OCI.EGRESS.WARN.PCT}",
+                        "value": "80",
+                        "description": "Percentual de uso de egresso mensal para alerta de nível WARNING"
+                    }
+                ]
+            }
+        ]
+    }
+}

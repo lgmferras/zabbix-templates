@@ -1,0 +1,1958 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "32f7d98480e34a5dbeac1f92c1bb4698",
+                "template": "ATHOS by Zabbix agent active",
+                "name": "ATHOS by Zabbix agent active",
+                "description": "Template para monitoramento da aplicação ATHOS (sistema de gestão comercial / PDV).\nMonitora processos críticos, backup PostgreSQL (.backup), banco de dados e logs.\n\nRequisitos:\n- Zabbix Agent 2 (active mode) instalado no servidor ATHOS (Windows)\n- UserParameters configurados em user_parameters_athos.conf\n- Diretório de backup: C:\\Athos\\backupAthos\\\n\nMacros ajustáveis por host para personalizar thresholds.\n\nAutor: Luis Gustavo Ferras - Systrix\nVersão: 1.0.0",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "125c32bfee95461a9d6c636bed901b32",
+                        "name": "ATHOS Backup - Idade do último backup (horas)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.age_hours",
+                        "delay": "10m",
+                        "value_type": "FLOAT",
+                        "units": "h",
+                        "description": "Número de horas desde o último backup (.backup mais recente). Retorna -1 se não encontrar nenhum arquivo válido.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "992435ed254f4fdea9eb4fca33e9876e",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)>{$ATHOS.BACKUP.AGE.DISASTER}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)<={$ATHOS.BACKUP.AGE.DISASTER}",
+                                "name": "ATHOS - Backup CRÍTICO (mais de {$ATHOS.BACKUP.AGE.DISASTER} horas sem backup)",
+                                "opdata": "Idade: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "ATENÇÃO: O último backup tem mais de {$ATHOS.BACKUP.AGE.DISASTER} horas! Risco de perda de dados.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "8f60fb88874c4fa2a64db43781c53407",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)>{$ATHOS.BACKUP.AGE.WARN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)<={$ATHOS.BACKUP.AGE.WARN}",
+                                "name": "ATHOS - Backup desatualizado (mais de {$ATHOS.BACKUP.AGE.WARN} horas)",
+                                "opdata": "Idade: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O último backup tem mais de {$ATHOS.BACKUP.AGE.WARN} horas. Verifique se o pg_dump está funcionando.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "ATHOS - Backup CRÍTICO (mais de {$ATHOS.BACKUP.AGE.DISASTER} horas sem backup)",
+                                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)>{$ATHOS.BACKUP.AGE.DISASTER}",
+                                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)<={$ATHOS.BACKUP.AGE.DISASTER}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "f8601b212e974932b10ef4c49fc96f8f",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)=-1",
+                                "name": "ATHOS - Nenhum arquivo de backup encontrado",
+                                "opdata": "Nenhum .backup em C:\\Athos\\backupAthos",
+                                "priority": "DISASTER",
+                                "description": "Não foram encontrados arquivos .backup válidos no diretório C:\\Athos\\backupAthos\\.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2b7c0aaf52f44d5294a97a5baeb5fd8b",
+                        "name": "ATHOS Backup - Quantidade de arquivos de backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.file_count",
+                        "delay": "1h",
+                        "description": "Quantidade de arquivos .backup válidos encontrados (ideal: 7).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "168485a60a5d4d1ea1e579179111b997",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.file_count)<{$ATHOS.BACKUP.EXPECTED_FILES}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.file_count)={$ATHOS.BACKUP.EXPECTED_FILES}",
+                                "name": "ATHOS - Faltam arquivos de backup (menos de {$ATHOS.BACKUP.EXPECTED_FILES} dias)",
+                                "opdata": "Arquivos: {ITEM.LASTVALUE1} de {$ATHOS.BACKUP.EXPECTED_FILES}",
+                                "priority": "INFO",
+                                "description": "Existem menos de {$ATHOS.BACKUP.EXPECTED_FILES} arquivos .backup. Alguns dias da semana podem estar faltando.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "ATHOS - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)=-1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "16c280956c6b487bb03e182a3f91a478",
+                        "name": "ATHOS Backup - Nome do arquivo mais recente",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.latest_file",
+                        "delay": "30m",
+                        "value_type": "TEXT",
+                        "description": "Nome do arquivo .backup mais recente (ex.: athosseg.backup).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0b72a551f4284f50aba7ce328be926f0",
+                        "name": "ATHOS Backup - Data/hora do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.latest_time",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "description": "Timestamp (yyyy-MM-dd HH:mm:ss) do arquivo .backup mais recente.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "bfeac2957df3421e809601b1f8e7a37a",
+                        "name": "ATHOS Backup - pg_dump em execução",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.running",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "1=pg_dump rodando (backup em execução), 0=não rodando.",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "560c856980244eecbdf36e1e23f2ca6c",
+                                "expression": "min(/ATHOS by Zabbix agent active/athos.backup.running,{$ATHOS.BACKUP.MAX_RUNTIME})=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "min(/ATHOS by Zabbix agent active/athos.backup.running,{$ATHOS.BACKUP.MAX_RUNTIME})=0",
+                                "name": "ATHOS - Backup pode estar travado (rodando há mais de {$ATHOS.BACKUP.MAX_RUNTIME})",
+                                "opdata": "Rodando há mais de {$ATHOS.BACKUP.MAX_RUNTIME}",
+                                "priority": "WARNING",
+                                "description": "O processo pg_dump está em execução há mais de {$ATHOS.BACKUP.MAX_RUNTIME}. Pode estar travado.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "ATHOS - pg_dump em Execução (backup em andamento)",
+                                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=1",
+                                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "0e16dd6543b946b29f51fd9aa1521be6",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0",
+                                "name": "ATHOS - pg_dump em Execução (backup em andamento)",
+                                "opdata": "pg_dump em execução",
+                                "priority": "INFO",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    },
+                                    {
+                                        "tag": "status",
+                                        "value": "backup_running"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a6cff6e543cb4550be11b56911dacf9a",
+                        "name": "ATHOS Backup - Tamanho do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.size",
+                        "delay": "15m",
+                        "units": "B",
+                        "description": "Tamanho em bytes do arquivo .backup mais recente.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d31c210fbac84a6bb8faa396d842cf96",
+                        "name": "ATHOS Backup - Backup do dia atual OK",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.today_ok",
+                        "delay": "10m",
+                        "description": "1=backup do dia existe e é de hoje; 0=ausente/desatualizado (mapeia domingo..sábado, incluindo athossßb.backup).",
+                        "valuemap": {
+                            "name": "ATHOS Backup Status"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "b677b7ab293f4bcf9c0129c07bce7be4",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.today_ok)=0 and time()>080000",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.today_ok)=1",
+                                "name": "ATHOS - Backup do dia não foi realizado",
+                                "opdata": "Status: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "Após as 06:00, o backup do dia atual ainda não foi realizado.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "ATHOS - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)=-1"
+                                    },
+                                    {
+                                        "name": "ATHOS - Processo AthosBackup está parado",
+                                        "expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[AthosBackup])=0",
+                                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[AthosBackup])=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "fffab5a24cb6424097899facd270547e",
+                        "name": "ATHOS Backup - Tamanho total dos backups",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.backup.total_size",
+                        "delay": "1h",
+                        "units": "B",
+                        "description": "Soma do tamanho de todos os arquivos .backup válidos.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a170801c6e9749dc8ade75b7687747d6",
+                        "name": "ATHOS Logs - Idade do arquivo mais antigo (dias)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.log.oldest_days",
+                        "delay": "1h",
+                        "value_type": "FLOAT",
+                        "units": "d",
+                        "description": "Idade em dias do arquivo mais antigo em C:\\logAthos. -1 se não houver arquivos.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "logs"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5f3a3f815ace4168830a010b2bceb3e1",
+                        "name": "ATHOS Logs - Tamanho da pasta C:\\logAthos (bytes)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.log.size_bytes",
+                        "delay": "15m",
+                        "units": "B",
+                        "description": "Soma do tamanho de arquivos em C:\\logAthos (recursivo).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "logs"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f896dd5508574452a62054574c4a793a",
+                        "name": "ATHOS PostgreSQL - Porta 5432 respondendo (localhost)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.pg.port_ok",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "Test-NetConnection em 127.0.0.1:5432. 1=OK, 0=Falha.",
+                        "valuemap": {
+                            "name": "ATHOS Port Status"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "postgresql"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "10f604812f0a444ba63dc29a2c034f8a",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.pg.port_ok)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.pg.port_ok)=1",
+                                "name": "ATHOS - PostgreSQL não responde na porta 5432",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "O PostgreSQL local não responde em 127.0.0.1:5432. Banco de dados indisponível — todos os módulos ATHOS afetados.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "postgresql"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b21b60003de24dc8a288c011ca598370",
+                        "name": "ATHOS Process - AthosBackup (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[AthosBackup]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "a68be06d8e7f4803bf8f06b49816d5e1",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[AthosBackup])=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[AthosBackup])=1",
+                                "name": "ATHOS - Processo AthosBackup está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "Serviço de backup do ATHOS está parado. Backups não estão sendo executados.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "process"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "16702f40cc7148f294ce313bc09bb861",
+                        "name": "ATHOS Process - Athos (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[Athos]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "9a058a281b5e44d8bb708b65ab026e81",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[Athos])=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[Athos])=1",
+                                "name": "ATHOS - Processo Athos está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "status": "DISABLED",
+                                "priority": "HIGH",
+                                "description": "Principal módulo ATHOS parado. Operações de venda e gestão comprometidas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "process"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "82334c9e028e4694bdb778ee77a03f6e",
+                        "name": "ATHOS Process - Autoatendimento (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[Autoatendimento]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ca04daf9e95c4c5ab33177e9f69e21be",
+                        "name": "ATHOS Process - Balathos (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[Balathos]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2dec4e9e0c05423b900de18497a00496",
+                        "name": "ATHOS Process - balcao (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[balcao]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "fb844b093245414aaa811681b2d3b25d",
+                        "name": "ATHOS Process - consultaComanda (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[consultaComanda]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e4894e74aaba4e1ca18bac2aa2b57ce4",
+                        "name": "ATHOS Process - consultaPreco (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[consultaPreco]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "815903b32f89476e872500a9be568403",
+                        "name": "ATHOS Process - criaBanco (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[criaBanco]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "27c9d89496f2407baf7784f861428577",
+                        "name": "ATHOS Process - delivery (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[delivery]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9b2fa4ce715c4353923bdd8c212149fb",
+                        "name": "ATHOS Process - dwagsvc (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[dwagsvc]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d55cf45c62d040d986ea2a85cf6d3a8d",
+                        "name": "ATHOS Process - ETQAthos (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[ETQAthos]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "456209c6fc5b4c38b8b70f913c93254e",
+                        "name": "ATHOS Process - frenteVendaGrade (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[frenteVendaGrade]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "89468f2569fe46049cc415afa0d0f5a8",
+                        "name": "ATHOS Process - gacutil (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[gacutil]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "29329133741b4a968499145a98ebf378",
+                        "name": "ATHOS Process - gerenciadorConsultaPreco (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[gerenciadorConsultaPreco]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "88152ea826ed44a0aabcf37ebc466a22",
+                        "name": "ATHOS Process - gerenciadorConsultaTanca (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[gerenciadorConsultaTanca]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f9a9f513094c4ab3b6eaf012c4f6a735",
+                        "name": "ATHOS Process - MTGertec (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[MTGertec]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "31b8ef7c911d4a6f90487c5f010a9a17",
+                        "name": "ATHOS Process - MTImpressao (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[MTImpressao]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9a8c00f745bc436387b97a9bf7b6e63a",
+                        "name": "ATHOS Process - mtMonitoramento (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[mtMonitoramento]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "90b8d191971f4318b488c4168fee3e19",
+                        "name": "ATHOS Process - mtWillTechGradual (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[mtWillTechGradual]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d791eec2a6954891be21b6e9bdeeb495",
+                        "name": "ATHOS Process - NFSe (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[NFSe]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "be77756005e14ac1b72283e3b03323ea",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[NFSe])=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[NFSe])=1",
+                                "name": "ATHOS - Processo NFSe está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "status": "DISABLED",
+                                "priority": "HIGH",
+                                "description": "Módulo de NFS-e parado. Emissão de notas de serviço comprometida.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "process"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3baf5fcb52ce43dfbf21e8e1b675b7bc",
+                        "name": "ATHOS Process - notaEntrada (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[notaEntrada]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e890fbb5546549e18ff03c74aa29a3b8",
+                        "name": "ATHOS Process - nothos (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[nothos]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b3262a0809584a278c052d149ae41b2e",
+                        "name": "ATHOS Process - pdv (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[pdv]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "705c701bfb64413eabd2ccf1eda44532",
+                                "expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[pdv])=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.proc.status[pdv])=1",
+                                "name": "ATHOS - Processo pdv está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "status": "DISABLED",
+                                "priority": "HIGH",
+                                "description": "Frente de caixa (PDV) está parada. Vendas comprometidas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "athos"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "process"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "424aaaa57645453b877f16c155c78c9f",
+                        "name": "ATHOS Process - pg_dump (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[pg_dump]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3f277044ccc64d55ac0a51b9df21bb02",
+                        "name": "ATHOS Process - prathosTouch (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[prathosTouch]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d3136a5d6a0b4da9a816f572eb7de682",
+                        "name": "ATHOS Process - prathos (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[prathos]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "840750fa7dad41d2a04c1d0b5afec4c9",
+                        "name": "ATHOS Process - Relatorio (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[Relatorio]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7fd9e0bafe42498286191fbd14884238",
+                        "name": "ATHOS Process - SAThos (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[SAThos]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "22519b82477e423eb24ba63a446941eb",
+                        "name": "ATHOS Process - sincronizadorScanntech (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[sincronizadorScanntech]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1c669a3ccfdc415da2dd8819692356de",
+                        "name": "ATHOS Process - Sintegra (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[Sintegra]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7c21f1f5be0142cdb2e80e290e53e0ef",
+                        "name": "ATHOS Process - suporteremoto (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[suporteremoto]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b66ea57973654ea3a5a34c91765416b5",
+                        "name": "ATHOS Process - syncCardapioDigital (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[syncCardapioDigital]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0b2c4fc327bc47d1a3ef98f1afb14000",
+                        "name": "ATHOS Process - verificaAtualizacao (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[verificaAtualizacao]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cc5e0aae2530453f8379dbc4915c9f9f",
+                        "name": "ATHOS Process - wCamVG (status)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "athos.proc.status[wCamVG]",
+                        "delay": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "description": "0=Stopped, 1=Running. Coleta via UserParameter athos.proc.status[*].",
+                        "valuemap": {
+                            "name": "ATHOS Process State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "athos"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "process"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "application"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "athos"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$ATHOS.BACKUP.AGE.DISASTER}",
+                        "value": "48",
+                        "description": "Idade máxima do backup (h) antes de gerar DISASTER"
+                    },
+                    {
+                        "macro": "{$ATHOS.BACKUP.AGE.WARN}",
+                        "value": "24",
+                        "description": "Idade máxima do backup (h) antes de gerar WARNING"
+                    },
+                    {
+                        "macro": "{$ATHOS.BACKUP.EXPECTED_FILES}",
+                        "value": "7",
+                        "description": "Quantidade esperada de arquivos de backup (1 por dia da semana)"
+                    },
+                    {
+                        "macro": "{$ATHOS.BACKUP.MAX_RUNTIME}",
+                        "value": "1h",
+                        "description": "Tempo máximo de execução do pg_dump antes de considerar travado"
+                    },
+                    {
+                        "macro": "{$ATHOS.BACKUP.MIN_SIZE}",
+                        "value": "524288000",
+                        "description": "Tamanho mínimo aceitável do backup em bytes (padrão: 500 MB)"
+                    },
+                    {
+                        "macro": "{$ATHOS.BACKUP.SIZE_DROP}",
+                        "value": "104857600",
+                        "description": "Queda de tamanho do backup em bytes para gerar alerta (padrão: 100 MB)"
+                    },
+                    {
+                        "macro": "{$ATHOS.BACKUP.STALE_HOURS}",
+                        "value": "30h",
+                        "description": "Período sem mudança no tamanho do backup para gerar alerta"
+                    },
+                    {
+                        "macro": "{$ATHOS.SERVICE.CHECK_INTERVAL}",
+                        "value": "3m",
+                        "description": "Intervalo de checagem dos processos e serviços ATHOS"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "0971ea9028d447c8ab7b5ec1e45ba02a",
+                        "name": "ATHOS Backup Status",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "OK - Backup do dia realizado"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Pendente - Backup do dia não realizado"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5e37ade2247c4baf8a46bd95240787cd",
+                        "name": "ATHOS Port Status",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "OK - Porta respondendo"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Falha - Porta não responde"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e12e12192f904996bbff43c67dede043",
+                        "name": "ATHOS Process State",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Running"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Stopped"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

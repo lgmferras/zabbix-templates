@@ -1,0 +1,398 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "ae5e1e3cbba14fb8a80a18e819c88cea",
+                "template": "UniFi AP Legacy by SNMP",
+                "name": "UniFi AP Legacy by SNMP",
+                "description": "Monitoramento SNMP para Access Points UniFi legacy (UAP 1a geracao, firmware 4.3.x). MIB Ubiquiti 1.3.6.1.4.1.41112.",
+                "groups": [
+                    {
+                        "name": "Templates/Network devices"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "bfd8ad9d9c244bc3aa221bbd77820e8f",
+                        "name": "ICMP ping",
+                        "type": "SIMPLE",
+                        "key": "icmpping",
+                        "delay": "3m",
+                        "history": "90d",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "7e7365301b264c60af71a858472f8734",
+                                "expression": "nodata(/UniFi AP Legacy by SNMP/icmpping,5m)=1",
+                                "name": "AP UniFi: Sem resposta ICMP (offline)",
+                                "priority": "HIGH",
+                                "description": "O AP nao responde ao ping ha mais de 5 minutos.",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "98195a46cad04e07836e284b005a39c9",
+                        "name": "ICMP loss",
+                        "type": "SIMPLE",
+                        "key": "icmppingloss",
+                        "delay": "3m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "47f2615027bd49cba772cafd009b8732",
+                        "name": "ICMP response time",
+                        "type": "SIMPLE",
+                        "key": "icmppingsec",
+                        "delay": "3m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a18a91de5e4141458d02344b51e9026c",
+                        "name": "ETH RX",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.41112.1.6.2.1.1.6.1]",
+                        "key": "net.if.in[eth0]",
+                        "delay": "3m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "bps",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "823a4f6116c14469a7f392728b4e0a19",
+                        "name": "ETH TX",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.41112.1.6.2.1.1.12.1]",
+                        "key": "net.if.out[eth0]",
+                        "delay": "3m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "bps",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e3ec58cdc47841e388a44729fa6e3fd1",
+                        "name": "Nome do AP",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.1.5.0]",
+                        "key": "system.name[sysName.0]",
+                        "delay": "1h",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "RTRIM",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "15d1623bc9c94770bd13f995e6ff06d4",
+                        "name": "Uptime do sistema",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.1.3.0]",
+                        "key": "system.uptime[sysUpTime.0]",
+                        "delay": "5m",
+                        "history": "90d",
+                        "units": "uptime",
+                        "preprocessing": [
+                            {
+                                "type": "CHECK_NOT_SUPPORTED",
+                                "parameters": [
+                                    "-1"
+                                ],
+                                "error_handler": "CUSTOM_VALUE",
+                                "error_handler_params": "0"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "0.01"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9a1db5dcb6b14801804f3b9a538df10d",
+                        "name": "Versao do firmware",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.41112.1.6.3.6.0]",
+                        "key": "unifi.firmware",
+                        "delay": "1h",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "RTRIM",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "fcae5f3921e74cbc93c17f33cd791139",
+                        "name": "Modelo do hardware",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.41112.1.6.3.3.0]",
+                        "key": "unifi.model",
+                        "delay": "1h",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "RTRIM",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6257b5a7243445aeb80f14ffa32c769d",
+                        "name": "SNMP agent availability",
+                        "type": "INTERNAL",
+                        "key": "zabbix[host,snmp,available]",
+                        "delay": "5m",
+                        "history": "90d",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "57da580fa7ef47c693e129c31c411b83",
+                                "expression": "last(/UniFi AP Legacy by SNMP/zabbix[host,snmp,available])=2",
+                                "name": "AP UniFi: SNMP indisponivel",
+                                "priority": "AVERAGE",
+                                "description": "O agente SNMP do AP nao esta respondendo.",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "b2d9b914291344a7a3001b649d463525",
+                        "name": "Descoberta de VAPs (SSIDs)",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "discovery[{#SSID},1.3.6.1.4.1.41112.1.6.1.2.1.6,{#VAP_IFACE},1.3.6.1.4.1.41112.1.6.1.2.1.7,{#VAP_TYPE},1.3.6.1.4.1.41112.1.6.1.2.1.23]",
+                        "key": "unifi.vap.discovery",
+                        "delay": "1h",
+                        "filter": {
+                            "evaltype": "AND",
+                            "conditions": [
+                                {
+                                    "macro": "{#SSID}",
+                                    "value": "{$UNIFI.VAP.FILTER}"
+                                }
+                            ]
+                        },
+                        "description": "Descobre VAPs (SSIDs) via MIB Ubiquiti 1.3.6.1.4.1.41112.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "19695a3a00c7420082fe594b361afe93",
+                                "name": "VAP {#SSID} ({#VAP_IFACE}): Clientes conectados",
+                                "type": "SNMP_AGENT",
+                                "snmp_oid": "1.3.6.1.4.1.41112.1.6.1.2.1.8.{#SNMPINDEX}",
+                                "key": "unifi.vap.clients[{#SNMPINDEX}]",
+                                "delay": "3m",
+                                "history": "90d",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireless"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "81bef48c33d64d55ae96121087110978",
+                                        "expression": "nodata(/UniFi AP Legacy by SNMP/unifi.vap.clients[{#SNMPINDEX}],5m)=1",
+                                        "name": "VAP {#SSID}: Sem dados de clientes",
+                                        "priority": "AVERAGE",
+                                        "description": "Nao ha dados coletados do SSID {#SSID} ha mais de 5 minutos.",
+                                        "manual_close": "YES"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "f86c31da400542acbf02d3454d47f9c8",
+                                "name": "VAP {#SSID} ({#VAP_IFACE}): Trafego RX",
+                                "type": "SNMP_AGENT",
+                                "snmp_oid": "1.3.6.1.4.1.41112.1.6.1.2.1.10.{#SNMPINDEX}",
+                                "key": "unifi.vap.rx[{#SNMPINDEX}]",
+                                "delay": "3m",
+                                "history": "90d",
+                                "value_type": "FLOAT",
+                                "units": "bps",
+                                "preprocessing": [
+                                    {
+                                        "type": "CHANGE_PER_SECOND"
+                                    },
+                                    {
+                                        "type": "MULTIPLIER",
+                                        "parameters": [
+                                            "8"
+                                        ]
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireless"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "c5d2cd06b2ac4ea68fa355f68be02d10",
+                                "name": "VAP {#SSID} ({#VAP_IFACE}): Potencia TX",
+                                "type": "SNMP_AGENT",
+                                "snmp_oid": "1.3.6.1.4.1.41112.1.6.1.2.1.21.{#SNMPINDEX}",
+                                "key": "unifi.vap.txpower[{#SNMPINDEX}]",
+                                "delay": "5m",
+                                "history": "90d",
+                                "units": "dBm",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireless"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "network"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "unifi-ap"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$SNMP_COMMUNITY}",
+                        "value": "systrix"
+                    },
+                    {
+                        "macro": "{$UNIFI.VAP.FILTER}",
+                        "value": "^element-",
+                        "description": "Regex de SSIDs a ignorar no LLD (gerencia/ocultos)"
+                    }
+                ]
+            }
+        ]
+    }
+}

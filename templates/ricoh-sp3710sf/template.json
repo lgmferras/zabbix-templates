@@ -1,0 +1,1601 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            },
+            {
+                "uuid": "30261c0c8027453fbd71b99e4c21be30",
+                "name": "Templates/Printers"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "dc06e1b0d8404971ae5813ec79cb5388",
+                "template": "Ricoh SP 3710SF by HTTP",
+                "name": "Ricoh SP 3710SF by HTTP",
+                "description": "Template para monitoramento da Ricoh SP 3710SF via HTTP (Web Image Monitor).\n\nPaginas monitoradas:\n  main.asp    -> status, cartucho, bandejas\n  counter.asp -> contadores (printer/scanner/copier/fax)\n  machinei.asp-> firmware, machine ID, memoria\n  card.asp    -> configuracoes de rede\n\nArquitetura:\n  4 itens master HTTP Agent (um por pagina) com JavaScript preprocessing\n  validado contra o HTML real do equipamento (SP 3710SF firmware V1.04).\n  Itens filhos DEPENDENT com JSONPath.\n\nParticularidades do firmware detectadas na validacao:\n  - Device Status e renderizado como HTML entities\n    (ex: &#82;&#101;&#97;&#100;&#121; = \"Ready\") -- o parser decodifica.\n  - Location e Contact ficam em <div id=\"a1\"> e <div id=\"a2\">.\n  - IP/Mask/Gateway ficam em inputs no bloco \"Manual\" (nomes D05..D016).\n  - DHCP: radio button com checked -- value=\"0\" = Inactive, value=\"1\" = Active.\n  - Fax na tabela counter tem tag </b> extra antes de </td>.\n  - Machine ID tem espaco no final da celula -- o parser faz trim().\n\nAutor: Gustavo Ferras (Systrix) -- JS validado nos HTMLs reais do equipamento.",
+                "groups": [
+                    {
+                        "name": "Templates/Printers"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "e62051a1d28848629588bbc608856adb",
+                        "name": "Bypass tray: paper size",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.bypass.size",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.bypass_size"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "paper"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e540603be8a04b5b8b0d152c4510b602",
+                        "name": "Bypass tray: status",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.bypass.status",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "description": "Status da bandeja manual. Normalmente \"Out of Paper\" quando nao em uso -- trigger desabilitada por padrao.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.bypass_status"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "paper"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4ed69b9ba11f4d409bc4573c897c96b8",
+                        "name": "Bypass tray: paper type",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.bypass.type",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.bypass_type"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "paper"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4396e16244474b7c8e3db531b35e8adb",
+                        "name": "Print cartridge: remaining level",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.cartridge.level",
+                        "history": "90d",
+                        "description": "Nivel restante do toner (0=vazio, 5=cheio). Ricoh usa escala discreta de 6 niveis.",
+                        "valuemap": {
+                            "name": "Ricoh cartridge level"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.cartridge_level"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cartridge"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "b55b16ef8ff74fd4b5a402c5d6e9403e",
+                                "expression": "last(/Ricoh SP 3710SF by HTTP/ricoh.cartridge.level) <= {$RICOH.CARTRIDGE.WARN}\nand last(/Ricoh SP 3710SF by HTTP/ricoh.cartridge.level) >= 0",
+                                "name": "Ricoh {HOST.NAME}: toner baixo (nivel {ITEM.LASTVALUE1})",
+                                "priority": "WARNING",
+                                "description": "Cartucho atingiu o nivel de warning ({$RICOH.CARTRIDGE.WARN}).",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Ricoh {HOST.NAME}: toner critico (nivel {ITEM.LASTVALUE1})",
+                                        "expression": "last(/Ricoh SP 3710SF by HTTP/ricoh.cartridge.level) <= {$RICOH.CARTRIDGE.CRIT}\nand last(/Ricoh SP 3710SF by HTTP/ricoh.cartridge.level) >= 0"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "consumable"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "8b755ea8cb7e485c8b358a800c1a7a26",
+                                "expression": "last(/Ricoh SP 3710SF by HTTP/ricoh.cartridge.level) <= {$RICOH.CARTRIDGE.CRIT}\nand last(/Ricoh SP 3710SF by HTTP/ricoh.cartridge.level) >= 0",
+                                "name": "Ricoh {HOST.NAME}: toner critico (nivel {ITEM.LASTVALUE1})",
+                                "priority": "HIGH",
+                                "description": "Cartucho em nivel critico ({$RICOH.CARTRIDGE.CRIT}). Troca urgente.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "consumable"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "639acb4d67cf42c88367f47ca2cd40fd",
+                        "name": "Contact",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.contact",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.contact"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "inventory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9278043b9c2148a7993ab1bc4d9e5af9",
+                        "name": "Counter: copier black",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.copier.black",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.copier_black"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "copier"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "400cf4e591d445b5ac8af37f7478a815",
+                        "name": "Counter: copier color",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.copier.color",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "description": "Sempre 0 nesta impressora monocromatica.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.copier_color"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "copier"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9fb9efcce9fe4a37b578204a3031f05e",
+                        "name": "Counter: copier total",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.copier.total",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.copier_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "copier"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "17194aed867b4736a6cafe14993c2e9e",
+                        "name": "Device status",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.device.status",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "description": "Estado operacional. Exemplos: Ready, Processing, Offline, Jam, Out of Paper.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.device_status"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "b71df9f825194b3d90cf7d68166801f4",
+                                "expression": "find(/Ricoh SP 3710SF by HTTP/ricoh.device.status,,\"regexp\",\"{$RICOH.PROBLEM.STATES}\") = 1\nand length(last(/Ricoh SP 3710SF by HTTP/ricoh.device.status)) > 0",
+                                "name": "Ricoh {HOST.NAME}: device problem ({ITEM.LASTVALUE1})",
+                                "priority": "WARNING",
+                                "description": "Device Status indica um problema que requer atencao (ex: Replace, Jam, Error, Offline).\nEstados transitorios de operacao normal (Printing, Scanning, Warming up) sao ignorados.\nAjuste a macro {$RICOH.PROBLEM.STATES} para incluir ou excluir padroes conforme necessario.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "c92a1f3e8d0b4e5f9a7c6d2e1b3f4a8d",
+                                "expression": "last(/Ricoh SP 3710SF by HTTP/ricoh.device.status) <> \"Ready\"\nand length(last(/Ricoh SP 3710SF by HTTP/ricoh.device.status)) > 0\nand find(/Ricoh SP 3710SF by HTTP/ricoh.device.status,,\"regexp\",\"{$RICOH.TRANSIENT.STATES}\") = 0\nand find(/Ricoh SP 3710SF by HTTP/ricoh.device.status,,\"regexp\",\"{$RICOH.PROBLEM.STATES}\") = 0",
+                                "name": "Ricoh {HOST.NAME}: device status desconhecido ({ITEM.LASTVALUE1})",
+                                "priority": "INFO",
+                                "description": "Device Status nao e \"Ready\", nao corresponde a nenhum estado transitorio conhecido\n({$RICOH.TRANSIENT.STATES}) nem a nenhum padrao de problema conhecido ({$RICOH.PROBLEM.STATES}).\nPode indicar um novo estado de firmware. Registre o valor e atualize as macros se necessario.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a769f95dcbf74bbe96a26c4a4b7a578c",
+                        "name": "Counter: duplex total",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.duplex.total",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.duplex_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "61b718ad1d8f408797b886363ed0e6e4",
+                        "name": "Engine firmware version",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.engine.fw",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.engine_fw_version"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.machine"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "firmware"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ddf18381e54945ed87b464239a9d58f5",
+                        "name": "Fax card",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.fax.card",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.fax_card"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1d"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.machine"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "hardware"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "45038c6ee32d4186bd3e2b66859a4d18",
+                        "name": "Counter: fax reception",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.fax.reception",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.fax_reception"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "fax"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "09d7e26e78694207b985734769de0616",
+                        "name": "Counter: fax total",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.fax.total",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.fax_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "fax"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "16c4d4510ef349cea7f699d9810e8638",
+                        "name": "Counter: fax transmission",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.fax.transmission",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.fax_transmission"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "fax"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1ad3e54c15cd4b54b5e4968f8c2e134b",
+                        "name": "Firmware version",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.firmware.version",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.firmware_version"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1d"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.machine"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "firmware"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "5f22d30edeb541f0b770c1b237ad7480",
+                                "expression": "change(/Ricoh SP 3710SF by HTTP/ricoh.firmware.version)<>0\nand length(last(/Ricoh SP 3710SF by HTTP/ricoh.firmware.version))>0",
+                                "name": "Ricoh {HOST.NAME}: firmware atualizado ({ITEM.LASTVALUE1})",
+                                "priority": "INFO",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "change"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2892255c11784352a028b8c1819a9326",
+                        "name": "Host name (printer)",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.hostname",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.hostname"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "inventory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "358539040e6842a8924579f7e02bdd87",
+                        "name": "Location",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.location",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.location"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "inventory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "382db13f00cf4afaab9f894e5a8de0df",
+                        "name": "Machine ID (serial)",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.machine.id",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.machine_id"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.machine"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "inventory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3f2335af23c9408a815d1e88c9a115ef",
+                        "name": "Model name",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.model",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.model"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "inventory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f8315a294d42472d8b7a1e9a71b83194",
+                        "name": "Network: DHCP status",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.dhcp",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "description": "Estado do DHCP: Active ou Inactive. Determinado pelo radio button checked no HTML.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.dhcp_status"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "62d642c1550c4413ab97ca41c458a716",
+                        "name": "Network: Ethernet speed",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.ethernet_speed",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ethernet_speed"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "54968dcb200548eaad6e7c0a16d6c272",
+                        "name": "Network: gateway",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.gateway",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gateway"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a738f776b7c2471c962b5b6868b65287",
+                        "name": "Network: active interface",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.interface",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.active_interface"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d31b05f2751b456db8f45f252bbe6831",
+                        "name": "Network: IP address",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.ip",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ip_address"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "4c7a4fc8a70b4a3b91edf62dc0cb2631",
+                                "expression": "change(/Ricoh SP 3710SF by HTTP/ricoh.net.ip)<>0\nand length(last(/Ricoh SP 3710SF by HTTP/ricoh.net.ip))>0",
+                                "name": "Ricoh {HOST.NAME}: IP mudou ({ITEM.LASTVALUE1})",
+                                "priority": "WARNING",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "change"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "37238197ef1f493ba06837ebe7ce0377",
+                        "name": "Network: IPP name",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.ipp_name",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ipp_name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "73e4787714d244a3b77edf4834674a3c",
+                        "name": "Network: MAC address",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.mac",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "description": "MAC ja vem formatado como XX:XX:XX:XX:XX:XX diretamente do HTML.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.mac_address"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d47dd394bed34691b82deb51a1e6f091",
+                        "name": "Network: subnet mask",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.mask",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.subnet_mask"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "bbdae7594aaf40e69019bf55b6936586",
+                        "name": "Network: version",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.version",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.network_version"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2684864888cf455aa3ca48601fb3c569",
+                        "name": "Network: Wi-Fi Direct IP",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.net.wifi_direct",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.wifi_direct_ip"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.network"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e487f319e98d447cb2faadf996f50d39",
+                        "name": "Ricoh: Counter page (raw JSON)",
+                        "type": "HTTP_AGENT",
+                        "key": "ricoh.page.counter",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "description": "Master: baixa counter.asp e converte para JSON. JS validado contra HTML real.",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Ricoh SP 3710SF - counter.asp -> JSON\n// Validado contra HTML real. Nota: \"Fax\" tem </b> antes de </td> no HTML.\nvar html = value;\nvar r = {};\n\n// Extrai 3 numeros de uma linha da tabela apos o label\n// Suporta tag extra apos label (ex: Fax</b></td>)\nfunction row3(label) {\n  var m = html.match(\n    new RegExp('>' + label + '(?:<[^>]*>)?<\\\\/td>[\\\\s\\\\S]*?<td[^>]*>(\\\\d+)<\\\\/td>[\\\\s\\\\S]*?<td[^>]*>(\\\\d+)<\\\\/td>[\\\\s\\\\S]*?<td[^>]*>(\\\\d+)<')\n  );\n  return m ? [parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10)] : [0,0,0];\n}\n\n// Extrai valor unico apos label (Page Total, Duplex Total Page)\n// Estrutura: label</td> <td>:</td> <td>VALOR</td>\nfunction single(label) {\n  var esc = label.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n  var m = html.match(\n    new RegExp('>' + esc + '<\\\\/td>[\\\\s\\\\S]*?<\\\\/td>[\\\\s\\\\S]*?<td[^>]*>(\\\\d+)<')\n  );\n  return m ? parseInt(m[1], 10) : 0;\n}\n\nvar p = row3('Printer'); r.printer_total = p[0]; r.printer_color = p[1]; r.printer_black = p[2];\nvar s = row3('Scanner'); r.scanner_total = s[0]; r.scanner_color = s[1]; r.scanner_black = s[2];\nvar c = row3('Copier');  r.copier_total  = c[0]; r.copier_color  = c[1]; r.copier_black  = c[2];\nvar f = row3('Fax');     r.fax_total     = f[0]; r.fax_reception = f[1]; r.fax_transmission = f[2];\n\nr.page_total   = single('Page Total');\nr.duplex_total = single('Duplex Total Page');\n\nreturn JSON.stringify(r);"
+                                ]
+                            }
+                        ],
+                        "timeout": "{$RICOH.HTTP.TIMEOUT}",
+                        "url": "{$RICOH.HTTP.SCHEME}://{HOST.CONN}:{$RICOH.HTTP.PORT}/counter.asp",
+                        "query_fields": [
+                            {
+                                "name": "Lang",
+                                "value": "{$RICOH.LANG}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c50b9306eae3429a9dc79bee5e3fa71d",
+                        "name": "Ricoh: Machine info (raw JSON)",
+                        "type": "HTTP_AGENT",
+                        "key": "ricoh.page.machine",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "description": "Master: baixa machinei.asp e converte para JSON. Polling espacado (dados estaticos).",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Ricoh SP 3710SF - machinei.asp -> JSON\n// Estrutura de cada campo: >Label</td> <td>:</td> <td>VALOR</td>\n// Machine ID tem espaco extra no HTML: \"5179Z311256 \" -- trim() aplicado.\nvar html = value;\nvar r = {};\n\nfunction ex(label) {\n  var esc = label.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n  var m = html.match(\n    new RegExp('>' + esc + '<\\\\/td>[\\\\s\\\\S]*?<\\\\/td>[\\\\s\\\\S]*?<td[^>]*>([^<]+)<')\n  );\n  return m ? m[1].trim() : '';\n}\n\nr.firmware_version  = ex('Firmware Version');\nr.engine_fw_version = ex('Engine FW Version');\nr.machine_id        = ex('Machine ID');\nr.fax_card          = ex('Fax Card');\nr.total_memory      = ex('Total Memory');\n\nreturn JSON.stringify(r);"
+                                ]
+                            }
+                        ],
+                        "timeout": "{$RICOH.HTTP.TIMEOUT}",
+                        "url": "{$RICOH.HTTP.SCHEME}://{HOST.CONN}:{$RICOH.HTTP.PORT}/machinei.asp",
+                        "query_fields": [
+                            {
+                                "name": "Lang",
+                                "value": "{$RICOH.LANG}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "machine"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "867da0d85e234ebdb956f2356d785628",
+                        "name": "Ricoh: Network page (raw JSON)",
+                        "type": "HTTP_AGENT",
+                        "key": "ricoh.page.network",
+                        "delay": "30m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "description": "Master: baixa card.asp e converte para JSON. JS validado contra HTML real.",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Ricoh SP 3710SF - card.asp -> JSON\n// Validado contra HTML real do equipamento.\nvar html = value;\nvar r = {};\n\n// Extrai campo de texto simples: >Label</td> <td>:</td> <td>&nbsp;VALOR</td>\nfunction ex(label) {\n  var esc = label.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\n  var m = html.match(\n    new RegExp('>' + esc + '<\\\\/td>[\\\\s\\\\S]*?<\\\\/td>\\\\s*<td nowrap>&nbsp;([^<]+)<')\n  );\n  return m ? m[1].trim() : '';\n}\n\nr.ethernet_speed   = ex('Ethernet Speed');\nr.ipp_name         = ex('IPP Printer Name');\nr.network_version  = ex('Network Version');\nr.mac_address      = ex('Ethernet MAC Address');\nr.active_interface = ex('Active Interface');\nr.wifi_direct_ip   = ex('Wi-Fi Direct IP Address');\n\n// DHCP: radio button - value=\"0\" checked = Inactive, value=\"1\" checked = Active\nvar dhcp = html.match(/<input type=\"radio\" value=\"(\\d)\" name=\"R1\"[^>]*checked/);\nr.dhcp_status = dhcp ? (dhcp[1] === '1' ? 'Active' : 'Inactive') : 'Unknown';\n\n// IP, Mascara e Gateway: inputs no bloco Manual (D05-D08, D09-D012, D013-D016)\n// O bloco Auto usa D5-D8 (sem zero inicial) -- nao interfere.\nfunction ip4(a, b, c, d) {\n  var m = html.match(\n    new RegExp('name=\"' + a + '\"[^>]*value=\"(\\\\d+)\"[\\\\s\\\\S]*?' +\n               'name=\"' + b + '\"[^>]*value=\"(\\\\d+)\"[\\\\s\\\\S]*?' +\n               'name=\"' + c + '\"[^>]*value=\"(\\\\d+)\"[\\\\s\\\\S]*?' +\n               'name=\"' + d + '\"[^>]*value=\"(\\\\d+)\"')\n  );\n  return m ? m[1] + '.' + m[2] + '.' + m[3] + '.' + m[4] : '';\n}\n\nr.ip_address  = ip4('D05', 'D06', 'D07', 'D08');\nr.subnet_mask = ip4('D09', 'D010', 'D011', 'D012');\nr.gateway     = ip4('D013', 'D014', 'D015', 'D016');\n\nreturn JSON.stringify(r);"
+                                ]
+                            }
+                        ],
+                        "timeout": "{$RICOH.HTTP.TIMEOUT}",
+                        "url": "{$RICOH.HTTP.SCHEME}://{HOST.CONN}:{$RICOH.HTTP.PORT}/card.asp",
+                        "query_fields": [
+                            {
+                                "name": "Lang",
+                                "value": "{$RICOH.LANG}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a41f4fa110e34acb85df3926bf98f7f8",
+                        "name": "Ricoh: Status page (raw JSON)",
+                        "type": "HTTP_AGENT",
+                        "key": "ricoh.page.status",
+                        "delay": "5m",
+                        "history": "0",
+                        "value_type": "TEXT",
+                        "description": "Master: baixa main.asp e converte para JSON. JS validado contra HTML real (firmware V1.04).",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Ricoh SP 3710SF - main.asp -> JSON\n// Validado contra HTML real do equipamento (firmware V1.04)\nvar html = value;\nvar r = {};\n\n// Decode HTML numeric entities (Device Status usa &#N; encoding)\nfunction decEnt(s) {\n  return s.replace(/&#(\\d+);/g, function(m, n) {\n    return String.fromCharCode(parseInt(n, 10));\n  }).replace(/&nbsp;/g, '').replace(/&amp;/g, '&').trim();\n}\n\nvar m;\n// Model Name: <td>Model Name</td><td>:</td><td>SP 3710SF&nbsp;</td>\nm = html.match(/>Model Name<\\/td>[\\s\\S]*?<\\/td>[\\s\\S]*?<td[^>]*>([^<&]+)/);\nr.model = m ? m[1].trim() : '';\n\n// Location: <div id=\"a1\">Administracao&nbsp;</div>\nm = html.match(/id=\"a1\">([^<&]+)/);\nr.location = m ? m[1].trim() : '';\n\n// Contact: <div id=\"a2\">Marcio/Juliano&nbsp;</div>\nm = html.match(/id=\"a2\">([^<&]+)/);\nr.contact = m ? m[1].trim() : '';\n\n// Host Name: <td nowrap>3710SF-19A754</td>\nm = html.match(/>Host Name<\\/td>[\\s\\S]*?<\\/td>[\\s\\S]*?<td[^>]*nowrap>([^<]+)/);\nr.hostname = m ? m[1].trim() : '';\n\n// Device Status: codificado como HTML entities (ex: &#82;&#101;... = \"Ready\")\nm = html.match(/>Device Status<\\/td>[\\s\\S]*?<td[^>]*nowrap>((?:&#\\d+;|[^<])+)/);\nr.device_status = m ? decEnt(m[1]) : '';\n\n// Print Cartridge Remaining Level (inteiro 0-5)\nm = html.match(/Remaining Level\\s*(\\d+)/);\nr.cartridge_level = m ? parseInt(m[1], 10) : -1;\n\n// Parser generico de bandeja: extrai <tr> pelo nome e coleta tds\nfunction parseTray(trayName) {\n  var re = new RegExp('>' + trayName + '<\\\\/td>([\\\\s\\\\S]*?)<\\\\/tr>');\n  var row = html.match(re);\n  if (!row) return { status: 'Unknown', size: 'Unknown', type: 'Unknown' };\n  var tds = row[1].match(/<td[^>]*>([\\s\\S]*?)<\\/td>/g) || [];\n  var texts = tds.map(function(td) {\n    return td.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, '').replace(/\\s+/g, ' ').trim();\n  }).filter(function(t) { return t.length > 0; });\n  // texts[0]=status, texts[1]=size, texts[2]=paper type\n  return {\n    status: texts[0] || 'Unknown',\n    size:   texts[1] || 'Unknown',\n    type:   texts[2] || 'Unknown'\n  };\n}\n\nvar t1 = parseTray('Tray 1');\nr.tray1_status = t1.status; r.tray1_size = t1.size; r.tray1_type = t1.type;\n\nvar bp = parseTray('Bypass Tray');\nr.bypass_status = bp.status; r.bypass_size = bp.size; r.bypass_type = bp.type;\n\nreturn JSON.stringify(r);"
+                                ]
+                            }
+                        ],
+                        "timeout": "{$RICOH.HTTP.TIMEOUT}",
+                        "url": "{$RICOH.HTTP.SCHEME}://{HOST.CONN}:{$RICOH.HTTP.PORT}/main.asp",
+                        "query_fields": [
+                            {
+                                "name": "Lang",
+                                "value": "{$RICOH.LANG}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "779fb72ea5c4483585e73640b01c7179",
+                                "expression": "nodata(/Ricoh SP 3710SF by HTTP/ricoh.page.status,15m)=1",
+                                "name": "Ricoh {HOST.NAME}: sem coleta HTTP ha 15m",
+                                "priority": "HIGH",
+                                "description": "Web Image Monitor nao respondeu nos ultimos 15 minutos.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7e9305be28ca4b9196e85018eda68f43",
+                        "name": "Counter: page total",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.page.total",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "description": "Total absoluto de paginas processadas (todos os servicos). Equivalente ao prtMarkerLifeCount do SNMP.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.page_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a51b3da4a0c74f308767eabaedb52920",
+                        "name": "Pages printed this today",
+                        "type": "CALCULATED",
+                        "key": "ricoh.pages.calc.daily",
+                        "delay": "5m",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "params": "last(//ricoh.page.total) - min(//ricoh.page.total,1d)",
+                        "description": "Paginas impressas nas ultimas 24 horas.\nFormula: valor_atual - minimo_nas_ultimas_24h\nComo prtMarkerLifeCount so cresce, min() retorna o valor mais antigo\nda janela, funcionando como baseline automatico sem snapshot externo.\nRequer historico de pelo menos 1 dia do item ricoh.page.total.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "daily printer"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0ef05d2cd0d24729a9ee2c6b8ef42a30",
+                        "name": "Pages printed this month",
+                        "type": "CALCULATED",
+                        "key": "ricoh.pages.calc.monthly",
+                        "delay": "5m",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "params": "last(//ricoh.page.total) - min(//ricoh.page.total,30d)",
+                        "description": "Paginas impressas nos ultimos 30 dias.\nFormula: valor_atual - minimo_nos_ultimos_30_dias.\nRequer historico de pelo menos 30 dias do item ricoh.page.total.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "monthly printer"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b08abbfa4c1d43e2aa55b085e06bc556",
+                        "name": "Pages printed this week",
+                        "type": "CALCULATED",
+                        "key": "ricoh.pages.calc.weekly",
+                        "delay": "5m",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "params": "last(//ricoh.page.total) - min(//ricoh.page.total,7d)",
+                        "description": "Paginas impressas nos ultimos 7 dias.\nFormula: valor_atual - minimo_nos_ultimos_7_dias.\nRequer historico de pelo menos 7 dias do item ricoh.page.total.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "weekly printer"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1b5a5ada8d234262b93dca40a24779ab",
+                        "name": "Counter: printer black",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.printer.black",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.printer_black"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "printer"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a721958f7f794eceaf7bf745e95039e4",
+                        "name": "Counter: printer color",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.printer.color",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "description": "Sempre 0 nesta impressora monocromatica.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.printer_color"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "printer"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c40e177e208a4b6cb2afff33d53fde1a",
+                        "name": "Counter: printer rate",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.printer.rate",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "pages/h",
+                        "description": "Paginas impressas por hora (delta do contador printer_total).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.printer_total"
+                                ]
+                            },
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "3600"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7cd7a6fe05c94cd3b67864d29a9c8788",
+                        "name": "Counter: printer total",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.printer.total",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.printer_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "printer"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d713e804063d46abbaf9842798cc239f",
+                        "name": "Counter: scanner black",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.scanner.black",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.scanner_black"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "scanner"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "30f4f65635ef434c8684eec4e3e1d2be",
+                        "name": "Counter: scanner color",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.scanner.color",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.scanner_color"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "scanner"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9fc124cb4855434f85003ffc7296360a",
+                        "name": "Counter: scanner total",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.scanner.total",
+                        "history": "90d",
+                        "trends": "3650d",
+                        "units": "pages",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.scanner_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.counter"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "counter"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "scanner"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "234d450a4cab47d0bd9a5eaa06471934",
+                        "name": "Total memory",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.total.memory",
+                        "history": "365d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.total_memory"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.machine"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "hardware"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4da8f804e7e44f10a80325b1f122304b",
+                        "name": "Tray 1: paper size",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.tray1.size",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.tray1_size"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "paper"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "659fb98220f04929b201056c2313bef8",
+                        "name": "Tray 1: status",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.tray1.status",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "description": "Status da bandeja principal. Valores: \"Status OK\", \"Out of Paper\", \"Near End\".",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.tray1_status"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "paper"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "f2027ddcb52b4c4abc82a7ebc1ab5e1a",
+                                "expression": "find(/Ricoh SP 3710SF by HTTP/ricoh.tray1.status,,\"like\",\"Out of Paper\")=1",
+                                "name": "Ricoh {HOST.NAME}: Tray 1 sem papel",
+                                "priority": "INFO",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "paper"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a10392ded2484c238ac8be3c9f08d91b",
+                        "name": "Tray 1: paper type",
+                        "type": "DEPENDENT",
+                        "key": "ricoh.tray1.type",
+                        "history": "30d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.tray1_type"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ricoh.page.status"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "paper"
+                            }
+                        ]
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$RICOH.CARTRIDGE.CRIT}",
+                        "value": "1",
+                        "description": "Nivel critico do cartucho: Remaining Level <= este valor."
+                    },
+                    {
+                        "macro": "{$RICOH.CARTRIDGE.WARN}",
+                        "value": "2",
+                        "description": "Nível warning do cartucho: Remaining Level <= este valor."
+                    },
+                    {
+                        "macro": "{$RICOH.HTTP.PORT}",
+                        "value": "80",
+                        "description": "Porta HTTP da Web Image Monitor."
+                    },
+                    {
+                        "macro": "{$RICOH.HTTP.SCHEME}",
+                        "value": "http",
+                        "description": "Esquema HTTP (http ou https)."
+                    },
+                    {
+                        "macro": "{$RICOH.HTTP.TIMEOUT}",
+                        "value": "10s",
+                        "description": "Timeout das requisicoes HTTP."
+                    },
+                    {
+                        "macro": "{$RICOH.LANG}",
+                        "value": "en-us",
+                        "description": "Idioma da interface web. Manter en-us para garantir strings em ingles nos regex."
+                    },
+                    {
+                        "macro": "{$RICOH.PROBLEM.STATES}",
+                        "value": "(Replace|Error|Jam|Offline|Maint|Service Call|Out of Paper|Near End)",
+                        "description": "Regex (POSIX) de padroes de Device Status que disparam alerta WARNING.\nSeparar alternativas com |. Exemplos de estados: Replace Required Soon, Paper Jam,\nOut of Paper, Error, Offline, Near End Paper, Service Call.\nOverride por host para adaptar ao comportamento especifico do equipamento."
+                    },
+                    {
+                        "macro": "{$RICOH.TRANSIENT.STATES}",
+                        "value": "(Printing|Processing|Warming|Scanning|Copying|Receiving|Sending)",
+                        "description": "Regex (POSIX) de padroes de Device Status considerados operacao normal (transitorios).\nEstes estados NAO disparam alertas. Separar alternativas com |.\nExemplos: Printing..., Scanner Processing..., Warming up..., Copying...\nOverride por host se o firmware retornar strings diferentes."
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "7dc5c253e90c4b2883163c9cf2936cdb",
+                        "name": "Ricoh cartridge level",
+                        "mappings": [
+                            {
+                                "value": "-1",
+                                "newvalue": "Undetermined"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Empty"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Critical (~20%)"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "Low (~40%)"
+                            },
+                            {
+                                "value": "3",
+                                "newvalue": "Medium (~60%)"
+                            },
+                            {
+                                "value": "4",
+                                "newvalue": "High (~80%)"
+                            },
+                            {
+                                "value": "5",
+                                "newvalue": "Full (100%)"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

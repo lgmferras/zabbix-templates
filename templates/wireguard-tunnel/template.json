@@ -1,0 +1,331 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "b0fc6f9baea64069bf6dfd69529e2acd",
+                "template": "WireGuard Tunnel by Zabbix agent",
+                "name": "WireGuard Tunnel by Zabbix agent",
+                "description": "Monitoramento do túnel WireGuard via Zabbix agent (ativo).\nCompatível com Linux e Windows Server.\nItens: status da interface, peers online, handshake age, throughput RX/TX e latência ICMP.\nAutor: Luis Gustavo Ferras - Systrix\nVersão: 1.0",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "8b899fbcca2a40d4a5a24efc16ff85d1",
+                        "name": "WireGuard: Idade do último handshake em {$WG.INTERFACE}",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.handshake.age[{$WG.INTERFACE}]",
+                        "delay": "3m",
+                        "history": "90d",
+                        "units": "s",
+                        "description": "Segundos desde o handshake mais recente (menor valor entre todos os peers).\nPara clientes (1 peer): indica diretamente a saúde da conexão com a VPS.\nPara o servidor (N peers): indica quando o peer mais ativo comunicou pela última vez.\nRetorna -1 se não houver peers configurados ou sem nenhum handshake registrado.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "d45db9b7790446ae95cc106f7ca14ca0",
+                                "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.handshake.age[{$WG.INTERFACE}])>{$WG.HANDSHAKE.MAX_AGE} and last(/WireGuard Tunnel by Zabbix agent/wireguard.handshake.age[{$WG.INTERFACE}])<>-1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.handshake.age[{$WG.INTERFACE}])<={$WG.HANDSHAKE.MAX_AGE}",
+                                "name": "WireGuard: Handshake antigo em {$WG.INTERFACE} (> {$WG.HANDSHAKE.MAX_AGE}s)",
+                                "opdata": "Último handshake: {ITEM.LASTVALUE} atrás",
+                                "priority": "WARNING",
+                                "description": "O handshake mais recente está acima do limite. Indica peer(s) possivelmente desconectado(s).",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "WireGuard: Interface {$WG.INTERFACE} DOWN",
+                                        "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=0",
+                                        "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireguard"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "de6bd95e973349b2be709ea40cf7632a",
+                        "name": "WireGuard: Interface {$WG.INTERFACE} ativa",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.interface.up[{$WG.INTERFACE}]",
+                        "delay": "3m",
+                        "history": "90d",
+                        "description": "Status da interface WireGuard. 1 = ativa, 0 = inativa ou inexistente.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "6a76b02aadb54cd2a4425e114a336270",
+                                "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=1",
+                                "name": "WireGuard: Interface {$WG.INTERFACE} DOWN",
+                                "opdata": "Interface: {$WG.INTERFACE}",
+                                "priority": "DISASTER",
+                                "description": "A interface WireGuard está inativa. Túnel VPN indisponível.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireguard"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6947be1f7f2f45e780a05da11365b404",
+                        "name": "WireGuard: Latência ICMP para {$WG.PEER.IP}",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.latency[{$WG.PEER.IP}]",
+                        "delay": "5m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "ms",
+                        "description": "RTT médio (3 pacotes ICMP) para o peer {$WG.PEER.IP} através do túnel WireGuard.\nRetorna -1 se o peer não responder ao ping.\nConfigurar {$WG.PEER.IP} no host: clientes usam 10.0.0.1 (VPS); no servidor VPS desabilitar este item e usar pings individuais por host.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "b6398d2416064f9b9aaff713abed5cf4",
+                                "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.latency[{$WG.PEER.IP}])>{$WG.LATENCY.WARN} and last(/WireGuard Tunnel by Zabbix agent/wireguard.latency[{$WG.PEER.IP}])<>-1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.latency[{$WG.PEER.IP}])<={$WG.LATENCY.WARN}",
+                                "name": "WireGuard: Latência alta para {$WG.PEER.IP} (> {$WG.LATENCY.WARN}ms)",
+                                "opdata": "RTT: {ITEM.LASTVALUE}",
+                                "priority": "WARNING",
+                                "description": "Latência do túnel WireGuard acima do limiar.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireguard"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "b778b9db6f9f4b839956e10402181ed7",
+                                "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.latency[{$WG.PEER.IP}])=-1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.latency[{$WG.PEER.IP}])<>-1",
+                                "name": "WireGuard: Peer {$WG.PEER.IP} sem resposta ICMP",
+                                "opdata": "Peer: {$WG.PEER.IP}",
+                                "priority": "HIGH",
+                                "description": "O peer não responde a ping ICMP pelo túnel. Pode indicar que a VPN está inativa no peer ou que o roteamento WireGuard está com problema.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "WireGuard: Interface {$WG.INTERFACE} DOWN",
+                                        "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=0",
+                                        "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireguard"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7a4a3f818e604cf5b037e581ea4c3292",
+                        "name": "WireGuard: Peers online em {$WG.INTERFACE}",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.peers.online[{$WG.INTERFACE},{$WG.HANDSHAKE.MAX_AGE}]",
+                        "delay": "3m",
+                        "history": "90d",
+                        "description": "Peers com handshake mais recente que {$WG.HANDSHAKE.MAX_AGE} segundos. O segundo parâmetro é passado para o UserParameter para evitar hardcode.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "aad5153b1b954bb59c0109195d2ba898",
+                                "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.peers.online[{$WG.INTERFACE},{$WG.HANDSHAKE.MAX_AGE}])<{$WG.PEERS.MIN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.peers.online[{$WG.INTERFACE},{$WG.HANDSHAKE.MAX_AGE}])>={$WG.PEERS.MIN}",
+                                "name": "WireGuard: Menos de {$WG.PEERS.MIN} peer(s) online em {$WG.INTERFACE}",
+                                "opdata": "Online: {ITEM.LASTVALUE} / esperado: {$WG.PEERS.MIN}",
+                                "priority": "HIGH",
+                                "description": "Número de peers com handshake recente está abaixo do mínimo esperado.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "WireGuard: Interface {$WG.INTERFACE} DOWN",
+                                        "expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=0",
+                                        "recovery_expression": "last(/WireGuard Tunnel by Zabbix agent/wireguard.interface.up[{$WG.INTERFACE}])=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wireguard"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6bb02fcad20b4f40ad3c443934ee3243",
+                        "name": "WireGuard: Peers configurados em {$WG.INTERFACE}",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.peers.total[{$WG.INTERFACE}]",
+                        "delay": "10m",
+                        "history": "90d",
+                        "description": "Total de peers configurados na interface WireGuard.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8bdfe79e9a0a431ebd2ee4239d7ba556",
+                        "name": "WireGuard: Tráfego recebido (RX) em {$WG.INTERFACE}",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.transfer.rx[{$WG.INTERFACE}]",
+                        "delay": "5m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "Bps",
+                        "description": "Taxa de bytes recebidos no túnel WireGuard (bytes/s). Calculado via CHANGE_PER_SECOND sobre o contador acumulado do 'wg show transfer'. Reseta quando o WireGuard é reiniciado.",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1b508ba8b48f424fa114998658d2535f",
+                        "name": "WireGuard: Tráfego enviado (TX) em {$WG.INTERFACE}",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "wireguard.transfer.tx[{$WG.INTERFACE}]",
+                        "delay": "5m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "Bps",
+                        "description": "Taxa de bytes enviados no túnel WireGuard (bytes/s). Calculado via CHANGE_PER_SECOND sobre o contador acumulado do 'wg show transfer'.",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "wireguard"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "application"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "wireguard"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$WG.HANDSHAKE.MAX_AGE}",
+                        "value": "300",
+                        "description": "Idade máxima do handshake (segundos) antes de gerar alerta WARNING. Padrão: 300s (5 min). WireGuard renego a cada ~3 min quando ativo."
+                    },
+                    {
+                        "macro": "{$WG.INTERFACE}",
+                        "value": "wg0",
+                        "description": "Nome da interface WireGuard no host. Ex: wg0 (VPS/systrixcentral), systrix_wg0 (variante), ou nome configurado no Windows."
+                    },
+                    {
+                        "macro": "{$WG.LATENCY.WARN}",
+                        "value": "50",
+                        "description": "Latência (ms) para alerta WARNING. Padrão: 50ms."
+                    },
+                    {
+                        "macro": "{$WG.PEER.IP}",
+                        "value": "10.0.0.1",
+                        "description": "IP do peer a ser pingado para medir latência. Clientes: 10.0.0.1 (VPS). No servidor VPS: desabilitar o item wireguard.latency e usar pings individuais."
+                    },
+                    {
+                        "macro": "{$WG.PEERS.MIN}",
+                        "value": "1",
+                        "description": "Mínimo de peers online esperado. Clientes: 1 (conectado à VPS). Servidor VPS: ajustar para o número de peers ativos esperados."
+                    }
+                ]
+            }
+        ]
+    }
+}

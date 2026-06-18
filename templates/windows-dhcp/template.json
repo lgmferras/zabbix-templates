@@ -1,0 +1,219 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            },
+            {
+                "uuid": "a1b2c3d44e5f4a8b9c0d1e2f3a4b5c6d",
+                "name": "Templates/Windows"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "b7c8d9e44a1b4c8a9b0c1d2e3f4a5b6c",
+                "template": "Windows DHCP Server by Zabbix agent active",
+                "name": "Windows DHCP Server by Zabbix agent active",
+                "description": "Monitoramento do DHCP (Windows Server 2016+ em Domain Controller) via Zabbix Agent 2 (active) + PowerShell UserParameters.",
+                "groups": [
+                    {
+                        "name": "Templates/Windows"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "f7a8b9c44d1e4a8b9c0d1e2f3a4b5c6d",
+                        "name": "DHCP IPv4 leases total",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "dhcp.v4.leases.total",
+                        "delay": "5m",
+                        "description": "Quantidade total de leases IPv4.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "leases"
+                            },
+                            {
+                                "tag": "ip",
+                                "value": "ipv4"
+                            },
+                            {
+                                "tag": "service",
+                                "value": "dhcp"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a9b0c1d24e3f4a8b9c0d1e2f3a4b5c6d",
+                        "name": "DHCP IPv4 leases active",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "dhcp.v4.leases.used",
+                        "delay": "5m",
+                        "description": "Quantidade de leases IPv4 em uso (AddressState = Active).",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "leases"
+                            },
+                            {
+                                "tag": "ip",
+                                "value": "ipv4"
+                            },
+                            {
+                                "tag": "service",
+                                "value": "dhcp"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e1f2a3b44c5d4a8b9c0d1e2f3a4b5c6d",
+                        "name": "DHCP IPv4 scopes count",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "dhcp.v4.scopes.count",
+                        "delay": "5m",
+                        "description": "Quantidade de scopes IPv4 configurados.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "scope"
+                            },
+                            {
+                                "tag": "ip",
+                                "value": "ipv4"
+                            },
+                            {
+                                "tag": "service",
+                                "value": "dhcp"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b0c1d2e34f5a4a8b9c0d1e2f3a4b5c6d",
+                        "name": "DHCP IPv4 utilization (%)",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "dhcp.v4.utilization",
+                        "delay": "5m",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Percentual de uso (leases active / leases total).",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "capacity"
+                            },
+                            {
+                                "tag": "ip",
+                                "value": "ipv4"
+                            },
+                            {
+                                "tag": "service",
+                                "value": "dhcp"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "c2d3e4f54a6b4a8b9c0d1e2f3a4b5c6d",
+                                "expression": "last(/Windows DHCP Server by Zabbix agent active/dhcp.v4.utilization)>={$DHCP.SCOPE.UTIL.CRIT}",
+                                "name": "DHCP pool utilization is critical (>= {$DHCP.SCOPE.UTIL.CRIT}%)",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c1d2e3f44a5b4c8a9b0c1d2e3f4a5b6c",
+                        "name": "DHCP Service state",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "service.info[DHCPServer,state]",
+                        "delay": "5m",
+                        "description": "Estado do serviço DHCPServer (2 = Running).",
+                        "valuemap": {
+                            "name": "Windows service state"
+                        },
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "service",
+                                "value": "dhcp"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "d4e5f6a74b1c4a8b9c0d1e2f3a4b5c6d",
+                                "expression": "last(/Windows DHCP Server by Zabbix agent active/service.info[DHCPServer,state])<>0",
+                                "name": "DHCP Server service is not running",
+                                "priority": "DISASTER",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$DHCP.SCOPE.UTIL.CRIT}",
+                        "value": "90",
+                        "description": "Utilização crítica do pool DHCP (%)"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "3bccd8ffddd047d8a9e919a80961363a",
+                        "name": "Windows service state",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Running"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Paused"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "Start pending"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

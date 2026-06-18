@@ -1,0 +1,3105 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "a72708dbc71c43deaaecab23ddf11e68",
+                "name": "Templates"
+            },
+            {
+                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "name": "Templates/Applications"
+            },
+            {
+                "uuid": "c2c162144c2d4c5491c8801193af4945",
+                "name": "Templates/Cloud"
+            },
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "69c7cbffb9e14e119136c21a118332d6",
+                "template": "TrueNAS by API",
+                "name": "TrueNAS by API",
+                "groups": [
+                    {
+                        "name": "Templates"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "734f5581b07548e0aa6d550a436b48ba",
+                        "name": "ICMP ping",
+                        "type": "SIMPLE",
+                        "key": "icmpping",
+                        "delay": "3m",
+                        "history": "1w",
+                        "tags": [
+                            {
+                                "tag": "Application",
+                                "value": "Status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "39f6e7b056db4b04b5db57b359adc88f",
+                                "expression": "max(/TrueNAS by API/icmpping,#3)=0",
+                                "name": "Unavailable by ICMP ping",
+                                "priority": "HIGH",
+                                "description": "Last value: {ITEM.LASTVALUE1}.\nLast three attempts returned timeout.  Please check device connectivity.",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c339a853da734aa99bd24d23bd8dc3fc",
+                        "name": "ICMP loss",
+                        "type": "SIMPLE",
+                        "key": "icmppingloss",
+                        "delay": "3m",
+                        "history": "1w",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "tags": [
+                            {
+                                "tag": "Application",
+                                "value": "Status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "fb76a185b27e4212a37d3c12377eafb1",
+                                "expression": "min(/TrueNAS by API/icmppingloss,5m)>{$ICMP_LOSS_WARN} and min(/TrueNAS by API/icmppingloss,5m)<100",
+                                "name": "High ICMP ping loss",
+                                "priority": "WARNING",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Unavailable by ICMP ping",
+                                        "expression": "max(/TrueNAS by API/icmpping,#3)=0"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e28d57ed7bf54288b589d44d0582c01b",
+                        "name": "ICMP response time",
+                        "type": "SIMPLE",
+                        "key": "icmppingsec",
+                        "delay": "3m",
+                        "history": "1w",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "tags": [
+                            {
+                                "tag": "Application",
+                                "value": "Status"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "bfb49d4101e541dab0a3ad24ca437514",
+                                "expression": "avg(/TrueNAS by API/icmppingsec,5m)>{$ICMP_RESPONSE_TIME_WARN}",
+                                "name": "High ICMP ping response time",
+                                "priority": "WARNING",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "High ICMP ping loss",
+                                        "expression": "min(/TrueNAS by API/icmppingloss,5m)>{$ICMP_LOSS_WARN} and min(/TrueNAS by API/icmppingloss,5m)<100"
+                                    },
+                                    {
+                                        "name": "Unavailable by ICMP ping",
+                                        "expression": "max(/TrueNAS by API/icmpping,#3)=0"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b5ca312a7a704fe889c6e5aedd446983",
+                        "name": "TrueNAS: Active alerts",
+                        "type": "DEPENDENT",
+                        "key": "truenas.alert.active.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var a=JSON.parse(value);return a.filter(function(x){return !x.dismissed;}).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.alert.list"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5e0f012fa7f847f2b35ef456f835cb47",
+                        "name": "TrueNAS: Critical alerts",
+                        "type": "DEPENDENT",
+                        "key": "truenas.alert.critical.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var a=JSON.parse(value);return a.filter(function(x){return !x.dismissed && x.level=='CRITICAL';}).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.alert.list"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "34563a08581f4ecb9aa1b7f15b1df108",
+                                "expression": "last(/TrueNAS by API/truenas.alert.critical.count)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.alert.critical.count)=0",
+                                "name": "TrueNAS: {ITEM.VALUE} critical alert(s) active",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "system"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "275084257abb4f6480e73c606a66e1a1",
+                        "name": "TrueNAS Alerts",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.alert.list",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/alert/list",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            },
+                            {
+                                "tag": "scope",
+                                "value": "notice"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c32ec1ea9d5c477590273ff93b34d54c",
+                        "name": "TrueNAS: Total alerts",
+                        "type": "DEPENDENT",
+                        "key": "truenas.alert.total.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return JSON.parse(value).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.alert.list"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c78778baf2974bf98e8ec4c3b3bafc76",
+                        "name": "TrueNAS: Warning alerts",
+                        "type": "DEPENDENT",
+                        "key": "truenas.alert.warning.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var a=JSON.parse(value);return a.filter(function(x){return !x.dismissed && x.level=='WARNING';}).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.alert.list"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "429733f45a3e43fa974bbdf28f990e57",
+                                "expression": "last(/TrueNAS by API/truenas.alert.warning.count)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.alert.warning.count)=0",
+                                "name": "TrueNAS: {ITEM.VALUE} warning alert(s) active",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "system"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8384aeabb314414d9785fe6e378bdc83",
+                        "name": "TrueNAS App",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.app",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/app",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "application"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5fc5dcf4340f4ff0a2b0963c3d0761b3",
+                        "name": "TrueNAS: Apps count",
+                        "type": "DEPENDENT",
+                        "key": "truenas.app.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return JSON.parse(value).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.app"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5a91c1bad85a4b118741a6d1f74ea2c8",
+                        "name": "TrueNAS: Apps running",
+                        "type": "DEPENDENT",
+                        "key": "truenas.app.running.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var a=JSON.parse(value);return a.filter(function(x){return x.state=='RUNNING';}).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.app"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3decc67719fc440f9180808baecad644",
+                        "name": "TrueNAS: Apps with upgrade available",
+                        "type": "DEPENDENT",
+                        "key": "truenas.app.upgrades.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var a=JSON.parse(value);return a.filter(function(x){return x.upgrade_available;}).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.app"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7546c710e4e447bb8dbbb09107f05e80",
+                        "name": "Boot Time Date",
+                        "type": "DEPENDENT",
+                        "key": "truenas.boottime",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.boottime"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var obj=JSON.parse(value);return obj['$date'];"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1045ecd8ca6c4c1987873af51f5263f1",
+                        "name": "TrueNAS Catalog",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.catalog",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/catalog",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "application"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2c2eaf84f4aa4b3bb3284721a2f9f948",
+                        "name": "TrueNAS: Certificate issuer",
+                        "type": "DEPENDENT",
+                        "key": "truenas.cert.issuer",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].organization"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.certificate"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "security"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e48af01d865049f389eb1481158d84db",
+                        "name": "TrueNAS: Certificate name",
+                        "type": "DEPENDENT",
+                        "key": "truenas.cert.name",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.certificate"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "security"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2dc076606b53494ea8b530a67ae39853",
+                        "name": "TrueNAS: Certificate expiry",
+                        "type": "DEPENDENT",
+                        "key": "truenas.cert.until",
+                        "history": "90d",
+                        "trends": "0",
+                        "units": "unixtime",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].until"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return Math.round(new Date(value).getTime() / 1000);"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.certificate"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "security"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "4c4a5e1a7107499c9bfd057dfd9bd82a",
+                                "expression": "(last(/TrueNAS by API/truenas.cert.until)-now())<7*86400 and last(/TrueNAS by API/truenas.cert.until)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "(last(/TrueNAS by API/truenas.cert.until)-now())>=7*86400",
+                                "name": "TrueNAS: Certificate expires in less than 7 days",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    },
+                                    {
+                                        "name": "TrueNAS: Certificate expires in less than 30 days",
+                                        "expression": "(last(/TrueNAS by API/truenas.cert.until)-now())<30*86400 and last(/TrueNAS by API/truenas.cert.until)>0",
+                                        "recovery_expression": "(last(/TrueNAS by API/truenas.cert.until)-now())>=30*86400"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "security"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "0584f53eaf9c46fdadb85376522f7197",
+                                "expression": "(last(/TrueNAS by API/truenas.cert.until)-now())<30*86400 and last(/TrueNAS by API/truenas.cert.until)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "(last(/TrueNAS by API/truenas.cert.until)-now())>=30*86400",
+                                "name": "TrueNAS: Certificate expires in less than 30 days",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "security"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ee4077cdd42e4707956486eda995a929",
+                        "name": "TrueNAS Users Certificates",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.certificate",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/certificate",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "security"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b230935fddfb476384d3ef31e632200f",
+                        "name": "TrueNAS Cloud Sync",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.cloudsync",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/cloudsync",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7835e2e503a44c96a83735b80b53a0ab",
+                        "name": "TrueNAS Cloud Backup",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.cloud_backup",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/cloud_backup",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "431e5a4db46648e3b86a95c3bf884cf6",
+                        "name": "CPU cores",
+                        "type": "DEPENDENT",
+                        "key": "truenas.cores",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.cores"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "21d0627ec7284dccae59048597abeec0",
+                        "name": "CPU Model",
+                        "type": "DEPENDENT",
+                        "key": "truenas.cpu.model",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.model"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1dc2a2bb8a504a0ba474aa4119b83fc7",
+                        "name": "TrueNAS CRON Jobs",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.cronjob",
+                        "delay": "15m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/cronjob",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "40343ff9219d4f03aacf01e690414515",
+                        "name": "Date Time",
+                        "type": "DEPENDENT",
+                        "key": "truenas.datetime",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.datetime"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var obj=JSON.parse(value);return obj['$date'];"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "64c7faceaa9644f1a5d4d05ade016811",
+                        "name": "TrueNAS Device",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.device",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "status": "DISABLED",
+                        "url": "{$TRUENAS.API.URL}/device",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a7b7c9d6c1c64060bd25dd79c0dec693",
+                        "name": "TrueNAS Disks",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.disk",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/disk",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ce41f6eff4324aeeb6b57f85f3d83c15",
+                        "name": "TrueNAS: Disk[1] model",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.1.model",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].model"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6214912f0a22458299ab01431ebee9a6",
+                        "name": "TrueNAS: Disk[1] name",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.1.name",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a10bc6b9001e4d7d8d70b25f009012c1",
+                        "name": "TrueNAS: Disk[1] size",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.1.size",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].size"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1e8e3b05183244b6a240a5034d3f44cb",
+                        "name": "TrueNAS: Disk[1] type",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.1.type",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].type"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f022825b77724489a6c77763d8ba1c7a",
+                        "name": "TrueNAS: Disk[2] model",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.2.model",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[1].model"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3960c203071e4417ae8f4ffc1110b68c",
+                        "name": "TrueNAS: Disk[2] name",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.2.name",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[1].name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "81029d76185a43e4ba4893b4e0981685",
+                        "name": "TrueNAS: Disk[2] size",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.2.size",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[1].size"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d4882f50472c421ca6294481de71b5dc",
+                        "name": "TrueNAS: Disk[2] type",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.2.type",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[1].type"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "71f02a1af572460dac738f493d5c3d76",
+                        "name": "TrueNAS: Disk[3] model",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.3.model",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[2].model"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f600c5a66a234bf3a07529d92299fdaf",
+                        "name": "TrueNAS: Disk[3] name",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.3.name",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[2].name"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "06744574232548e9a17878d683f7251f",
+                        "name": "TrueNAS: Disk[3] size",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.3.size",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[2].size"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "aa65a0f178c7482a9bf692952f400c91",
+                        "name": "TrueNAS: Disk[3] type",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.3.type",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[2].type"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4e1ff5a4336e41c0b66525c41045222e",
+                        "name": "TrueNAS: Disk count",
+                        "type": "DEPENDENT",
+                        "key": "truenas.disk.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return JSON.parse(value).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.disk"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cd532adbd7ab4d65ab0cccb4ed015bfb",
+                        "name": "Memória ECC",
+                        "type": "DEPENDENT",
+                        "key": "truenas.ecc_memory",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ecc_memory"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "memory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b5ce3b79b08c45fd9eb11df9ecf62536",
+                        "name": "TrueNAS FTP",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.ftp",
+                        "delay": "15m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/ftp",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "25d47371890143c6bff6e8c6e93ec737",
+                        "name": "TrueNAS Groups",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.group",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/group",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5f3faf1af8e44bc2bfe12d7e41e09f43",
+                        "name": "Hostname",
+                        "type": "DEPENDENT",
+                        "key": "truenas.hostname",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.hostname"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "40b4755ca188443783c7160716eea228",
+                        "name": "License",
+                        "type": "DEPENDENT",
+                        "key": "truenas.license",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.license"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7e9779d27ef84b6abbd5a1f3667a0230",
+                        "name": "Load average (1m avg)",
+                        "type": "DEPENDENT",
+                        "key": "truenas.load1",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.loadavg[0]"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "f0186982d4464d1a9a6e228816b8bf4a",
+                                "expression": "avg(/TrueNAS by API/truenas.load1,5m)>{$TRUENAS.CPU.LOAD.HIGH}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/TrueNAS by API/truenas.load1,5m)<={$TRUENAS.CPU.LOAD.HIGH}-1",
+                                "name": "TrueNAS: Critical CPU load average (>{$TRUENAS.CPU.LOAD.HIGH:\"6\"})",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    },
+                                    {
+                                        "name": "TrueNAS: High CPU load average (>{$TRUENAS.CPU.LOAD.WARN:\"4\"})",
+                                        "expression": "avg(/TrueNAS by API/truenas.load1,5m)>{$TRUENAS.CPU.LOAD.WARN}",
+                                        "recovery_expression": "avg(/TrueNAS by API/truenas.load1,5m)<={$TRUENAS.CPU.LOAD.WARN}-1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "cpu"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "6ca638bed05b4806bbaffb3e63e0a3f7",
+                                "expression": "avg(/TrueNAS by API/truenas.load1,5m)>{$TRUENAS.CPU.LOAD.WARN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/TrueNAS by API/truenas.load1,5m)<={$TRUENAS.CPU.LOAD.WARN}-1",
+                                "name": "TrueNAS: High CPU load average (>{$TRUENAS.CPU.LOAD.WARN:\"4\"})",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "cpu"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "65daad6963dc46a1a9763eaeaff4155e",
+                        "name": "Load average (5m avg)",
+                        "type": "DEPENDENT",
+                        "key": "truenas.load5",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.loadavg[1]"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5d2973aef296467283d9314391f5ec47",
+                        "name": "Load average (15m avg)",
+                        "type": "DEPENDENT",
+                        "key": "truenas.load15",
+                        "value_type": "FLOAT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.loadavg[2]"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6d9565a7971a47d7bebee92faa78993d",
+                        "name": "RAM total",
+                        "type": "DEPENDENT",
+                        "key": "truenas.memory",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.physmem"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "memory"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "10efd222f7b740898540bb9741639528",
+                        "name": "TrueNAS: Memory utilization",
+                        "type": "CALCULATED",
+                        "key": "truenas.memory.pct",
+                        "delay": "5m",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "params": "last(//truenas.memory) / last(//truenas.memory.total) * 100",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "a6674ace0dc6470e9e9034374c587ebe",
+                                "expression": "avg(/TrueNAS by API/truenas.memory.pct,5m)>{$TRUENAS.MEM.UTIL.HIGH}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/TrueNAS by API/truenas.memory.pct,5m)<={$TRUENAS.MEM.UTIL.HIGH}-5",
+                                "name": "TrueNAS: Critical memory utilization (>{$TRUENAS.MEM.UTIL.HIGH:\"95\"}%)",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    },
+                                    {
+                                        "name": "TrueNAS: High memory utilization (>{$TRUENAS.MEM.UTIL.WARN:\"85\"}%)",
+                                        "expression": "avg(/TrueNAS by API/truenas.memory.pct,5m)>{$TRUENAS.MEM.UTIL.WARN}",
+                                        "recovery_expression": "avg(/TrueNAS by API/truenas.memory.pct,5m)<={$TRUENAS.MEM.UTIL.WARN}-5"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "memory"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ed3bb4e04b7644f5979eb72c063f80d1",
+                                "expression": "avg(/TrueNAS by API/truenas.memory.pct,5m)>{$TRUENAS.MEM.UTIL.WARN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/TrueNAS by API/truenas.memory.pct,5m)<={$TRUENAS.MEM.UTIL.WARN}-5",
+                                "name": "TrueNAS: High memory utilization (>{$TRUENAS.MEM.UTIL.WARN:\"85\"}%)",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "memory"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b0a6c68059d348bd8a37cc0b3217ebe2",
+                        "name": "TrueNAS: Memory total",
+                        "type": "DEPENDENT",
+                        "key": "truenas.memory.total",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.physmem"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1c1fb634ba634d489b64b7a5639c3507",
+                        "name": "TrueNAS: Interface IP address",
+                        "type": "DEPENDENT",
+                        "key": "truenas.net.ip",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].state.aliases[0].address"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.network.interface"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c75aeac13b7c476dbfeec4f3ceddf547",
+                        "name": "TrueNAS: Interface link state",
+                        "type": "DEPENDENT",
+                        "key": "truenas.net.link_state",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "valuemap": {
+                            "name": "TrueNAS link state"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].state.link_state"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.network.interface"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "5d472f9d12ca4234bbb4a70133f7e0fa",
+                                "expression": "last(/TrueNAS by API/truenas.net.link_state)=\"LINK_STATE_DOWN\"",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.net.link_state)=\"LINK_STATE_UP\"",
+                                "name": "TrueNAS: Network interface link down",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "network"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "51a78902c54a4fd790012dd84c1104ff",
+                        "name": "TrueNAS: Interface MAC",
+                        "type": "DEPENDENT",
+                        "key": "truenas.net.mac",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].state.link_address"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.network.interface"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "54ba4efc887b459fb1ba602be566a9e2",
+                        "name": "TrueNAS: Interface MTU",
+                        "type": "DEPENDENT",
+                        "key": "truenas.net.mtu",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].state.mtu"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.network.interface"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f005fc1152614615b72f81aedaa50a05",
+                        "name": "TrueNAS: Interface speed",
+                        "type": "DEPENDENT",
+                        "key": "truenas.net.speed",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].state.active_media_subtype"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.network.interface"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f86534be702849e4ad3f0ce51ec94b17",
+                        "name": "TrueNAS: Network configuration (raw)",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.network.config",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/network/configuration",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "04cef0735bd3495aa789c661258eee1e",
+                        "name": "TrueNAS Network Interface",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.network.interface",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/interface",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1b8cbb7c3d1f4a7a8a9b4d7f2f8a0d11",
+                        "name": "Physical CPU cores",
+                        "type": "DEPENDENT",
+                        "key": "truenas.physical_cores",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.physical_cores"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "33476ac67f744362811aa3a8586d75a7",
+                        "name": "TrueNAS Pool",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.pool",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/pool",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f4ebb08d30cf4cc2b6fe4209bf0d403e",
+                        "name": "TrueNAS: Pool allocated",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.allocated",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].allocated"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4b10f89edb9c44fd91e3bb2a3ff42f1b",
+                        "name": "TrueNAS: Pool utilization",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.allocated.pct",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0]"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var d=JSON.parse(value);return Math.round(d.allocated/d.size*10000)/100;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "8db2a7124e1a4e73bbadcd214086f042",
+                                "expression": "last(/TrueNAS by API/truenas.pool.allocated.pct)>{$TRUENAS.POOL.UTIL.HIGH}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.pool.allocated.pct)<={$TRUENAS.POOL.UTIL.HIGH}-5",
+                                "name": "TrueNAS: Pool utilization critical (>{$TRUENAS.POOL.UTIL.HIGH:\"90\"}%)",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    },
+                                    {
+                                        "name": "TrueNAS: Pool utilization high (>{$TRUENAS.POOL.UTIL.WARN:\"80\"}%)",
+                                        "expression": "last(/TrueNAS by API/truenas.pool.allocated.pct)>{$TRUENAS.POOL.UTIL.WARN}",
+                                        "recovery_expression": "last(/TrueNAS by API/truenas.pool.allocated.pct)<={$TRUENAS.POOL.UTIL.WARN}-5"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "storage"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "329b09755bc54ff1865df6589f9b9fb6",
+                                "expression": "last(/TrueNAS by API/truenas.pool.allocated.pct)>{$TRUENAS.POOL.UTIL.WARN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.pool.allocated.pct)<={$TRUENAS.POOL.UTIL.WARN}-5",
+                                "name": "TrueNAS: Pool utilization high (>{$TRUENAS.POOL.UTIL.WARN:\"80\"}%)",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "storage"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a158f1675bbe435f8decde07b8a94f49",
+                        "name": "TrueNAS Pool Dataset",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.pool.dataset",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/pool/dataset",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9e152dfba43840429433f2fb85735217",
+                        "name": "TrueNAS Pool Disk",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.pool.disk",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/pool/dataset",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "73c2d2e073e94d2ca1ecc6d3006322d5",
+                        "name": "TrueNAS: Pool fragmentation",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.fragmentation",
+                        "history": "90d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].fragmentation"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5bb084c618e14807aa2e6b4ba2192592",
+                        "name": "TrueNAS: Pool free",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.free",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].free"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1315cbca9edb49a3b91f2c717c25dc46",
+                        "name": "TrueNAS: Pool healthy",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.healthy",
+                        "history": "90d",
+                        "valuemap": {
+                            "name": "TrueNAS pool health"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].healthy"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return value == 'true' ? 1 : 0;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "1dbbba07fb124d33987b7481b225f1ca",
+                                "expression": "last(/TrueNAS by API/truenas.pool.healthy)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.pool.healthy)=1",
+                                "name": "TrueNAS: Pool not healthy",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "storage"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5bb06d876fda480cb6ac92068be5081a",
+                        "name": "TrueNAS Replication",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.pool.replication",
+                        "delay": "15m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/replication",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d827e6f243fa4aa1944d05009048b4dd",
+                        "name": "TrueNAS: Pool scan errors",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.scan.errors",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].scan.errors"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "c17efb8e6b51414db31259c7c09fe49b",
+                                "expression": "last(/TrueNAS by API/truenas.pool.scan.errors)>0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.pool.scan.errors)=0",
+                                "name": "TrueNAS: Pool scan errors detected",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "storage"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "integrity"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "fe9b211412af47ada42f90e7bf74a447",
+                        "name": "TrueNAS: Pool scan state",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.scan.state",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "valuemap": {
+                            "name": "TrueNAS scrub state"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].scan.state"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4cd885d6b3fe486f8eb3aaaec948953a",
+                        "name": "TrueNAS: Pool size",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.size",
+                        "history": "90d",
+                        "units": "B",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].size"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e2ab6ed51bc844338842f9089940f0bc",
+                        "name": "TrueNAS: Pool status",
+                        "type": "DEPENDENT",
+                        "key": "truenas.pool.status",
+                        "history": "90d",
+                        "value_type": "CHAR",
+                        "valuemap": {
+                            "name": "TrueNAS pool status"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$[0].status"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.pool"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "06fad2794b4d46d689fdaa954d6a7c12",
+                                "expression": "last(/TrueNAS by API/truenas.pool.status)<>\"ONLINE\" and last(/TrueNAS by API/truenas.pool.status)<>\"DEGRADED\"",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.pool.status)=\"ONLINE\"",
+                                "name": "TrueNAS: Pool critical ({ITEM.VALUE})",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    },
+                                    {
+                                        "name": "TrueNAS: Pool degraded",
+                                        "expression": "last(/TrueNAS by API/truenas.pool.status)=\"DEGRADED\"",
+                                        "recovery_expression": "last(/TrueNAS by API/truenas.pool.status)=\"ONLINE\""
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "storage"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "d01416f11ae84ca6ac1f2b088bb897bd",
+                                "expression": "last(/TrueNAS by API/truenas.pool.status)=\"DEGRADED\"",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.pool.status)=\"ONLINE\"",
+                                "name": "TrueNAS: Pool degraded",
+                                "priority": "AVERAGE",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "storage"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a64f219528fc4bd68c02216bc1aa4868",
+                        "name": "TrueNAS Rsync Task",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.rsynctask",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/rsynctask",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0c209186ce824442b3b47aa53561759c",
+                        "name": "TrueNAS: iSCSI targets (raw)",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.sharing.iscsi",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/iscsi/target",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "85ca427fee534ca29156ff097d6d837a",
+                        "name": "TrueNAS Share NFS",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.sharing.nfs",
+                        "delay": "15m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/sharing/nfs",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "be94d8b6217947e69ab22f2902e2a035",
+                        "name": "TrueNAS Share SMB",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.sharing.smb",
+                        "delay": "15m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/sharing/smb",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cf6f7cf7f4274775add3cb61fd5fc71d",
+                        "name": "TrueNAS: SMB shares count",
+                        "type": "DEPENDENT",
+                        "key": "truenas.sharing.smb.count",
+                        "history": "90d",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return JSON.parse(value).length;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.sharing.smb"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a1c2ad10621449f7a92e1ab4e639dea3",
+                        "name": "TrueNAS System Info",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.system.info",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/system/info",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "3454afd8841641c585b6ce9fdae4ca62",
+                                "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1",
+                                "name": "TrueNAS: API not responding (no data for 10m)",
+                                "priority": "HIGH",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Unavailable by ICMP ping",
+                                        "expression": "max(/TrueNAS by API/icmpping,#3)=0"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "system"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "89b9e9ae30a8463881b5e1436e6e9e81",
+                        "name": "System Manufacturer",
+                        "type": "DEPENDENT",
+                        "key": "truenas.system_manufacturer",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.system_manufacturer"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6b8b7a759913413fab1112052033fb1e",
+                        "name": "System Product",
+                        "type": "DEPENDENT",
+                        "key": "truenas.system_product",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.system_product"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e621fe072d754ee48fddd1fdee5aeece",
+                        "name": "System Product Version",
+                        "type": "DEPENDENT",
+                        "key": "truenas.system_product_version",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.system_product_version"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8f579cf2bc474f68913cc57ceab0b380",
+                        "name": "System Serial",
+                        "type": "DEPENDENT",
+                        "key": "truenas.system_serial",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.system_serial"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "52979c44369e4ea5b07ab7fff4896ee9",
+                        "name": "Timezone",
+                        "type": "DEPENDENT",
+                        "key": "truenas.timezone",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.timezone"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "757dd3ba1bab4207b1285de6fb74bc79",
+                        "name": "Uptime",
+                        "type": "DEPENDENT",
+                        "key": "truenas.uptime",
+                        "units": "s",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.uptime_seconds"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "93de9ae75e7e4b60b741513f9cc654e5",
+                                "expression": "last(/TrueNAS by API/truenas.uptime)<600",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/TrueNAS by API/truenas.uptime)>=600",
+                                "name": "TrueNAS: System has been restarted (uptime < 10m)",
+                                "priority": "WARNING",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "TrueNAS: API not responding (no data for 10m)",
+                                        "expression": "nodata(/TrueNAS by API/truenas.system.info,10m)=1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "system"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5dbef687f06c44e9a1dd14126f9e478a",
+                        "name": "TrueNAS Users",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.user",
+                        "delay": "1h",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/user",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "46249606730e4aefa9ef3001e5833acd",
+                        "name": "Version",
+                        "type": "DEPENDENT",
+                        "key": "truenas.version",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.version"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5bf9d018a875484a89702e0688a7ec7c",
+                        "name": "TrueNAS VM",
+                        "type": "HTTP_AGENT",
+                        "key": "truenas.vm",
+                        "delay": "10m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "url": "{$TRUENAS.API.URL}/vm",
+                        "headers": [
+                            {
+                                "name": "Authorization",
+                                "value": "{$TRUENAS.API.KEY}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "virtualization"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3904819725214cf1aaf07d9fc3857590",
+                        "name": "Uptime (string)",
+                        "type": "DEPENDENT",
+                        "key": "turenas.uptime",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.uptime"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "truenas.system.info"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$TRUENAS.API.KEY}",
+                        "value": "Bearer SUA_API_KEY"
+                    },
+                    {
+                        "macro": "{$TRUENAS.API.URL}",
+                        "value": "https://127.0.0.1/api/v2.0"
+                    },
+                    {
+                        "macro": "{$TRUENAS.CPU.LOAD.HIGH}",
+                        "value": "6",
+                        "description": "CPU load average critical threshold"
+                    },
+                    {
+                        "macro": "{$TRUENAS.CPU.LOAD.WARN}",
+                        "value": "4",
+                        "description": "CPU load average warning threshold"
+                    },
+                    {
+                        "macro": "{$TRUENAS.MEM.UTIL.HIGH}",
+                        "value": "95",
+                        "description": "Memory utilization critical threshold (%)"
+                    },
+                    {
+                        "macro": "{$TRUENAS.MEM.UTIL.WARN}",
+                        "value": "85",
+                        "description": "Memory utilization warning threshold (%)"
+                    },
+                    {
+                        "macro": "{$TRUENAS.POOL.UTIL.HIGH}",
+                        "value": "90",
+                        "description": "Pool utilization critical threshold (%)"
+                    },
+                    {
+                        "macro": "{$TRUENAS.POOL.UTIL.WARN}",
+                        "value": "80",
+                        "description": "Pool utilization warning threshold (%)"
+                    }
+                ],
+                "dashboards": [
+                    {
+                        "uuid": "271c20446e2f4a0a9470af5756c1e6de",
+                        "name": "TrueNAS Overview",
+                        "pages": [
+                            {
+                                "name": "Overview",
+                                "widgets": [
+                                    {
+                                        "type": "item",
+                                        "name": "Hostname",
+                                        "width": "4",
+                                        "fields": [
+                                            {
+                                                "type": "STRING",
+                                                "name": "description",
+                                                "value": "Hostname"
+                                            },
+                                            {
+                                                "type": "ITEM",
+                                                "name": "itemid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "key": "truenas.hostname"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "3"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "problems",
+                                        "name": "Problems",
+                                        "y": "2",
+                                        "width": "24",
+                                        "height": "4",
+                                        "fields": [
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show_suppressed",
+                                                "value": "0"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show_tags",
+                                                "value": "2"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "svggraph",
+                                        "name": "CPU Load",
+                                        "y": "6",
+                                        "width": "12",
+                                        "height": "5",
+                                        "fields": [
+                                            {
+                                                "type": "GRAPH",
+                                                "name": "graphid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "name": "TrueNAS: CPU load average"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "source_type",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "svggraph",
+                                        "name": "Pool Storage",
+                                        "y": "11",
+                                        "width": "12",
+                                        "height": "5",
+                                        "fields": [
+                                            {
+                                                "type": "GRAPH",
+                                                "name": "graphid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "name": "TrueNAS: Pool storage"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "source_type",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "item",
+                                        "name": "Version",
+                                        "x": "4",
+                                        "width": "4",
+                                        "fields": [
+                                            {
+                                                "type": "STRING",
+                                                "name": "description",
+                                                "value": "Versão"
+                                            },
+                                            {
+                                                "type": "ITEM",
+                                                "name": "itemid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "key": "truenas.version"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "3"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "item",
+                                        "name": "Uptime",
+                                        "x": "8",
+                                        "width": "4",
+                                        "fields": [
+                                            {
+                                                "type": "STRING",
+                                                "name": "description",
+                                                "value": "Uptime"
+                                            },
+                                            {
+                                                "type": "ITEM",
+                                                "name": "itemid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "key": "truenas.uptime"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "3"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "item",
+                                        "name": "Pool status",
+                                        "x": "12",
+                                        "width": "4",
+                                        "fields": [
+                                            {
+                                                "type": "STRING",
+                                                "name": "description",
+                                                "value": "Pool Status"
+                                            },
+                                            {
+                                                "type": "ITEM",
+                                                "name": "itemid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "key": "truenas.pool.status"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "3"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "svggraph",
+                                        "name": "Memory",
+                                        "x": "12",
+                                        "y": "6",
+                                        "width": "12",
+                                        "height": "5",
+                                        "fields": [
+                                            {
+                                                "type": "GRAPH",
+                                                "name": "graphid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "name": "TrueNAS: Memory utilization"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "source_type",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "svggraph",
+                                        "name": "Pool Utilization",
+                                        "x": "12",
+                                        "y": "11",
+                                        "width": "12",
+                                        "height": "5",
+                                        "fields": [
+                                            {
+                                                "type": "GRAPH",
+                                                "name": "graphid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "name": "TrueNAS: Pool utilization %"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "source_type",
+                                                "value": "1"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "item",
+                                        "name": "Pool utilization",
+                                        "x": "16",
+                                        "width": "4",
+                                        "fields": [
+                                            {
+                                                "type": "STRING",
+                                                "name": "description",
+                                                "value": "Pool Utilização"
+                                            },
+                                            {
+                                                "type": "ITEM",
+                                                "name": "itemid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "key": "truenas.pool.allocated.pct"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "3"
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        "type": "item",
+                                        "name": "Critical alerts",
+                                        "x": "20",
+                                        "width": "4",
+                                        "fields": [
+                                            {
+                                                "type": "STRING",
+                                                "name": "description",
+                                                "value": "Alertas Críticos"
+                                            },
+                                            {
+                                                "type": "ITEM",
+                                                "name": "itemid",
+                                                "value": {
+                                                    "host": "TrueNAS by API",
+                                                    "key": "truenas.alert.critical.count"
+                                                }
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "1"
+                                            },
+                                            {
+                                                "type": "INTEGER",
+                                                "name": "show",
+                                                "value": "3"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "9681f73b0aaf44e7a6aeed2ad4409938",
+                        "name": "TrueNAS app state",
+                        "mappings": [
+                            {
+                                "value": "RUNNING",
+                                "newvalue": "Running"
+                            },
+                            {
+                                "value": "STOPPED",
+                                "newvalue": "Stopped"
+                            },
+                            {
+                                "value": "STARTING",
+                                "newvalue": "Starting"
+                            },
+                            {
+                                "value": "STOPPING",
+                                "newvalue": "Stopping"
+                            },
+                            {
+                                "value": "CRASHED",
+                                "newvalue": "Crashed"
+                            },
+                            {
+                                "value": "DEPLOYING",
+                                "newvalue": "Deploying"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1672edf220c041d6b50f13e62c569102",
+                        "name": "TrueNAS link state",
+                        "mappings": [
+                            {
+                                "value": "LINK_STATE_UP",
+                                "newvalue": "Up"
+                            },
+                            {
+                                "value": "LINK_STATE_DOWN",
+                                "newvalue": "Down"
+                            },
+                            {
+                                "value": "LINK_STATE_UNKNOWN",
+                                "newvalue": "Unknown"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cfaae9dd399d47ec84ba0d25bf21b505",
+                        "name": "TrueNAS pool health",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Unhealthy"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Healthy"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "af8467eb30db4e76825a6d99c0f51806",
+                        "name": "TrueNAS pool status",
+                        "mappings": [
+                            {
+                                "value": "ONLINE",
+                                "newvalue": "Online"
+                            },
+                            {
+                                "value": "DEGRADED",
+                                "newvalue": "Degraded"
+                            },
+                            {
+                                "value": "FAULTED",
+                                "newvalue": "Faulted"
+                            },
+                            {
+                                "value": "OFFLINE",
+                                "newvalue": "Offline"
+                            },
+                            {
+                                "value": "UNAVAIL",
+                                "newvalue": "Unavailable"
+                            },
+                            {
+                                "value": "REMOVED",
+                                "newvalue": "Removed"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c98e164b8e6c477fb07b1b9da9cebb4f",
+                        "name": "TrueNAS scrub state",
+                        "mappings": [
+                            {
+                                "value": "FINISHED",
+                                "newvalue": "Finished"
+                            },
+                            {
+                                "value": "SCANNING",
+                                "newvalue": "Scanning"
+                            },
+                            {
+                                "value": "PAUSED",
+                                "newvalue": "Paused"
+                            },
+                            {
+                                "value": "CANCELED",
+                                "newvalue": "Canceled"
+                            },
+                            {
+                                "value": "NONE",
+                                "newvalue": "Never run"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
