@@ -4,6 +4,117 @@
 ![Collection](https://img.shields.io/badge/Collection-SNMP_v2c-7F13EC?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
 
+[🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
+
+---
+
+<a id="pt-br"></a>
+## 🇧🇷 Português
+
+| | |
+|---|---|
+| **Categoria** | Dispositivos de Rede |
+| **Método de coleta** | SNMP v1/v2c |
+| **Itens** | 10 estáticos + 3 por VAP (SSID) descoberto |
+| **Versão do Zabbix** | 7.4+ |
+
+## Descrição
+
+Monitora access points Ubiquiti UniFi legados — UAP de primeira geração, UAP-LR, UAP-Pro e qualquer outro AP UniFi que ainda rode firmware end-of-life 4.3.x — via SNMP v2c, utilizando a MIB proprietária do fabricante (OID de enterprise `1.3.6.1.4.1.41112`). Cobre uptime do sistema, hostname, versão de firmware, modelo de hardware e throughput da interface Ethernet cabeada (RX/TX), complementado por checagens simples de ICMP para conectividade, perda de pacotes e latência de ida e volta.
+
+Uma regra de descoberta de baixo nível (LLD) percorre a `ubntVapTable` para enumerar os SSIDs Wi-Fi (VAPs) de cada AP e cria protótipos de item por SSID para número de clientes conectados, potência de TX e tráfego RX.
+
+> **Nota:** APs com firmware moderno gerenciados por um UniFi Controller atual devem usar o template oficial "Ubiquiti UniFi by HTTP". Este template existe especificamente para hardware antigo preso em firmware EOL, já que o UniFi Controller moderno não provisiona mais SNMP nesses dispositivos.
+
+## Macros
+
+| Macro | Padrão | Descrição |
+|---|---|---|
+| `{$SNMP_COMMUNITY}` | `public` | Community string SNMP. Substitua por um valor próprio — nunca reutilize o padrão em produção. |
+| `{$UNIFI.VAP.FILTER}` | `^element-` | Regex de SSIDs excluídos da regra de descoberta de VAP (corresponde à interface de gerência interna do AP, não a uma rede Wi-Fi real) |
+
+## Triggers
+
+| Nome | Severidade | Condição |
+|---|---|---|
+| AP UniFi: Sem resposta ICMP (offline) | HIGH | `nodata(/UniFi AP Legacy by SNMP/icmpping,5m)=1` |
+| AP UniFi: SNMP indisponivel | AVERAGE | `last(/UniFi AP Legacy by SNMP/zabbix[host,snmp,available])=2` |
+| VAP {#SSID}: Sem dados de clientes | AVERAGE | `nodata(/UniFi AP Legacy by SNMP/unifi.vap.clients[{#SNMPINDEX}],5m)=1` (por VAP descoberto) |
+
+Ambos os triggers estáticos usam `manual_close`, portanto permanecem abertos até serem reconhecidos mesmo depois que a condição subjacente for resolvida.
+
+## Itens
+
+| Key | Nome | OID | Unidades |
+|---|---|---|---|
+| `icmpping` | ICMP ping | simple check | — |
+| `icmppingloss` | Perda ICMP | simple check | % |
+| `icmppingsec` | Tempo de resposta ICMP | simple check | s |
+| `system.name[sysName.0]` | Hostname do AP | `1.3.6.1.2.1.1.5.0` | — |
+| `system.uptime[sysUpTime.0]` | Uptime do sistema | `1.3.6.1.2.1.1.3.0` | uptime |
+| `unifi.firmware` | Versão do firmware | `1.3.6.1.4.1.41112.1.6.3.6.0` | — |
+| `unifi.model` | Modelo do hardware | `1.3.6.1.4.1.41112.1.6.3.3.0` | — |
+| `net.if.in[eth0]` | ETH RX | `1.3.6.1.4.1.41112.1.6.2.1.1.6.1` | bps |
+| `net.if.out[eth0]` | ETH TX | `1.3.6.1.4.1.41112.1.6.2.1.1.12.1` | bps |
+| `zabbix[host,snmp,available]` | Disponibilidade do agente SNMP | internal | — |
+
+ETH RX/TX aplicam `CHANGE_PER_SECOND` + um multiplicador `×8` sobre os contadores brutos de SNMP para produzir bits por segundo. `system.name`, `unifi.firmware` e `unifi.model` recebem right-trim e são coletados a cada hora, já que raramente mudam.
+
+### Descoberta de VAP (por SSID)
+
+Descobre os SSIDs de cada AP via LLD contra a `ubntVapTable` (`1.3.6.1.4.1.41112.1.6.1.2`), ignorando qualquer SSID que corresponda a `{$UNIFI.VAP.FILTER}`.
+
+| Key | Nome | OID | Unidades |
+|---|---|---|---|
+| `unifi.vap.clients[{#SNMPINDEX}]` | VAP {#SSID} ({#VAP_IFACE}): Clientes conectados | `1.3.6.1.4.1.41112.1.6.1.2.1.8.{#SNMPINDEX}` | — |
+| `unifi.vap.rx[{#SNMPINDEX}]` | VAP {#SSID} ({#VAP_IFACE}): Trafego RX | `1.3.6.1.4.1.41112.1.6.1.2.1.10.{#SNMPINDEX}` | bps |
+| `unifi.vap.txpower[{#SNMPINDEX}]` | VAP {#SSID} ({#VAP_IFACE}): Potencia TX | `1.3.6.1.4.1.41112.1.6.1.2.1.21.{#SNMPINDEX}` | dBm |
+
+## Instalação
+
+### 1. Habilitar SNMP no AP (firmware legacy)
+
+O UniFi Controller moderno não provisiona SNMP em APs rodando firmware EOL — é necessário habilitar manualmente via SSH:
+
+```bash
+ssh ubnt@<AP_IP>  # senha padrão: ubnt
+
+# Editar o arquivo de configuração
+vi /tmp/system.cfg
+# Adicionar:
+# snmp.community=public
+# snmp.contact=admin
+# snmp.enable=true
+# snmp.location=local
+
+# Persistir e reiniciar
+cfgmtd -w -p /etc/
+reboot
+```
+
+Após o reboot, confirme que o SNMP está respondendo:
+
+```bash
+snmpwalk -v2c -c public <AP_IP> 1.3.6.1.4.1.41112.1.6
+```
+
+Substitua `public` pela sua própria community string tanto na configuração do AP quanto na macro `{$SNMP_COMMUNITY}` — nunca reutilize o valor de exemplo em produção.
+
+### 2. Criar o host no Zabbix
+
+- Tipo de interface: **SNMP v1/v2c**, porta 161, apontando para o IP de gerência do AP
+- Importe o `template.json` (**Data collection → Templates → Import**) e vincule ao host
+- Defina `{$SNMP_COMMUNITY}` para corresponder à community string configurada no AP
+
+### 3. Verificar
+
+Verifique **Latest data** do host — `system.uptime`, `unifi.model` e `icmpping` devem ser populados dentro de um intervalo de coleta. Os itens por VAP aparecem após a primeira execução da regra de descoberta (intervalo padrão: 1h).
+
+---
+
+<a id="en-us"></a>
+## 🇺🇸 English
+
 | | |
 |---|---|
 | **Category** | Network Devices |
@@ -102,6 +213,8 @@ Replace `public` with your own community string in both the AP configuration and
 ### 3. Verify
 
 Check **Latest data** for the host — `system.uptime`, `unifi.model` and `icmpping` should populate within one polling interval. Per-VAP items appear after the discovery rule's first run (default interval: 1h).
+
+---
 
 ## Author
 

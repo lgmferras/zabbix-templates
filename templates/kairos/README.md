@@ -4,6 +4,92 @@
 ![Collection method](https://img.shields.io/badge/Collection_method-Zabbix_Agent_2_active-7F13EC?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
 
+[🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
+
+---
+
+<a id="pt-br"></a>
+## 🇧🇷 Português
+
+| | |
+|---|---|
+| **Categoria** | Windows / Aplicações |
+| **Método de coleta** | Zabbix Agent 2 (active) |
+| **Itens** | 1 |
+| **Versão do Zabbix** | 7.4 |
+
+## Descrição
+
+Template mínimo para monitoramento do processo **NotifyKairosConnect** do sistema de gestão hoteleira **Kairos**. Ele verifica se o processo está em execução no host Windows e dispara um alerta quando ele para.
+
+## Requisitos
+
+- Zabbix Server 7.4+
+- Zabbix Agent 2 (active) configurado no host Windows monitorado
+- `user_parameters_kairos.conf` copiado para o diretório de UserParameter do agente
+
+## Macros
+
+Nenhuma macro necessária — este template não possui limites configuráveis.
+
+## Itens
+
+| Key | Descrição | Tipo | Trigger |
+|---|---|---|---|
+| `kairos.NotifyKairosConnect` | Estado do serviço Kairos - Notify Connect | Zabbix Agent (active) | HIGH — parado → recovery: rodando |
+
+### Detalhe do trigger
+
+- **Nome:** Kairos - Processo Notify Connect está parado
+- **Expressão:** `last(/Kairos by Zabbix agent active/kairos.NotifyKairosConnect)=0`
+- **Expressão de recovery:** `last(/Kairos by Zabbix agent active/kairos.NotifyKairosConnect)=1`
+- **Severidade:** HIGH
+- **Fechamento manual:** Sim
+
+### Value map
+
+O item utiliza o value map **NETHOTEL Value Mapping** (compartilhado com o template NETHOTEL):
+
+| Valor | Texto |
+|---|---|
+| 0 | Stoped |
+| 1 | Running |
+
+## Instalação
+
+### 1. UserParameter
+
+Copie `user_parameters_kairos.conf` para:
+```
+C:\Program Files\Zabbix Agent 2\zabbix_agent2.d\
+```
+
+Ele define o seguinte UserParameter, que verifica se o processo `NotifyKairosConnect` está em execução via PowerShell:
+
+```ini
+UserParameter=kairos.NotifyKairosConnect,powershell -NoProfile -Command "if(Get-Process -Name NotifyKairosConnect -ErrorAction SilentlyContinue){1}else{0}"
+```
+
+Em seguida, reinicie o agente:
+```powershell
+Restart-Service "Zabbix Agent 2"
+```
+
+### 2. Importar o template
+
+1. Acesse **Configuration → Templates → Import**
+2. Selecione `template.json`
+3. Aplique o template ao host Windows executando o Kairos
+
+## Observação
+
+Este template é intencionalmente minimalista — monitora apenas o processo principal do Kairos. Para expandi-lo, adicione novos itens `kairos.*` seguindo o padrão utilizado nos templates ATHOS PDV ou NETHOTEL.
+
+---
+
+<a id="en-us"></a>
+## 🇺🇸 English
+
 | | |
 |---|---|
 | **Category** | Windows / Applications |
@@ -77,6 +163,8 @@ Restart-Service "Zabbix Agent 2"
 ## Note
 
 This template is intentionally minimal — it monitors only the main Kairos process. To expand it, add new `kairos.*` items following the pattern used in the ATHOS PDV or NETHOTEL templates.
+
+---
 
 ## Author
 

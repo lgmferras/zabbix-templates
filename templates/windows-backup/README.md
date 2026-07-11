@@ -6,6 +6,215 @@
 ![OS](https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
 
+[🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
+
+---
+
+<a id="pt-br"></a>
+## 🇧🇷 Português
+
+Template Zabbix para monitoramento do **Windows Server Backup** (`wbadmin`) via Event Log do Windows.
+
+**Versão:** 2.0
+**Zabbix:** 7.4
+**Grupo:** Templates/Applications
+**Agente:** Zabbix Agent 2 (modo ativo)
+**Sistema operacional:** Windows Server 2016+
+
+---
+
+## O que é Monitorado
+
+| Item Key | Tipo | Intervalo | Preprocessing | Descrição |
+|---|---|---|---|---|
+| `win.backup.age_hours` | FLOAT (h) | 15m | — | Horas desde o último backup (Event ID 4). Retorna `-1` se não encontrado. |
+| `win.backup.exists` | 0/1 | 10m | DISCARD 6h | O `wbadmin get versions` é bem-sucedido? |
+| `win.backup.last_ok` | 0/1 | 30m | DISCARD 6h | Foi encontrado um evento de sucesso (Event ID 4)? |
+| `win.backup.last_time` | TEXT | 30m | DISCARD 3h | Timestamp do último evento de backup bem-sucedido |
+| `win.backup.running` | 0/1 | 2m | DISCARD 30m | Event ID 1 sem Event ID 4 posterior = backup em andamento |
+
+> Itens `0/1` carregam a tag `no_metrics=true` para não gerar gráficos desnecessários.
+
+Fontes de dados:
+- Event Log `Microsoft-Windows-Backup` (ID 1 = backup iniciado, ID 4 = backup concluído com sucesso)
+- `wbadmin get versions` (verifica se há versões de backup registradas)
+
+---
+
+## Macros
+
+Ajustáveis por host em **Configuration → Hosts → [host] → Macros**.
+
+| Macro | Padrão | Descrição |
+|---|---|---|
+| `{$WIN.BACKUP.AGE.DISASTER}` | `48h` | Tempo sem backup antes de DISASTER |
+| `{$WIN.BACKUP.AGE.WARN}` | `26h` | Tempo sem backup antes de WARNING |
+| `{$WIN.BACKUP.MAX_RUNTIME}` | `4h` | Duração máxima tolerada do processo de backup |
+
+---
+
+## Triggers (6)
+
+### DISASTER
+
+| Nome | Condição | opdata |
+|---|---|---|
+| Último backup com mais de `{$WIN.BACKUP.AGE.DISASTER}` | `age_hours > AGE.DISASTER and age_hours <> -1` | Idade: {ITEM.LASTVALUE} |
+| Nenhum evento de backup encontrado no Event Log | `age_hours = -1` | Sem Event ID 4 em Microsoft-Windows-Backup |
+
+### HIGH
+
+| Nome | Condição |
+|---|---|
+| Nenhum backup registrado (`wbadmin get versions` falha) | `exists = 0` |
+
+### WARNING
+
+| Nome | Condição | Depende de | opdata |
+|---|---|---|---|
+| Último backup com mais de `{$WIN.BACKUP.AGE.WARN}` | `age_hours > AGE.WARN and age_hours <> -1` | Trigger de idade DISASTER | Idade: {ITEM.LASTVALUE} |
+| Sem evento de sucesso (ID 4) nas últimas `{$WIN.BACKUP.AGE.DISASTER}` | `max(last_ok, AGE.DISASTER) = 0` | Trigger de nenhum backup registrado | Sem Event ID 4 nas últimas Xh |
+
+### INFO
+
+| Nome | Condição |
+|---|---|
+| Backup em execução há mais de `{$WIN.BACKUP.MAX_RUNTIME}` | `min(running, MAX_RUNTIME) = 1` |
+
+Todos os triggers usam `manual_close=YES` e uma expressão de recuperação explícita.
+
+---
+
+## Mapas de Valor
+
+| Mapa de Valor | 0 | 1 |
+|---|---|---|
+| WB Running | Not running | Running |
+| WB Yes/No | No/Fail | Yes/OK |
+
+---
+
+## Instalação
+
+### 1. Pré-requisitos
+
+O Windows Server Backup precisa estar instalado:
+
+```powershell
+# Verificar se está instalado
+Get-WindowsFeature Windows-Server-Backup
+
+# Instalar se necessário
+Install-WindowsFeature Windows-Server-Backup
+```
+
+O template depende do Event Log `Microsoft-Windows-Backup`:
+- **Event ID 1:** Backup iniciado
+- **Event ID 4:** Backup concluído com sucesso
+
+```powershell
+# Verificar se existem eventos de backup
+Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Backup'; Id=4} -MaxEvents 5
+```
+
+### 2. Configurar o Zabbix Agent 2 no Windows
+
+Copie o arquivo **`user_parameters_windows_backup.conf`** para a pasta de configuração do agente:
+
+```
+C:\Program Files\Zabbix Agent 2\zabbix_agent2.d\
+```
+
+**Configurações essenciais em `zabbix_agent2.conf`:**
+```ini
+ServerActive=<IP-DO-SERVIDOR-ZABBIX>   # IP do Zabbix Server
+Hostname=<NOME-DO-HOST-NO-ZABBIX>      # Nome exato do host no Zabbix
+UnsafeUserParameters=1                 # Necessário para os UserParameters em PowerShell
+Timeout=30
+```
+
+### 3. Reiniciar o serviço do agente
+
+```powershell
+Restart-Service "Zabbix Agent 2"
+```
+
+### 4. Importar o template no Zabbix
+
+1. **Configuration → Templates → Import**
+2. Selecione `template.json`
+3. Marque: Create new + Update existing
+4. Clique em **Import**
+
+### 5. Aplicar ao host
+
+1. **Configuration → Hosts → [nome-do-host] → Templates**
+2. Adicione: **Windows Backup by Zabbix agent 2**
+3. Ajuste as macros conforme o ambiente
+
+---
+
+## UserParameters
+
+Arquivo: **`user_parameters_windows_backup.conf`**
+
+| UserParameter | Descrição |
+|---|---|
+| `win.backup.exists` | O `wbadmin get versions` é bem-sucedido? (1/0) |
+| `win.backup.running` | Há um backup em execução (Event ID 1 sem ID 4 posterior)? (1/0) |
+| `win.backup.last_ok` | Foi encontrado um evento de sucesso (Event ID 4)? (1/0) |
+| `win.backup.last_time` | Timestamp do último backup bem-sucedido (`YYYY-MM-DD HH:MM:SS` ou `N/A`) |
+| `win.backup.age_hours` | Horas desde o último backup bem-sucedido (float, InvariantCulture), ou `-1` se não encontrado |
+
+---
+
+## Solução de Problemas
+
+**`win.backup.age_hours` retorna `-1`:**
+```powershell
+# Verificar se existem eventos de sucesso no Event Log
+Get-WinEvent -FilterHashtable @{LogName='Microsoft-Windows-Backup'; Id=4} -MaxEvents 5
+```
+- Confirme que o Windows Server Backup está configurado e já concluiu ao menos uma execução
+
+**`win.backup.exists` retorna `0`:**
+```powershell
+# Executar manualmente no servidor para verificar erros
+wbadmin get versions
+```
+- Verifique se o recurso Windows Server Backup está instalado e se o backup agendado está configurado
+
+**`win.backup.age_hours` retorna um valor com vírgula decimal (locale pt-BR):**
+- O UserParameter usa `InvariantCulture` para forçar o ponto decimal
+- Se o problema persistir, verifique a versão do PowerShell no host
+
+---
+
+## Nota sobre Combinação com ATHOS
+
+O template **Windows Backup** pode ser aplicado **em conjunto** com o template **ATHOS** no mesmo host.
+
+- **ATHOS** monitora o backup da **aplicação** (`pg_dump` → `.backup`)
+- **Windows Backup** monitora o backup do **sistema operacional** (`wbadmin` → imagem do servidor)
+
+Os dois são complementares e usam arquivos de UserParameters separados (sem conflito):
+- `user_parameters_athos.conf` → keys `athos.*`
+- `user_parameters_windows_backup.conf` → keys `win.backup.*`
+
+---
+
+## Changelog
+
+| Versão | Mudanças |
+|---|---|
+| 2.0 | Macros para thresholds; trigger DISASTER para `age_hours = -1`; preprocessing `DISCARD_UNCHANGED_HEARTBEAT`; tag `no_metrics` nos itens 0/1; `opdata` em todos os triggers; dependências entre triggers; grupo movido para Templates/Applications |
+| 1.0 | Versão inicial |
+
+---
+
+<a id="en-us"></a>
+## 🇺🇸 English
+
 Zabbix template for monitoring **Windows Server Backup** (`wbadmin`) via the Windows Event Log.
 
 **Version:** 2.0

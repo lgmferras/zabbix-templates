@@ -6,6 +6,231 @@
 ![LLD](https://img.shields.io/badge/LLD-per_authorizer-009639?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
 
+[🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
+
+---
+
+<a id="pt-br"></a>
+## 🇧🇷 Português
+
+Template Zabbix para monitorar a **disponibilidade pública do sistema de NF-e (nota fiscal eletrônica) do Brasil**, operado pela SEFAZ — faz scraping da página oficial de status `https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx` via Python, com alerta proativo quando um autorizador fica instável ou indisponível.
+
+**Versão do Zabbix:** 7.4
+**Tipo de coleta:** Zabbix Agent 2 (interface **passiva**) + script Python (`requests` + `BeautifulSoup`)
+
+---
+
+## O Que É Monitorado
+
+| Categoria | Qtd | Descrição |
+|---|---|---|
+| Item mestre | 1 | JSON bruto com o status de todos os autorizadores (1 scrape a cada 5m) |
+| LLD — autorizadores | dinâmico | Descoberta dependente do item mestre, filtrada por `{$NFE.UF.MATCHES}` |
+| Itens por autorizador | 8/autorizador | 7 serviços (semáforo 0/1/2/-1) + 1 texto (tempo médio de resposta) |
+| Triggers | 1 + 2/serviço | `nodata` no item mestre + indisponível/instável por serviço descoberto |
+
+Diferente de outros templates de agente ativo desta coleção, este roda com um **único scrape HTTP** a cada 5 minutos — todos os autorizadores e serviços são derivados desse mesmo JSON via **itens dependentes** (JSONPath), sem chamadas extras à SEFAZ.
+
+---
+
+## Arquitetura de Coleta
+
+```
+Zabbix Server → Agent 2, passivo (<agent-container-ip>:10050) → UserParameter → nfe_status.py
+                                                                        ↓
+                                          www.nfe.fazenda.gov.br (scraping HTTPS)
+
+Item mestre passivo nfe.status.json (5m, 1 scrape)
+      ├── LLD dependente nfe.autorizador.discovery (filtrado por {$NFE.UF.MATCHES})
+      └── 8 itens dependentes por autorizador descoberto (JSONPath/JS, sem scrape extra)
+```
+
+**Por que um host dedicado ("virtual") em vez de adicionar itens a um host de infraestrutura:** as permissões do Zabbix são concedidas por host group, não por item. Manter o item mestre sozinho em seu próprio host permite restringir o acesso somente-leitura a esse dado de disponibilidade — sem expor itens de infraestrutura — para quem precisar dele. Itens dependentes exigem que o item mestre esteja no mesmo host, então a árvore inteira (mestre + LLD + dependentes) vive nesse host dedicado.
+
+**Por que uma interface passiva em vez de um agente ativo:** itens ativos ficam amarrados a um `Hostname` fixo do lado do agente. Se o seu container/host do Zabbix Agent 2 já atende outros templates em modo ativo sob um hostname diferente, adicionar um novo host ativo para este template significaria reconfigurar o agente inteiro. Uma interface passiva evita isso: qualquer host cuja interface aponte para `<IP>:10050` do agente responderá a `nfe.status.json`.
+
+---
+
+## Macros
+
+| Macro | Padrão | Descrição |
+|---|---|---|
+| `{$NFE.UF.MATCHES}` | `^(SP\|SVC-AN)$` | Regex dos autorizadores a descobrir. `SVC-AN` é o autorizador de contingência que serve como backup de SP. Para adicionar um estado: ex. `^(SP\|RJ\|SVC-AN)$`. Para todos os autorizadores: `^.*$` |
+
+---
+
+## Itens por Autorizador (LLD)
+
+Chave base: `nfe.<serviço>[{#AUTORIZADOR}]`
+
+| Serviço | Tipo | Trigger |
+|---|---|---|
+| `autorizacao` | FLOAT (semáforo) | ✅ |
+| `retorno_autorizacao` | FLOAT (semáforo) | ✅ |
+| `inutilizacao` | FLOAT (semáforo) | ✅ |
+| `consulta_protocolo` | FLOAT (semáforo) | ✅ |
+| `status_servico` | FLOAT (semáforo) | ✅ |
+| `consulta_cadastro` | FLOAT (semáforo) | ✅ |
+| `recepcao_evento` | FLOAT (semáforo) | ✅ |
+| `tempo_medio` | CHAR (texto — "-" ou um valor) | — (sem trigger, é texto) |
+
+---
+
+## Value Map — Semáforo
+
+| Valor | Texto |
+|---|---|
+| `1` | Disponível (verde) |
+| `2` | Instável (amarelo) |
+| `0` | Indisponível (vermelho) |
+| `-1` | N/D (serviço não oferecido por este autorizador — sem trigger) |
+
+---
+
+## Triggers
+
+### Item mestre
+
+| Nome | Severidade | Condição |
+|---|---|---|
+| NFe: coleta da página da SEFAZ sem dados há 30 minutos | WARNING | `nodata(nfe.status.json,30m)=1` |
+
+Cobre falha de coleta — o script sai com `exit 1` em caso de erro (problema de rede, mudança no layout da página, problema de certificado) e o item vira NOTSUPPORTED; sem esse trigger, um scrape quebrado passaria despercebido.
+
+### Por autorizador descoberto (14 trigger prototypes — 7 serviços × 2 severidades)
+
+| Condição | Severidade |
+|---|---|
+| `last(nfe.<serviço>[{#AUTORIZADOR}])=0` (vermelho) | HIGH |
+| `last(nfe.<serviço>[{#AUTORIZADOR}])=2` (amarelo) | WARNING |
+
+`tempo_medio` nunca dispara um trigger (é texto). `-1` (N/D) também nunca dispara — é o estado esperado para serviços que um autorizador simplesmente não oferece.
+
+---
+
+## Arquivos
+
+| Arquivo | Destino | Descrição |
+|---|---|---|
+| `template.json` | Importar no Zabbix | Template completo (itens, LLD, triggers, macro, value map) |
+| `nfe.conf` | `/etc/zabbix/zabbix_agent2.d/` no container/host do agente | 2 UserParameters de chave fixa (sem `[*]`, sem `UnsafeUserParameters`) |
+| `nfe_status.py` | ex. `/zbx_scripts/` no container/host do agente | Scraper Python — `--json` (item mestre) e `--discovery` (teste manual) |
+| `Dockerfile` | referência | Trecho do Dockerfile customizado do Zabbix Agent 2 usado em produção — **não é standalone**, ver nota abaixo |
+| `isrg-root-yr.crt` | referência | Raiz TLS "Gen Y" da Let's Encrypt, instalada no trust store da imagem customizada |
+
+> **Sobre o Dockerfile:** diferente dos demais templates desta coleção (que rodam em hosts Windows/Linux já existentes), este exige uma **imagem customizada do Zabbix Agent 2** com Python + bibliotecas + a CA `ISRG Root YR`. O arquivo aqui é uma cópia de referência do Dockerfile real usado em um projeto separado de infraestrutura como código — a instrução `COPY` nele assume o build context daquele projeto, não desta pasta. Para reproduzir em outro ambiente, ajuste o path do `COPY` ou copie os dois arquivos (`Dockerfile` + `isrg-root-yr.crt`) para dentro do seu próprio build context.
+
+---
+
+## Instalação
+
+### 1. Build da imagem customizada do Zabbix Agent 2
+
+O container precisa de Python 3 + `requests` + `beautifulsoup4` + a raiz TLS Gen Y (ver Gotchas abaixo). Construa uma imagem em cima de `zabbix/zabbix-agent2:alpine-7.4-latest` usando o `Dockerfile` fornecido como referência.
+
+### 2. Copiar o script e o UserParameter para o container/host do agente
+
+```bash
+# Script
+cp nfe_status.py <destino>/zbx_scripts/nfe_status.py
+
+# UserParameter
+cp nfe.conf <destino>/etc/zabbix/zabbix_agent2.d/nfe.conf
+```
+
+`UnsafeUserParameters` **não** é necessário aqui — as duas chaves (`nfe.status.json`, `nfe.status.discovery`) são fixas, sem `[*]`.
+
+### 3. Reiniciar o agente
+
+```bash
+# Em um container:
+docker compose restart zabbix-agent2
+# Ou em um host sem container:
+systemctl restart zabbix-agent2
+```
+
+### 4. Importar o template
+
+1. **Data collection → Templates → Import**
+2. Selecionar `template.json`
+3. Marcar: **Create new** + **Update existing**
+4. Clicar em **Import**
+
+### 5. Criar o host dedicado
+
+Não aplique este template a um host de infraestrutura existente — crie um **host dedicado** (ver Arquitetura acima):
+
+1. **Data collection → Hosts → Create host**
+2. Nome: ex. `NFe SEFAZ - Disponibilidade`
+3. Host group: um grupo dedicado (ex. `NFe SEFAZ`) — não reaproveite um grupo de infraestrutura; é essa separação que permite conceder acesso somente-leitura só a esse dado
+4. Interface: **Agent**, IP/porta do container que roda o `nfe_status.py` (ex. `<agent-container-ip>:10050`)
+5. Template: **Template Zabbix NFe Monitor**
+6. Ajustar `{$NFE.UF.MATCHES}` se precisar monitorar estados além de SP/SVC-AN
+
+### 6. Verificar a coleta
+
+```bash
+# Diretamente no container/host do agente
+zabbix_agent2 -t nfe.status.json
+python3 /zbx_scripts/nfe_status.py --json
+
+# A partir do servidor Zabbix (item passivo — qualquer host apontado para essa interface responde)
+zabbix_get -s <AGENT-IP> -k nfe.status.json
+
+# Forçar uma coleta imediata sem esperar o intervalo de 5m
+# (itens passivos aceitam task.create type=6, ao contrário de LLD de item ativo):
+# 1. item.get hostids=[<hostid>] filter key_=nfe.status.json → pegar o itemid
+# 2. task.create {"type": 6, "request": {"itemid": "<id>"}}
+```
+
+---
+
+## Gotchas do Parser (descobertos empiricamente)
+
+1. **A imagem da bola vermelha é `bola_vermelho_P.png`** (forma masculina em português) — o script casa pelo prefixo `vermelh`, não `vermelha`. Verde/amarela seguem a forma feminina normal (`verde`, `amarela`).
+2. **A coluna "Tempo Médio" é texto** (`"-"` ou um valor), não imagem — tratada separadamente no parser, sem lógica de semáforo.
+3. **TLS Gen Y:** a SEFAZ usa a hierarquia **Gen Y** da Let's Encrypt (raiz `ISRG Root YR`), ausente dos trust stores padrão (em meados de 2026) e sem cross-sign na cadeia servida. A raiz precisa estar instalada na imagem (ver `isrg-root-yr.crt`) para o script rodar com `verify=True`. Se a coleta quebrar com erro de certificado, verifique se a SEFAZ rotacionou sua CA.
+4. **`pip3 install` falha no Alpine ≥ 3.19** (PEP 668, "externally-managed-environment") — a imagem usa `apk add py3-requests py3-beautifulsoup4` em vez de pip.
+5. **Se o layout da página da SEFAZ mudar:** ajuste a função `scrape_nfe()` do `nfe_status.py` — o parser depende da classe CSS `tabelaListagemDados` e da ordem fixa das colunas (`SERVICOS` no topo do script).
+
+---
+
+## Gotcha de Export — `configuration.export` omite os triggers deste template
+
+Ao exportar este template via API (`configuration.export`, formato JSON), os 14 `trigger_prototypes` da LLD e o trigger nativo `nodata` **não aparecem** no resultado, mesmo pertencendo comprovadamente ao template (verificado via `template.get` com `selectTriggers`/`selectDiscoveries` e `triggerprototype.get`, todos correspondendo ao ID interno do template). A causa raiz não foi identificada (não é um problema de permissão — testado com uma conta Super Admin); pode ser uma particularidade do Zabbix 7.4 específica de discovery rules do tipo `DEPENDENT`.
+
+**Efeito prático:** um re-export "cru" via `configuration.export` produz um JSON incompleto, sem alertas. O `template.json` deste diretório foi **reconstruído manualmente** — os triggers/trigger prototypes foram buscados via `trigger.get`/`triggerprototype.get` (com `expandExpression`) e inseridos no JSON no formato que o Zabbix espera para import.
+
+**Ao re-sincronizar este template no futuro:** sempre verifique se `.triggers` (nível superior) e `.discovery_rules[].trigger_prototypes` estão presentes em um export novo antes de sobrescrever este arquivo — se vierem vazios/ausentes de novo, repita a reconstrução manual em vez de assumir que os triggers foram removidos no servidor.
+
+---
+
+## Manutenção
+
+```bash
+# Mudar os estados monitorados: editar a macro {$NFE.UF.MATCHES} no template (ou override por host)
+# Se o layout da página da SEFAZ mudar: ajustar nfe_status.py (a tabela 'tabelaListagemDados')
+
+# Conceder acesso de leitura a um novo grupo de usuários Zabbix
+# usergroup.update usrgrpid=<id> hostgroup_rights=[..., {"id": "<nfe-hostgroup-id>", "permission": 2}]
+
+# Rebuild da imagem customizada do agente após uma mudança no Dockerfile/script
+docker compose up -d --build zabbix-agent2
+```
+
+---
+
+## Changelog
+
+| Versão | Mudanças |
+|---|---|
+| 1.0 | Versão inicial: item mestre + LLD dependente por autorizador (8 itens/autorizador), 1 trigger nodata + 14 trigger prototypes (HIGH/WARNING), macro `{$NFE.UF.MATCHES}`, value map de semáforo |
+
+---
+
+<a id="en-us"></a>
+## 🇺🇸 English
+
 Zabbix template for monitoring the **public availability of Brazil's NF-e (electronic invoice) system**, operated by SEFAZ — scrapes the official status page `https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx` via Python, with proactive alerting when an authorizer becomes unstable or unavailable.
 
 **Zabbix version:** 7.4

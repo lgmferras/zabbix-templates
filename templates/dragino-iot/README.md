@@ -5,6 +5,179 @@
 ![LoRaWAN](https://img.shields.io/badge/LoRaWAN-FF6B00?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
 
+[🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
+
+---
+
+<a id="pt-br"></a>
+## 🇧🇷 Português
+
+Template Zabbix para monitoramento de **gateways LoRaWAN Dragino** via SSH.
+
+**Versão do Zabbix:** 7.4
+**Tipo de coleta:** SSH (itens mestres) + DEPENDENT (itens derivados)
+**Grupo do template:** Templates/IOT
+**Autor:** Luis Gustavo Ferras — Systrix
+
+---
+
+### Descrição
+
+O template se conecta ao gateway Dragino via SSH (`ssh.run[...]`) e executa um pequeno conjunto de comandos shell (`logread`, `cat /proc/...`, `df`, `free`, `uci show`, `cat /etc/lora/local_conf.json`). Um pequeno grupo de **itens mestres** captura a saída bruta, e um conjunto maior de **itens dependentes** parseia essa saída com pré-processamento JSONPATH, JavaScript e REGEX para extrair métricas individuais — qualidade do pacote RX, configuração do gateway/beacon, CPU/memória/carga, uso de sistema de arquivos e contadores de interface de rede.
+
+| Categoria | Itens | Notas |
+|---|---|---|
+| Configuração do gateway e LoRa | 24 | Beacon (largura de banda, taxa de dados, frequência, período, potência), encaminhamento de CRC, LBT, watchdog, ghost stream, ID/descrição/plataforma/região do gateway, configurações do network server (endereço, keep-alive, nome, portas, timeouts, tipo) |
+| Métricas de pacotes RX | 7 | Contagem de pacotes, taxa de dados, frequência, SNR, RSSI, tamanho, status |
+| Posição e hardware | 4 | Latitude, longitude, altitude, plataforma do concentrador |
+| CPU e load average | 7 | Utilização de CPU, tempo ocioso de CPU, número de CPUs, load average (1m/5m/15m), contagem de processos |
+| Sistema / diversos | 15 | Utilização de memória, uptime, hostname, modelo, descoberta de disco e interface, parsing de log (erros/avisos/LoRaWAN), dump de configuração bruta |
+| **Total** | **57** | |
+
+As regras de descoberta adicionam itens por interface e por sistema de arquivos além destes (veja abaixo).
+
+---
+
+### Macros
+
+| Macro | Padrão | Descrição |
+|---|---|---|
+| `{$CPU.UTIL.CRIT}` | `90` | Limite crítico de utilização de memória (%) usado pelo trigger *High Memory Utilization* |
+| `{$HOST.SSH_PORT}` | `2222` | Porta SSH do gateway Dragino |
+| `{$LOAD_AVG_PER_CPU.MAX.WARN}` | `2` | Load average máximo por CPU (reservado para um futuro trigger de carga) |
+| `{$USER.NAME}` | *(vazio)* | Usuário SSH usado para conectar ao gateway — definido por host, sem valor padrão de propósito |
+| `{$USER.PASSWORD}` | *(vazio)* | Senha SSH usada para conectar ao gateway — definida por host, sem valor padrão de propósito |
+
+---
+
+### Triggers
+
+| Nome | Severidade | Expressão |
+|---|---|---|
+| High Memory Utilization | Média | `avg(/Dragino IOT/ssh.run[lorawan.memused,...],5m) >= {$CPU.UTIL.CRIT}` |
+| {HOST.NAME} has been restarted | Aviso | `last(/Dragino IOT/ssh.run[lorawan.system.uptime,...]) < 10` (uptime abaixo de 10 minutos) |
+
+---
+
+### Itens
+
+#### Itens mestres (SSH)
+
+| Nome | Prefixo da chave | Intervalo | Descrição |
+|---|---|---|---|
+| CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | Percentual de tempo ocioso da CPU, obtido de `/proc/stat` |
+| Number of CPUs | `ssh.run[lorawan.cpu.number,...]` | 4h | Quantidade de núcleos de CPU |
+| System Disk Discovery | `ssh.run[lorawan.disk.discovery,...]` | 12h | Alimenta a regra de descoberta de sistema de arquivos |
+| Lora Last Error | `ssh.run[lorawan.error.last,...]` | 10m | Última linha de `error` do `logread` |
+| System name | `ssh.run[lorawan.hostname,...]` | 12h | Hostname do gateway (vinculado ao inventário do host) |
+| JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 10m | Dump bruto de `/etc/lora/local_conf.json`, usado como item mestre para a maioria dos itens de configuração LoRa |
+| Logread Errors | `ssh.run[lorawan.logread.errors,...]` | 10m | Todas as linhas de `error` do log |
+| Logread LoRaWAN | `ssh.run[lorawan.logread.lorawan,...]` | 10m | JSON de status LoRaWAN extraído do log |
+| Logread Warnings | `ssh.run[lorawan.logread.warnings,...]` | 10m | Todas as linhas de `WARNING` do log |
+| Lora Errors Count | `ssh.run[lorawan.logread_error_count,...]` | 30m | Última linha de erro, ou `0` se não houver nenhuma |
+| LoRa RX | `ssh.run[lorawan.lora.rx,...]` | 10m | JSON do pacote RX extraído do log, usado como item mestre para as métricas de RX |
+| Memory utilization | `ssh.run[lorawan.memused,...]` | 5m | Percentual de uso de memória |
+| System Net if Discovery | `ssh.run[lorawan.net.if.discovery,...]` | 1h | Alimenta a regra de descoberta de interfaces de rede |
+| System Load Average | `ssh.run[lorawan.system.loadavg,...]` | — | Conteúdo bruto de `/proc/loadavg`, usado como item mestre para as métricas de carga |
+| System model | `ssh.run[lorawan.system.model,...]` | 12h | Modelo de hardware do gateway |
+| System Uptime | `ssh.run[lorawan.system.uptime,...]` | 10m | Uptime em segundos |
+
+Todos os itens SSH se conectam com `HostkeyAlgorithms=ssh-rsa` (exigido pelo servidor SSH dropbear presente na maioria dos firmwares Dragino/OpenWrt) e timeout de 30s.
+
+#### Itens dependentes (derivados)
+
+Os 41 itens restantes são itens `DEPENDENT` que parseiam os itens mestres acima usando pré-processamento JSONPATH, JavaScript e REGEX — nenhuma chamada SSH adicional é feita. Exemplos: `Lora Beacon Frequency`, `Lora Gateway ID`, `LoRa RX Packet RSSI`, `Load average (5m avg)`, `Lora Last Warning`.
+
+---
+
+### Regras de Descoberta
+
+#### Discovery net.if.discovery
+
+Descobre interfaces de rede que correspondem a `^(eth1).*` e cria, para cada interface:
+
+- **Interface {#IFNAME}: Bits Received / Bits Sent** — a partir de `/proc/net/dev`, convertido para bps via `CHANGE_PER_SECOND` + `MULTIPLIER(8)`
+- **Interface {#IFNAME}: MAC** — a partir de `/sys/class/net/{#IFNAME}/address`
+- **Gráfico:** *Interface {#IFNAME}: Network traffic*
+
+#### Discovery vfs.fs.discovery
+
+Descobre sistemas de arquivos que correspondem a `{#FSNAME}=/overlay` e `{#MOUNTPOINT}=/` e cria, para cada sistema de arquivos:
+
+- **File System: {#MOUNTPOINT} Used in %** — a partir de `df -P`
+- **Gráfico:** *FS [{#MOUNTPOINT}]: Space usage graph*
+
+---
+
+### Gráficos
+
+O template inclui três gráficos em nível de host:
+
+- **{HOST.NAME}: Memory utilization**
+- **{HOST.NAME}: System load** (load average de 1m/5m/15m mais a contagem de CPUs no eixo direito)
+- **{HOST.NAME} CPU utilization**
+
+---
+
+### Arquitetura
+
+```
+Zabbix Server
+    |
+    +-- ssh.run[lorawan.logread.lorawan, {HOST.IP}, {$HOST.SSH_PORT}, , HostkeyAlgorithms=ssh-rsa]
+                            (item mestre -- JSON bruto coletado do gateway)
+                                |
+                    +-----------+-----------+
+                    |           |           |
+              JSONPATH      JSONPATH    JSONPATH + JS
+             altitude      beacon.bw    último elemento do array
+                ...            ...            ...
+        (itens DEPENDENT -- extraem campos individuais do JSON)
+```
+
+---
+
+### Instalação
+
+#### Pré-requisitos no servidor Zabbix
+
+O Zabbix Server (ou proxy) precisa ter o suporte a itens SSH habilitado:
+
+```bash
+# Verificar se o suporte a chave SSH está habilitado no Zabbix
+grep -i "SSHKeyLocation\|AllowKey" /etc/zabbix/zabbix_server.conf
+```
+
+#### Configurar credenciais
+
+No host ou no template, defina as seguintes macros:
+
+- `{$HOST.SSH_PORT}`: porta SSH do gateway Dragino (o padrão neste template é `2222`)
+- `{$USER.NAME}`: usuário SSH (geralmente `root`)
+- `{$USER.PASSWORD}`: senha SSH do gateway
+
+#### Importar e aplicar
+
+1. **Configuration → Templates → Import** → `template.json`
+2. Anexe o template ao host com o IP do gateway
+3. Configure as macros de SSH acima
+
+---
+
+### Solução de Problemas
+
+- **Itens ficam "not supported" / "Connection refused"** — verifique se `{$HOST.SSH_PORT}` corresponde à porta em que o dropbear/sshd está realmente escutando, e se o Zabbix server/proxy consegue alcançá-la (firewall, NAT).
+- **Erros de "Bad key types" ou de handshake** — o parâmetro `HostkeyAlgorithms=ssh-rsa` é necessário porque a maioria dos firmwares Dragino/OpenWrt só oferece chaves de host `ssh-rsa` legadas; se o cliente SSH do seu Zabbix server tiver o `ssh-rsa` desabilitado, ele precisa ser reabilitado para esse host.
+- **Itens dependentes não retornam dados** — seus itens mestres (`lorawan.local_conf`, `lorawan.lora.rx`, `lorawan.logread.lorawan`, `lorawan.system.loadavg`) precisam retornar com sucesso primeiro; verifique esses itens individualmente em *Latest data*.
+- **Lora Last Error / Logread Errors sempre mostram "OK" ou "No Errors"** — isso é esperado quando o log do gateway não tem linhas correspondentes; não é uma falha de coleta.
+- **Posição (lat/long/altitude) ou métricas de RX ausentes** — esses valores são extraídos do *último* frame de status visto na janela de log; se o gateway não enviou um frame `stat`/`rxpk` recentemente, a saída do item mestre pode ficar vazia e os itens dependentes ficarão sem valor até a chegada do próximo frame.
+- **Erros de parsing de JSON nos itens de `local_conf`** — as expressões JSONPATH assumem o layout padrão de fábrica do `/etc/lora/local_conf.json`; uma atualização de firmware que altere a estrutura desse arquivo vai quebrar os itens dependentes afetados.
+
+---
+
+<a id="en-us"></a>
+## 🇺🇸 English
+
 Zabbix template for monitoring **Dragino LoRaWAN gateways** over SSH.
 
 **Zabbix version:** 7.4
@@ -14,7 +187,7 @@ Zabbix template for monitoring **Dragino LoRaWAN gateways** over SSH.
 
 ---
 
-## Description
+### Description
 
 The template connects to the Dragino gateway via SSH (`ssh.run[...]`) and runs a small set of shell commands (`logread`, `cat /proc/...`, `df`, `free`, `uci show`, `cat /etc/lora/local_conf.json`). A handful of **master items** capture the raw output, and a larger set of **dependent items** parse that output with JSONPATH, JavaScript and REGEX preprocessing to extract individual metrics — RX packet quality, gateway/beacon configuration, CPU/memory/load, filesystem usage and network interface counters.
 
@@ -31,7 +204,7 @@ Discovery rules add per-interface and per-filesystem items on top of this (see b
 
 ---
 
-## Macros
+### Macros
 
 | Macro | Default | Description |
 |---|---|---|
@@ -43,7 +216,7 @@ Discovery rules add per-interface and per-filesystem items on top of this (see b
 
 ---
 
-## Triggers
+### Triggers
 
 | Name | Severity | Expression |
 |---|---|---|
@@ -52,9 +225,9 @@ Discovery rules add per-interface and per-filesystem items on top of this (see b
 
 ---
 
-## Items
+### Items
 
-### Master items (SSH)
+#### Master items (SSH)
 
 | Name | Key prefix | Interval | Description |
 |---|---|---|---|
@@ -77,15 +250,15 @@ Discovery rules add per-interface and per-filesystem items on top of this (see b
 
 All SSH items connect with `HostkeyAlgorithms=ssh-rsa` (required by the dropbear SSH server on most Dragino/OpenWrt firmware) and a 30s timeout.
 
-### Dependent items (derived)
+#### Dependent items (derived)
 
 The remaining 41 items are `DEPENDENT` items that parse the master items above using JSONPATH, JavaScript and REGEX preprocessing — no extra SSH calls are made. Examples: `Lora Beacon Frequency`, `Lora Gateway ID`, `LoRa RX Packet RSSI`, `Load average (5m avg)`, `Lora Last Warning`.
 
 ---
 
-## Discovery Rules
+### Discovery Rules
 
-### Discovery net.if.discovery
+#### Discovery net.if.discovery
 
 Discovers network interfaces matching `^(eth1).*` and creates, per interface:
 
@@ -93,7 +266,7 @@ Discovers network interfaces matching `^(eth1).*` and creates, per interface:
 - **Interface {#IFNAME}: MAC** — from `/sys/class/net/{#IFNAME}/address`
 - **Graph:** *Interface {#IFNAME}: Network traffic*
 
-### Discovery vfs.fs.discovery
+#### Discovery vfs.fs.discovery
 
 Discovers filesystems matching `{#FSNAME}=/overlay` and `{#MOUNTPOINT}=/` and creates, per filesystem:
 
@@ -102,7 +275,7 @@ Discovers filesystems matching `{#FSNAME}=/overlay` and `{#MOUNTPOINT}=/` and cr
 
 ---
 
-## Graphs
+### Graphs
 
 Three host-level graphs ship with the template:
 
@@ -112,7 +285,7 @@ Three host-level graphs ship with the template:
 
 ---
 
-## Architecture
+### Architecture
 
 ```
 Zabbix Server
@@ -130,9 +303,9 @@ Zabbix Server
 
 ---
 
-## Installation
+### Installation
 
-### Prerequisites on the Zabbix server
+#### Prerequisites on the Zabbix server
 
 The Zabbix Server (or proxy) needs SSH item support enabled:
 
@@ -141,7 +314,7 @@ The Zabbix Server (or proxy) needs SSH item support enabled:
 grep -i "SSHKeyLocation\|AllowKey" /etc/zabbix/zabbix_server.conf
 ```
 
-### Configure credentials
+#### Configure credentials
 
 On the host or template, set the following macros:
 
@@ -149,7 +322,7 @@ On the host or template, set the following macros:
 - `{$USER.NAME}`: SSH username (commonly `root`)
 - `{$USER.PASSWORD}`: SSH password for the gateway
 
-### Import and apply
+#### Import and apply
 
 1. **Configuration → Templates → Import** → `template.json`
 2. Attach the template to the host with the gateway's IP
@@ -157,7 +330,7 @@ On the host or template, set the following macros:
 
 ---
 
-## Troubleshooting
+### Troubleshooting
 
 - **Items stay unsupported / "Connection refused"** — verify `{$HOST.SSH_PORT}` matches the port dropbear/sshd is actually listening on, and that the Zabbix server/proxy can reach it (firewall, NAT).
 - **"Bad key types" or handshake errors** — the `HostkeyAlgorithms=ssh-rsa` parameter is required because most Dragino/OpenWrt firmware only offers legacy `ssh-rsa` host keys; if your Zabbix server's SSH client has `ssh-rsa` disabled, it must be re-enabled for this host.
