@@ -3,12 +3,8 @@
         "version": "7.4",
         "template_groups": [
             {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
                 "name": "Templates/Applications"
-            },
-            {
-                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
-                "name": "Templates/Network devices"
             }
         ],
         "templates": [
@@ -439,6 +435,32 @@
                                         "tag": "component",
                                         "value": "alert"
                                     }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "9ac36d8b69124276978dc9483d79d276",
+                                        "expression": "last(/MSPClouds Backup Monitor/mspclouds.alert.message[{#ALERT_CLIENT},{#ALERT_TYPE},{#ALERT_CREATED}])<>\"\"",
+                                        "recovery_mode": "NONE",
+                                        "name": "MSPClouds [{#ALERT_CLIENT}]: {#ALERT_TYPE} detectado",
+                                        "opdata": "{ITEM.LASTVALUE}",
+                                        "priority": "HIGH",
+                                        "description": "Alerta MSPClouds detectado.\n\nCliente: {#ALERT_CLIENT}\nTipo: {#ALERT_TYPE}\nDetectado em: {#ALERT_CREATED}",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "alert_type",
+                                                "value": "{#ALERT_TYPE}"
+                                            },
+                                            {
+                                                "tag": "client",
+                                                "value": "{#ALERT_CLIENT}"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
+                                    }
                                 ]
                             }
                         ],
@@ -468,6 +490,66 @@
                                 "type": "JAVASCRIPT",
                                 "parameters": [
                                     "var data = JSON.parse(value);\nvar result = [];\nif (Array.isArray(data) && data.length > 0) {\n    data.forEach(function(alert) {\n        result.push({\n            \"{#ALERT_CLIENT}\": alert.client,\n            \"{#ALERT_TYPE}\": alert.type,\n            \"{#ALERT_PRODUCT}\": alert.product_keyword,\n            \"{#ALERT_CREATED}\": alert.created_at\n        });\n    });\n}\nreturn JSON.stringify(result);"
+                                ]
+                            }
+                        ],
+                        "overrides": [
+                            {
+                                "name": "backup_zero_bytes — Alta prioridade",
+                                "step": "1",
+                                "filter": {
+                                    "conditions": [
+                                        {
+                                            "macro": "{#ALERT_TYPE}",
+                                            "value": "backup_zero_bytes"
+                                        }
+                                    ]
+                                },
+                                "operations": [
+                                    {
+                                        "operationobject": "TRIGGER_PROTOTYPE",
+                                        "operator": "LIKE",
+                                        "severity": "HIGH"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "user_quota — Prioridade média",
+                                "step": "2",
+                                "filter": {
+                                    "conditions": [
+                                        {
+                                            "macro": "{#ALERT_TYPE}",
+                                            "value": "user_quota"
+                                        }
+                                    ]
+                                },
+                                "operations": [
+                                    {
+                                        "operationobject": "TRIGGER_PROTOTYPE",
+                                        "operator": "LIKE",
+                                        "severity": "AVERAGE"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Outros tipos — desabilitar trigger",
+                                "step": "3",
+                                "filter": {
+                                    "conditions": [
+                                        {
+                                            "macro": "{#ALERT_TYPE}",
+                                            "value": "backup_zero_bytes|user_quota",
+                                            "operator": "NOT_MATCHES_REGEX"
+                                        }
+                                    ]
+                                },
+                                "operations": [
+                                    {
+                                        "operationobject": "TRIGGER_PROTOTYPE",
+                                        "operator": "LIKE",
+                                        "status": "DISABLED"
+                                    }
                                 ]
                             }
                         ]
@@ -884,7 +966,7 @@
                 "macros": [
                     {
                         "macro": "{$MSPCLOUDS.API.KEY}",
-                        "value": "311B-F97E-E275-3D35",
+                        "type": "SECRET_TEXT",
                         "description": "Chave de API do MSPClouds"
                     },
                     {
@@ -924,6 +1006,25 @@
                                 "newvalue": "Sem monitoramento"
                             }
                         ]
+                    }
+                ]
+            }
+        ],
+        "triggers": [
+            {
+                "uuid": "75dda74cb0104536a4a6c4bf6c23360a",
+                "expression": "last(/MSPClouds Backup Monitor/mspclouds.alerts.count)>0 and last(/MSPClouds Backup Monitor/mspclouds.status.error)>0",
+                "recovery_mode": "RECOVERY_EXPRESSION",
+                "recovery_expression": "last(/MSPClouds Backup Monitor/mspclouds.alerts.count)=0 or last(/MSPClouds Backup Monitor/mspclouds.status.error)=0",
+                "name": "MSPClouds: Existem {ITEM.LASTVALUE} alerta(s) ativo(s)",
+                "opdata": "Verifique os itens de alerta para detalhes",
+                "priority": "INFO",
+                "description": "Existem alertas ativos que requerem atenção.\n\nVerifique os itens 'MSPClouds Alerta' descobertos automaticamente para ver os detalhes de cada alerta (cota, backup nunca sucedido, etc).",
+                "manual_close": "YES",
+                "tags": [
+                    {
+                        "tag": "scope",
+                        "value": "notice"
                     }
                 ]
             }

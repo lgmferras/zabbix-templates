@@ -1615,6 +1615,80 @@
                     }
                 ]
             }
+        ],
+        "graphs": [
+            {
+                "uuid": "c012bb0bcdd3476781e2472d1af743e9",
+                "name": "{HOST.NAME}: Memory utilization",
+                "ymin_type_1": "FIXED",
+                "ymax_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "Dragino IOT",
+                            "key": "ssh.run[lorawan.memused,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    }
+                ]
+            },
+            {
+                "uuid": "4d5f815ed625483eb552887539d0090e",
+                "name": "{HOST.NAME}: System load",
+                "yaxismax": "0",
+                "ymin_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "color": "199C0D",
+                        "item": {
+                            "host": "Dragino IOT",
+                            "key": "lorawan.system.loadavg.1m"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "color": "F63100",
+                        "item": {
+                            "host": "Dragino IOT",
+                            "key": "lorawan.system.loadavg.5m"
+                        }
+                    },
+                    {
+                        "sortorder": "2",
+                        "color": "00611C",
+                        "item": {
+                            "host": "Dragino IOT",
+                            "key": "lorawan.system.loadavg.15m"
+                        }
+                    },
+                    {
+                        "sortorder": "3",
+                        "color": "F7941D",
+                        "yaxisside": "RIGHT",
+                        "item": {
+                            "host": "Dragino IOT",
+                            "key": "ssh.run[lorawan.cpu.number,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        }
+                    }
+                ]
+            },
+            {
+                "uuid": "fd79bba11fed4e939154a701cd25d748",
+                "name": "{HOST.NAME} CPU utilization",
+                "ymin_type_1": "FIXED",
+                "ymax_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "Dragino IOT",
+                            "key": "lorawan.gateway.cpu.util"
+                        }
+                    }
+                ]
+            }
         ]
     }
 }

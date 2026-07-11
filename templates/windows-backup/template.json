@@ -3,16 +3,8 @@
         "version": "7.4",
         "template_groups": [
             {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
                 "name": "Templates/Applications"
-            },
-            {
-                "uuid": "c2c162144c2d4c5491c8801193af4945",
-                "name": "Templates/Cloud"
-            },
-            {
-                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
-                "name": "Templates/Network devices"
             }
         ],
         "templates": [
@@ -74,7 +66,14 @@
                                 "opdata": "Idade: {ITEM.LASTVALUE}",
                                 "priority": "WARNING",
                                 "description": "O último backup está atrasado (limite 26h).",
-                                "manual_close": "YES"
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.DISASTER}",
+                                        "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)>{$WIN.BACKUP.AGE.DISASTER} and last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<>-1",
+                                        "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<={$WIN.BACKUP.AGE.DISASTER} or last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1"
+                                    }
+                                ]
                             }
                         ]
                     },
@@ -161,7 +160,14 @@
                                 "opdata": "Sem Event ID 4 nas últimas {$WIN.BACKUP.AGE.DISASTER}",
                                 "priority": "WARNING",
                                 "description": "Não foi encontrado evento de sucesso (ID 4) nas últimas 48 horas.",
-                                "manual_close": "YES"
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Windows Backup - Nenhum backup registrado (wbadmin get versions falha)",
+                                        "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.exists)=0",
+                                        "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.exists)=1"
+                                    }
+                                ]
                             }
                         ]
                     },

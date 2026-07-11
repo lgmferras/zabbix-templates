@@ -1,0 +1,519 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
+                "name": "Templates/Applications"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "a5bb42b366a646d8a6c097a7f5e7912a",
+                "template": "Template Zabbix NFe Monitor",
+                "name": "Template Zabbix NFe Monitor",
+                "description": "Monitoramento da disponibilidade dos autorizadores de NF-e (SEFAZ) via scraping\nda página oficial https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx.\n\nRequer o UserParameter nfe.status.json (zbx_agent2_conf.d/nfe.conf) e a imagem\ncustom do zabbix-agent2 com Python (Dockerfiles/zabbix-agent2).\n\nStatus do semáforo: Verde (1), Amarelo (2), Vermelho (0), Sem imagem (-1 = serviço\nnão oferecido pelo autorizador). O item mestre coleta 1x e todos os autorizadores/\nserviços derivam dele (LLD dependente — um único scrape a cada 5m).\n\nFiltre os autorizadores relevantes na macro {$NFE.UF.MATCHES} — padrão SP + SVC-AN\n(SEFAZ Virtual de Contingência que atende SP).",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "2501413ead414c3b9de3f0e1e70fe631",
+                        "name": "NFe: Master Status Data",
+                        "key": "nfe.status.json",
+                        "delay": "5m",
+                        "history": "1d",
+                        "value_type": "TEXT",
+                        "description": "JSON completo com o status de todos os autorizadores (fonte dos itens dependentes e do LLD).",
+                        "triggers": [
+                            {
+                                "uuid": "4abedc0271ec4f37a7d75372c5f25a21",
+                                "expression": "nodata(/Template Zabbix NFe Monitor/nfe.status.json,30m)=1",
+                                "name": "NFe: coleta da página da SEFAZ sem dados há 30 minutos",
+                                "priority": "WARNING",
+                                "description": "O scrape da página de disponibilidade falhou repetidamente (script em erro, página fora do ar ou mudança de layout). Sem esse dado, os status por autorizador ficam congelados.",
+                                "manual_close": "YES"
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "ec6f0590248340508368f14d54bb6ac5",
+                        "name": "Descoberta de Autorizadores (UF)",
+                        "type": "DEPENDENT",
+                        "key": "nfe.autorizador.discovery",
+                        "filter": {
+                            "conditions": [
+                                {
+                                    "macro": "{#AUTORIZADOR}",
+                                    "value": "{$NFE.UF.MATCHES}"
+                                }
+                            ]
+                        },
+                        "lifetime": "30d",
+                        "description": "LLD dependente do item mestre — não gera scrape adicional. Filtrado por {$NFE.UF.MATCHES}.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "c4462c55586a4f36a044ea46c1ae3614",
+                                "name": "NFe: Autorização ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.autorizacao[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].autorizacao"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "7f9a56849aaa42ea84c5f54738ec1ab1",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Autorização indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Autorização — emissão de NF-e comprometida neste autorizador."
+                                    },
+                                    {
+                                        "uuid": "c73f2a921e5e4752b534d5b66c07f787",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Autorização instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Autorização — pode haver lentidão/intermitência na emissão."
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "8dc71b298c6f4f0aa9eee6921dac81f9",
+                                "name": "NFe: Consulta Cadastro ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.consulta_cadastro[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].consulta_cadastro"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "6ad39a9df0494f76a49d53531ef43fc6",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Consulta Cadastro indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH"
+                                    },
+                                    {
+                                        "uuid": "7e4549c5269e4fa7a5b156d5efc7edab",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Consulta Cadastro instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "3e90f27f74774dff99c31b3aede626ad",
+                                "name": "NFe: Consulta Protocolo ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.consulta_protocolo[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].consulta_protocolo"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "1d69c71c091e4df285f44b52a62e9e67",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Consulta Protocolo indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH"
+                                    },
+                                    {
+                                        "uuid": "d08513ce5f08451080d20f2bb6db95a8",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Consulta Protocolo instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a918f60f66cc473cb6370415cf146f97",
+                                "name": "NFe: Inutilização ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.inutilizacao[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].inutilizacao"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "f0db21c2334b452780a7d7fb3931c5e5",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Inutilização indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH"
+                                    },
+                                    {
+                                        "uuid": "05927dd8564a4b11a35f24ffd1668d42",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Inutilização instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "535f72d778914b1b8fa3af5644160408",
+                                "name": "NFe: Recepção Evento ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.recepcao_evento[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].recepcao_evento"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "ec0a4a5770ee4e2cbccafbc535d009a0",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Recepção Evento indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH"
+                                    },
+                                    {
+                                        "uuid": "49902949f0054554a6e404b708d08427",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Recepção Evento instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "73d9665de9ae4647ba1ed6009cc750ba",
+                                "name": "NFe: Retorno Autorização ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.retorno_autorizacao[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].retorno_autorizacao"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "05f416767c8c4e018ff9866808852525",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Retorno Autorização indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH"
+                                    },
+                                    {
+                                        "uuid": "267f877c8fe9402f8483de33939e3ba3",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Retorno Autorização instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a3754ce9fb554c6aad79cee7da1f7fd7",
+                                "name": "NFe: Status Serviço ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.status_servico[{#AUTORIZADOR}]",
+                                "value_type": "FLOAT",
+                                "valuemap": {
+                                    "name": "NFe Status Semáforo"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].status_servico"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                },
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "1ba4756272854939a4bee7c9ccfa1751",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=0",
+                                        "name": "NFe: Status Serviço indisponível em {#AUTORIZADOR}",
+                                        "priority": "HIGH"
+                                    },
+                                    {
+                                        "uuid": "aa16e0135e4c4a2390dff068c792c8c5",
+                                        "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=2",
+                                        "name": "NFe: Status Serviço instável em {#AUTORIZADOR}",
+                                        "priority": "WARNING"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ab578eeb6d4d4320a121ed29ea4f1e3d",
+                                "name": "NFe: Tempo Médio ({#AUTORIZADOR})",
+                                "type": "DEPENDENT",
+                                "key": "nfe.tempo_medio[{#AUTORIZADOR}]",
+                                "value_type": "CHAR",
+                                "description": "Coluna \"Tempo Médio\" da página — valor textual (\"-\" quando não informado). Sem trigger.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.[\"{#AUTORIZADOR}\"].tempo_medio"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1h"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "nfe.status.json"
+                                }
+                            }
+                        ],
+                        "master_item": {
+                            "key": "nfe.status.json"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var data = JSON.parse(value);\nreturn JSON.stringify(Object.keys(data).map(function (k) {\n    return {\"{#AUTORIZADOR}\": k};\n}));"
+                                ]
+                            }
+                        ],
+                        "trigger_prototypes": [
+                            {
+                                "uuid": "7f9a56849aaa42ea84c5f54738ec1ab1",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Autorização indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH",
+                                "description": "A SEFAZ reporta semáforo vermelho para Autorização — emissão de NF-e comprometida neste autorizador."
+                            },
+                            {
+                                "uuid": "c73f2a921e5e4752b534d5b66c07f787",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Autorização instável em {#AUTORIZADOR}",
+                                "priority": "WARNING",
+                                "description": "A SEFAZ reporta semáforo amarelo para Autorização — pode haver lentidão/intermitência na emissão."
+                            },
+                            {
+                                "uuid": "05f416767c8c4e018ff9866808852525",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Retorno Autorização indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH"
+                            },
+                            {
+                                "uuid": "267f877c8fe9402f8483de33939e3ba3",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Retorno Autorização instável em {#AUTORIZADOR}",
+                                "priority": "WARNING"
+                            },
+                            {
+                                "uuid": "f0db21c2334b452780a7d7fb3931c5e5",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Inutilização indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH"
+                            },
+                            {
+                                "uuid": "05927dd8564a4b11a35f24ffd1668d42",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Inutilização instável em {#AUTORIZADOR}",
+                                "priority": "WARNING"
+                            },
+                            {
+                                "uuid": "1d69c71c091e4df285f44b52a62e9e67",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Consulta Protocolo indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH"
+                            },
+                            {
+                                "uuid": "d08513ce5f08451080d20f2bb6db95a8",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Consulta Protocolo instável em {#AUTORIZADOR}",
+                                "priority": "WARNING"
+                            },
+                            {
+                                "uuid": "1ba4756272854939a4bee7c9ccfa1751",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Status Serviço indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH"
+                            },
+                            {
+                                "uuid": "aa16e0135e4c4a2390dff068c792c8c5",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Status Serviço instável em {#AUTORIZADOR}",
+                                "priority": "WARNING"
+                            },
+                            {
+                                "uuid": "6ad39a9df0494f76a49d53531ef43fc6",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Consulta Cadastro indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH"
+                            },
+                            {
+                                "uuid": "7e4549c5269e4fa7a5b156d5efc7edab",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Consulta Cadastro instável em {#AUTORIZADOR}",
+                                "priority": "WARNING"
+                            },
+                            {
+                                "uuid": "ec0a4a5770ee4e2cbccafbc535d009a0",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=0",
+                                "name": "NFe: Recepção Evento indisponível em {#AUTORIZADOR}",
+                                "priority": "HIGH"
+                            },
+                            {
+                                "uuid": "49902949f0054554a6e404b708d08427",
+                                "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=2",
+                                "name": "NFe: Recepção Evento instável em {#AUTORIZADOR}",
+                                "priority": "WARNING"
+                            }
+                        ]
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$NFE.UF.MATCHES}",
+                        "value": "^(SP|SVC-AN)$",
+                        "description": "Regex dos autorizadores a descobrir (ex.: ^(SP|SVC-AN)$ para clientes de SP; ^.*$ para todos)"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "24c3f974d9a44c899e6a9dcb3a6a2cb8",
+                        "name": "NFe Status Semáforo",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Disponível"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "Instável"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Indisponível"
+                            },
+                            {
+                                "value": "-1",
+                                "newvalue": "N/D"
+                            }
+                        ]
+                    }
+                ],
+                "triggers": [
+                    {
+                        "uuid": "4abedc0271ec4f37a7d75372c5f25a21",
+                        "expression": "nodata(/Template Zabbix NFe Monitor/nfe.status.json,30m)=1",
+                        "name": "NFe: coleta da página da SEFAZ sem dados há 30 minutos",
+                        "priority": "WARNING",
+                        "description": "O scrape da página de disponibilidade falhou repetidamente (script em erro, página fora do ar ou mudança de layout). Sem esse dado, os status por autorizador ficam congelados.",
+                        "manual_close": "YES"
+                    }
+                ]
+            }
+        ]
+    }
+}

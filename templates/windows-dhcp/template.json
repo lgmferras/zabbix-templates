@@ -3,18 +3,6 @@
         "version": "7.4",
         "template_groups": [
             {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
-                "name": "Templates/Applications"
-            },
-            {
-                "uuid": "c2c162144c2d4c5491c8801193af4945",
-                "name": "Templates/Cloud"
-            },
-            {
-                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
-                "name": "Templates/Network devices"
-            },
-            {
                 "uuid": "a1b2c3d44e5f4a8b9c0d1e2f3a4b5c6d",
                 "name": "Templates/Windows"
             }
@@ -149,7 +137,6 @@
                         "name": "DHCP Service state",
                         "type": "ZABBIX_ACTIVE",
                         "key": "service.info[DHCPServer,state]",
-                        "delay": "5m",
                         "description": "Estado do serviço DHCPServer (2 = Running).",
                         "valuemap": {
                             "name": "Windows service state"
@@ -176,6 +163,361 @@
                                     {
                                         "tag": "scope",
                                         "value": "availability"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "dd2d751efff942ddad9a15567f66cf30",
+                        "name": "Descoberta de escopos DHCP IPv4",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "dhcp.v4.scope.discovery",
+                        "delay": "1h",
+                        "description": "Descobre escopos IPv4 configurados no servidor DHCP via PowerShell (Get-DhcpServerv4Scope). Macros: {#SCOPEID}, {#SCOPENAME}.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "6f570eb35d68489cbdb12fa656d55707",
+                                "name": "DHCP Scope {#SCOPENAME}: Detalhes (JSON)",
+                                "type": "ZABBIX_ACTIVE",
+                                "key": "dhcp.v4.scope.details[{#SCOPEID}]",
+                                "delay": "5m",
+                                "value_type": "TEXT",
+                                "description": "JSON bruto com range, stats, gateway, DNS, dominio, reservas e exclusions do escopo.",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "scope"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "79c7aea5d94940849204272e5961a088",
+                                "name": "DHCP Scope {#SCOPENAME}: DNS Servers",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.dns[{#SCOPEID}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Dns"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "scope"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "1d843f6bba0a4599a11be89cdb0c360f",
+                                "name": "DHCP Scope {#SCOPENAME}: Domínio",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.domain[{#SCOPEID}]",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Domain"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "scope"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "1247116510004c928b41df86cdfb56dd",
+                                "name": "DHCP Scope {#SCOPENAME}: Quantidade de exclusions",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.exclusions.count[{#SCOPEID}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "return JSON.parse(value).Exclusions.length;"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "exclusions"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "d8648808654b407d84ef9116e7dcca1f",
+                                "name": "DHCP Scope {#SCOPENAME}: Exclusions (JSON)",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.exclusions.json[{#SCOPEID}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Exclusions"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "exclusions"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a347ff19b29d4b58a87135fc16931e5c",
+                                "name": "DHCP Scope {#SCOPENAME}: Gateway",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.gateway[{#SCOPEID}]",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Gateway"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "scope"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e608e793023640c680e8bd9270603ac9",
+                                "name": "DHCP Scope {#SCOPENAME}: Leases total",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.leases.total[{#SCOPEID}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Total"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "leases"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "f73e8bef65684bfabad356799dfdabe7",
+                                "name": "DHCP Scope {#SCOPENAME}: Leases em uso",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.leases.used[{#SCOPEID}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.InUse"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "leases"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "b6f9e322e8774cc69200ea4ac5606233",
+                                "name": "DHCP Scope {#SCOPENAME}: Nome",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.name[{#SCOPEID}]",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Name"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "scope"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "0516769004dc4e3c993943c231fd8310",
+                                "name": "DHCP Scope {#SCOPENAME}: Quantidade de reservas",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.reservations.count[{#SCOPEID}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "return JSON.parse(value).Reservations.length;"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "reservations"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "51203323b7e84bce88f0534e59c3c106",
+                                "name": "DHCP Scope {#SCOPENAME}: Reservas (JSON)",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.reservations.json[{#SCOPEID}]",
+                                "value_type": "TEXT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.Reservations"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "reservations"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "896085aeacfd4b2591e28c2a41ba09eb",
+                                "name": "DHCP Scope {#SCOPENAME}: Utilização (%)",
+                                "type": "DEPENDENT",
+                                "key": "dhcp.v4.scope.utilization[{#SCOPEID}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "var o=JSON.parse(value); return o.Total>0 ? Math.round(o.InUse/o.Total*10000)/100 : 0;"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "dhcp.v4.scope.details[{#SCOPEID}]"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "capacity"
+                                    },
+                                    {
+                                        "tag": "service",
+                                        "value": "dhcp"
+                                    }
+                                ]
+                            }
+                        ],
+                        "trigger_prototypes": [
+                            {
+                                "uuid": "2aa9ad36f1c84473a263ac5faa3a7348",
+                                "expression": "length(last(/Windows DHCP Server by Zabbix agent active/dhcp.v4.scope.gateway[{#SCOPEID}]))=0 or length(last(/Windows DHCP Server by Zabbix agent active/dhcp.v4.scope.dns[{#SCOPEID}]))=0",
+                                "name": "Escopo {#SCOPENAME}: sem gateway/DNS configurado",
+                                "priority": "WARNING",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "scope"
                                     },
                                     {
                                         "tag": "service",

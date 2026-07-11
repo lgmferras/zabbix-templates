@@ -3,7 +3,7 @@
         "version": "7.4",
         "template_groups": [
             {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
                 "name": "Templates/Applications"
             }
         ],
@@ -1950,6 +1950,136 @@
                                 "newvalue": "Stopped"
                             }
                         ]
+                    }
+                ]
+            }
+        ],
+        "triggers": [
+            {
+                "uuid": "399dfa1eae294fffb7d93ef0bcdb1be3",
+                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.size)<{$ATHOS.BACKUP.MIN_SIZE} and last(/ATHOS by Zabbix agent active/athos.backup.size)>0 and min(/ATHOS by Zabbix agent active/athos.backup.running,5m)=0",
+                "name": "ATHOS - Backup com tamanho suspeito (menor que {$ATHOS.BACKUP.MIN_SIZE})",
+                "opdata": "Tamanho: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "O arquivo .backup mais recente é menor que {$ATHOS.BACKUP.MIN_SIZE} bytes. Pode indicar backup incompleto ou corrompido.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "ATHOS - Nenhum arquivo de backup encontrado",
+                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)=-1"
+                    },
+                    {
+                        "name": "ATHOS - pg_dump em Execução (backup em andamento)",
+                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=1",
+                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "athos"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
+                    }
+                ]
+            },
+            {
+                "uuid": "80151a34d54948acb583ed72253fee58",
+                "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0\nand last(/ATHOS by Zabbix agent active/athos.backup.running,#2)=1\nand last(/ATHOS by Zabbix agent active/athos.backup.size)>0\nand last(/ATHOS by Zabbix agent active/athos.backup.size)<{$ATHOS.BACKUP.MIN_SIZE}",
+                "name": "ATHOS - Backup finalizou com tamanho suspeito (após execução)",
+                "opdata": "Tamanho: {ITEM.LASTVALUE3}",
+                "priority": "WARNING",
+                "description": "O pg_dump terminou de rodar mas o tamanho do arquivo .backup é menor que o esperado ({$ATHOS.BACKUP.MIN_SIZE} bytes).",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "ATHOS - pg_dump em Execução (backup em andamento)",
+                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=1",
+                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "athos"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
+                    }
+                ]
+            },
+            {
+                "uuid": "e48af345ec2141cf802385836cc65088",
+                "expression": "nodata(/ATHOS by Zabbix agent active/athos.backup.size,{$ATHOS.BACKUP.STALE_HOURS})=0\nand trendavg(/ATHOS by Zabbix agent active/athos.backup.size,1d:now/d)=trendavg(/ATHOS by Zabbix agent active/athos.backup.size,1d:now/d-1d)\nand max(/ATHOS by Zabbix agent active/athos.backup.running,{$ATHOS.BACKUP.STALE_HOURS})=0\nand last(/ATHOS by Zabbix agent active/athos.backup.size)>0",
+                "name": "ATHOS - Backup sem mudança de tamanho (possível estagnação)",
+                "opdata": "Tamanho: {ITEM.LASTVALUE1} (sem alteração)",
+                "priority": "WARNING",
+                "description": "O tamanho do .backup não mudou no período configurado em {$ATHOS.BACKUP.STALE_HOURS} e o pg_dump não está em execução. Pode indicar que o backup parou de funcionar.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "ATHOS - Nenhum arquivo de backup encontrado",
+                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.age_hours)=-1"
+                    },
+                    {
+                        "name": "ATHOS - pg_dump em Execução (backup em andamento)",
+                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=1",
+                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "athos"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
+                    }
+                ]
+            },
+            {
+                "uuid": "87e70ee8c2fa463fb14b948c029ef2c6",
+                "expression": "change(/ATHOS by Zabbix agent active/athos.backup.size)<-{$ATHOS.BACKUP.SIZE_DROP}\nand\nmin(/ATHOS by Zabbix agent active/athos.backup.running,5m)=0",
+                "name": "ATHOS - Tamanho do backup diminuiu significativamente",
+                "opdata": "Tamanho atual: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "O tamanho do .backup diminuiu mais de {$ATHOS.BACKUP.SIZE_DROP} bytes em relação ao anterior. Verifique a integridade.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "ATHOS - pg_dump em Execução (backup em andamento)",
+                        "expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=1",
+                        "recovery_expression": "last(/ATHOS by Zabbix agent active/athos.backup.running)=0"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "athos"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
                     }
                 ]
             }

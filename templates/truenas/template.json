@@ -5,18 +5,6 @@
             {
                 "uuid": "a72708dbc71c43deaaecab23ddf11e68",
                 "name": "Templates"
-            },
-            {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
-                "name": "Templates/Applications"
-            },
-            {
-                "uuid": "c2c162144c2d4c5491c8801193af4945",
-                "name": "Templates/Cloud"
-            },
-            {
-                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
-                "name": "Templates/Network devices"
             }
         ],
         "templates": [
@@ -3097,6 +3085,93 @@
                                 "newvalue": "Never run"
                             }
                         ]
+                    }
+                ]
+            }
+        ],
+        "graphs": [
+            {
+                "uuid": "7e24d904ce4f4b9494500b28d88824f7",
+                "name": "TrueNAS: CPU load average",
+                "ymin_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.load1"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "color": "2774A4",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.load5"
+                        }
+                    },
+                    {
+                        "sortorder": "2",
+                        "color": "F63100",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.load15"
+                        }
+                    }
+                ]
+            },
+            {
+                "uuid": "3c60698de6da43cf94a86b6d6369d605",
+                "name": "TrueNAS: Memory utilization",
+                "ymin_type_1": "FIXED",
+                "ymax_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "drawtype": "FILLED_REGION",
+                        "color": "2774A4",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.memory.pct"
+                        }
+                    }
+                ]
+            },
+            {
+                "uuid": "c6491c783b274e048f90533b178b8613",
+                "name": "TrueNAS: Pool storage",
+                "ymin_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "drawtype": "FILLED_REGION",
+                        "color": "F63100",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.pool.allocated"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "drawtype": "FILLED_REGION",
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.pool.free"
+                        }
+                    }
+                ]
+            },
+            {
+                "uuid": "aad0b206597945e2bb667588e0874f3a",
+                "name": "TrueNAS: Pool utilization %",
+                "ymin_type_1": "FIXED",
+                "graph_items": [
+                    {
+                        "drawtype": "FILLED_REGION",
+                        "color": "F63100",
+                        "item": {
+                            "host": "TrueNAS by API",
+                            "key": "truenas.pool.allocated.pct"
+                        }
                     }
                 ]
             }

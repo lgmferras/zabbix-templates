@@ -307,7 +307,7 @@
                     {
                         "macro": "{$WG.INTERFACE}",
                         "value": "wg0",
-                        "description": "Nome da interface WireGuard no host. Ex: wg0 (VPS/systrixcentral), systrix_wg0 (variante), ou nome configurado no Windows."
+                        "description": "Nome da interface WireGuard no host. Ex: wg0, systrix_wg0 (variante), ou nome configurado no Windows."
                     },
                     {
                         "macro": "{$WG.LATENCY.WARN}",

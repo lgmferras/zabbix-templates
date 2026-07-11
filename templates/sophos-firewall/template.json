@@ -1,689 +1,799 @@
 {
-  "zabbix_export": {
-    "version": "7.4",
-    "template_groups": [
-      {
-        "uuid": "36bff6c29af64692839d077febfc7079",
-        "name": "Templates/Network devices"
-      }
-    ],
-    "templates": [
-      {
-        "uuid": "d6ae6cce2ded4cae9c0cbc04a5cef3e4",
-        "template": "Sophos Firewall by SNMP",
-        "name": "Sophos Firewall by SNMP",
-        "description": "Monitora Sophos XG/SFOS via SNMP v2c usando a MIB XG-FIREWALL-MIB (enterprise 21067).\n\nMétricas: CPU, memória, disco, usuários ativos, status dos gateways WAN (failover),\nthroughput das interfaces WAN1, WAN2 e LAN.\n\nTrigger de failover: detecta quando o gateway de backup (WAN2) se torna ativo,\nindicando que o link primário falhou e o Sophos realizou a troca de rota.\n\nPré-requisito: SNMP v2c habilitado no Sophos (Administration > SNMP).\nAplique ao host 'SITE - FIREWALL' com interface SNMP apontando para o IP da WAN1.",
-        "groups": [
-          {
-            "name": "Templates/Network devices"
-          }
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
         ],
-        "items": [
-          {
-            "uuid": "d2229ff3364c46f3ac3a9366f6b9c4e6",
-            "name": "Sophos: {$SOPHOS.IF.LAN.NAME} — bits recebidos",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.2.2.1.10.{$SOPHOS.IF.LAN.INDEX}",
-            "key": "net.if.in[{$SOPHOS.IF.LAN.NAME},bits]",
-            "delay": "3m",
-            "history": "30d",
-            "units": "bps",
-            "description": "Taxa de bits recebidos na interface LAN (ifInOctets × 8).",
-            "preprocessing": [
-              {
-                "type": "CHANGE_PER_SECOND"
-              },
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "8"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              }
-            ]
-          },
-          {
-            "uuid": "958b76bb8692455693bd7c633e39c7d8",
-            "name": "Sophos: {$SOPHOS.IF.WAN1.NAME} — bits recebidos",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.2.2.1.10.{$SOPHOS.IF.WAN1.INDEX}",
-            "key": "net.if.in[{$SOPHOS.IF.WAN1.NAME},bits]",
-            "delay": "3m",
-            "history": "30d",
-            "units": "bps",
-            "description": "Taxa de bits recebidos na interface WAN1 (ifInOctets × 8).",
-            "preprocessing": [
-              {
-                "type": "CHANGE_PER_SECOND"
-              },
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "8"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              }
-            ]
-          },
-          {
-            "uuid": "357b695505fc43aba62bb4c7bed9486b",
-            "name": "Sophos: {$SOPHOS.IF.WAN2.NAME} — bits recebidos",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.2.2.1.10.{$SOPHOS.IF.WAN2.INDEX}",
-            "key": "net.if.in[{$SOPHOS.IF.WAN2.NAME},bits]",
-            "delay": "3m",
-            "history": "30d",
-            "units": "bps",
-            "description": "Taxa de bits recebidos na interface WAN2/backup (ifInOctets × 8).",
-            "preprocessing": [
-              {
-                "type": "CHANGE_PER_SECOND"
-              },
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "8"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              }
-            ]
-          },
-          {
-            "uuid": "c63d247938fa4ba79ccc4119ef45ade4",
-            "name": "Sophos: {$SOPHOS.IF.LAN.NAME} — bits enviados",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.2.2.1.16.{$SOPHOS.IF.LAN.INDEX}",
-            "key": "net.if.out[{$SOPHOS.IF.LAN.NAME},bits]",
-            "delay": "3m",
-            "history": "30d",
-            "units": "bps",
-            "description": "Taxa de bits enviados na interface LAN (ifOutOctets × 8).",
-            "preprocessing": [
-              {
-                "type": "CHANGE_PER_SECOND"
-              },
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "8"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              }
-            ]
-          },
-          {
-            "uuid": "06e2e3ddecd64b708d3e7d37d7af508a",
-            "name": "Sophos: {$SOPHOS.IF.WAN1.NAME} — bits enviados",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.2.2.1.16.{$SOPHOS.IF.WAN1.INDEX}",
-            "key": "net.if.out[{$SOPHOS.IF.WAN1.NAME},bits]",
-            "delay": "3m",
-            "history": "30d",
-            "units": "bps",
-            "description": "Taxa de bits enviados na interface WAN1 (ifOutOctets × 8).",
-            "preprocessing": [
-              {
-                "type": "CHANGE_PER_SECOND"
-              },
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "8"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              }
-            ]
-          },
-          {
-            "uuid": "6dddd43183004adb82aa02a30076ec03",
-            "name": "Sophos: {$SOPHOS.IF.WAN2.NAME} — bits enviados",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.2.2.1.16.{$SOPHOS.IF.WAN2.INDEX}",
-            "key": "net.if.out[{$SOPHOS.IF.WAN2.NAME},bits]",
-            "delay": "3m",
-            "history": "30d",
-            "units": "bps",
-            "description": "Taxa de bits enviados na interface WAN2/backup (ifOutOctets × 8).",
-            "preprocessing": [
-              {
-                "type": "CHANGE_PER_SECOND"
-              },
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "8"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              }
-            ]
-          },
-          {
-            "uuid": "c0323429406947c995dce1a1d81323ae",
-            "name": "Sophos: Utilização de CPU",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.2.2.1.0",
-            "key": "sfos.cpu.util",
-            "delay": "3m",
-            "history": "30d",
-            "value_type": "FLOAT",
-            "units": "%",
-            "description": "Uso atual da CPU (sfosCurrentCPUUsage). Valor em %.",
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "5m"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "cpu"
-              }
-            ],
-            "triggers": [
-              {
-                "uuid": "07b7a04ed3ab4564afc693a0218c53c4",
-                "expression": "avg(/Sophos Firewall by SNMP/sfos.cpu.util,5m)>{$SOPHOS.CPU.UTIL.WARN}",
-                "name": "Sophos: CPU alta (> {$SOPHOS.CPU.UTIL.WARN}%)",
-                "event_name": "Sophos: CPU {ITEM.LASTVALUE1}% (limite {$SOPHOS.CPU.UTIL.WARN}%)",
-                "opdata": "Atual: {ITEM.LASTVALUE1}%",
-                "priority": "WARNING",
-                "description": "Uso médio de CPU acima de {$SOPHOS.CPU.UTIL.WARN}% nos últimos 5 minutos.",
-                "manual_close": "YES",
-                "dependencies": [
-                  {
-                    "name": "Sophos: CPU crítica (> {$SOPHOS.CPU.UTIL.HIGH}%)",
-                    "expression": "avg(/Sophos Firewall by SNMP/sfos.cpu.util,5m)>{$SOPHOS.CPU.UTIL.HIGH}"
-                  }
+        "templates": [
+            {
+                "uuid": "d6ae6cce2ded4cae9c0cbc04a5cef3e4",
+                "template": "Sophos Firewall by SNMP",
+                "name": "Sophos Firewall by SNMP",
+                "description": "Monitora Sophos XG/SFOS via SNMP v2c usando a MIB XG-FIREWALL-MIB (enterprise 21067).\n\nMétricas: CPU, memória, disco, usuários ativos, status dos gateways WAN (failover),\nthroughput das interfaces WAN1, WAN2 e LAN.\n\nTrigger de failover: detecta quando o gateway de backup (WAN2) se torna ativo,\nindicando que o link primário falhou e o Sophos realizou a troca de rota.\n\nPré-requisito: SNMP v2c habilitado no Sophos (Administration > SNMP).\nAplique ao host 'SITE - FIREWALL' com interface SNMP apontando para o IP da WAN1.",
+                "groups": [
+                    {
+                        "name": "Templates/Network devices"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "d2229ff3364c46f3ac3a9366f6b9c4e6",
+                        "name": "Sophos: {$SOPHOS.IF.LAN.NAME} — bits recebidos",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.2.2.1.10.{$SOPHOS.IF.LAN.INDEX}]",
+                        "key": "net.if.in[{$SOPHOS.IF.LAN.NAME},bits]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "units": "bps",
+                        "description": "Taxa de bits recebidos na interface LAN (ifInOctets × 8).",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "958b76bb8692455693bd7c633e39c7d8",
+                        "name": "Sophos: {$SOPHOS.IF.WAN1.NAME} — bits recebidos",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.2.2.1.10.{$SOPHOS.IF.WAN1.INDEX}]",
+                        "key": "net.if.in[{$SOPHOS.IF.WAN1.NAME},bits]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "units": "bps",
+                        "description": "Taxa de bits recebidos na interface WAN1 (ifInOctets × 8).",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "357b695505fc43aba62bb4c7bed9486b",
+                        "name": "Sophos: {$SOPHOS.IF.WAN2.NAME} — bits recebidos",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.2.2.1.10.{$SOPHOS.IF.WAN2.INDEX}]",
+                        "key": "net.if.in[{$SOPHOS.IF.WAN2.NAME},bits]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "units": "bps",
+                        "description": "Taxa de bits recebidos na interface WAN2/backup (ifInOctets × 8).",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c63d247938fa4ba79ccc4119ef45ade4",
+                        "name": "Sophos: {$SOPHOS.IF.LAN.NAME} — bits enviados",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.2.2.1.16.{$SOPHOS.IF.LAN.INDEX}]",
+                        "key": "net.if.out[{$SOPHOS.IF.LAN.NAME},bits]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "units": "bps",
+                        "description": "Taxa de bits enviados na interface LAN (ifOutOctets × 8).",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "06e2e3ddecd64b708d3e7d37d7af508a",
+                        "name": "Sophos: {$SOPHOS.IF.WAN1.NAME} — bits enviados",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.2.2.1.16.{$SOPHOS.IF.WAN1.INDEX}]",
+                        "key": "net.if.out[{$SOPHOS.IF.WAN1.NAME},bits]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "units": "bps",
+                        "description": "Taxa de bits enviados na interface WAN1 (ifOutOctets × 8).",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6dddd43183004adb82aa02a30076ec03",
+                        "name": "Sophos: {$SOPHOS.IF.WAN2.NAME} — bits enviados",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.2.2.1.16.{$SOPHOS.IF.WAN2.INDEX}]",
+                        "key": "net.if.out[{$SOPHOS.IF.WAN2.NAME},bits]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "units": "bps",
+                        "description": "Taxa de bits enviados na interface WAN2/backup (ifOutOctets × 8).",
+                        "preprocessing": [
+                            {
+                                "type": "CHANGE_PER_SECOND"
+                            },
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "8"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c0323429406947c995dce1a1d81323ae",
+                        "name": "Sophos: Utilização de CPU",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.2.2.1.0]",
+                        "key": "sfos.cpu.util",
+                        "delay": "3m",
+                        "history": "30d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Uso atual da CPU (sfosCurrentCPUUsage). Valor em %.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "5m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "cpu"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "07b7a04ed3ab4564afc693a0218c53c4",
+                                "expression": "avg(/Sophos Firewall by SNMP/sfos.cpu.util,5m)>{$SOPHOS.CPU.UTIL.WARN}",
+                                "name": "Sophos: CPU alta (> {$SOPHOS.CPU.UTIL.WARN}%)",
+                                "event_name": "Sophos: CPU {ITEM.LASTVALUE1}% (limite {$SOPHOS.CPU.UTIL.WARN}%)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}%",
+                                "priority": "WARNING",
+                                "description": "Uso médio de CPU acima de {$SOPHOS.CPU.UTIL.WARN}% nos últimos 5 minutos.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Sophos: CPU crítica (> {$SOPHOS.CPU.UTIL.HIGH}%)",
+                                        "expression": "avg(/Sophos Firewall by SNMP/sfos.cpu.util,5m)>{$SOPHOS.CPU.UTIL.HIGH}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "411c46e29ee34e0e9c3de4bf84b91f2b",
+                                "expression": "avg(/Sophos Firewall by SNMP/sfos.cpu.util,5m)>{$SOPHOS.CPU.UTIL.HIGH}",
+                                "name": "Sophos: CPU crítica (> {$SOPHOS.CPU.UTIL.HIGH}%)",
+                                "event_name": "Sophos: CPU {ITEM.LASTVALUE1}% (limite {$SOPHOS.CPU.UTIL.HIGH}%)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}%",
+                                "priority": "HIGH",
+                                "description": "Uso médio de CPU acima de {$SOPHOS.CPU.UTIL.HIGH}% nos últimos 5 minutos.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "612242fdcd29400e8daf76480826178b",
+                        "name": "Sophos: Utilização de disco",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.2.4.2.0]",
+                        "key": "sfos.disk.util",
+                        "delay": "15m",
+                        "history": "30d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Percentual de disco em uso (sfosDiskPercentageUsed).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "15m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "storage"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "9728393f133645dc91e35a01dd5f8c07",
+                                "expression": "last(/Sophos Firewall by SNMP/sfos.disk.util)>{$SOPHOS.DISK.UTIL.WARN}",
+                                "name": "Sophos: Disco alto (> {$SOPHOS.DISK.UTIL.WARN}%)",
+                                "event_name": "Sophos: Disco {ITEM.LASTVALUE1}% (limite {$SOPHOS.DISK.UTIL.WARN}%)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}%",
+                                "priority": "WARNING",
+                                "description": "Uso de disco acima de {$SOPHOS.DISK.UTIL.WARN}%.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Sophos: Disco crítico (> {$SOPHOS.DISK.UTIL.HIGH}%)",
+                                        "expression": "last(/Sophos Firewall by SNMP/sfos.disk.util)>{$SOPHOS.DISK.UTIL.HIGH}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a2b9012a64994bb39a8e206e36976b7b",
+                                "expression": "last(/Sophos Firewall by SNMP/sfos.disk.util)>{$SOPHOS.DISK.UTIL.HIGH}",
+                                "name": "Sophos: Disco crítico (> {$SOPHOS.DISK.UTIL.HIGH}%)",
+                                "event_name": "Sophos: Disco {ITEM.LASTVALUE1}% (limite {$SOPHOS.DISK.UTIL.HIGH}%)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}%",
+                                "priority": "HIGH",
+                                "description": "Uso de disco acima de {$SOPHOS.DISK.UTIL.HIGH}%. Logs e relatórios podem ser descartados.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "43d7a100ee0a494cbd4f70743c39ebff",
+                        "name": "Sophos: Versão do firmware",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.1.3.0]",
+                        "key": "sfos.firmware.version",
+                        "delay": "1h",
+                        "history": "7d",
+                        "value_type": "CHAR",
+                        "description": "Versão do SFOS (sfosDevFWVersion). Ex: SFOS 17.5.17 MR-17-Build837.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1d"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "8531d24011be493bbeb04cf3564b8457",
+                                "expression": "change(/Sophos Firewall by SNMP/sfos.firmware.version)=1",
+                                "name": "Sophos: Versão do firmware alterada",
+                                "opdata": "Versão atual: {ITEM.LASTVALUE1}",
+                                "priority": "INFO",
+                                "description": "O firmware do Sophos foi atualizado ou modificado.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4b720ee74f4944b4a61eae71066d6491",
+                        "name": "Sophos: Status do gateway WAN1",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.3.1.1.0]",
+                        "key": "sfos.gateway.status[1]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "description": "Status do gateway 1 (WAN1) conforme MIB Sophos XG.\n1=Ativo, 2=Inativo.",
+                        "valuemap": {
+                            "name": "Sophos gateway status"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "2m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "792a9c9dee79409681a6165062e04e4e",
+                        "name": "Sophos: Status do gateway WAN2 (backup)",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.3.2.1.0]",
+                        "key": "sfos.gateway.status[2]",
+                        "delay": "3m",
+                        "history": "30d",
+                        "description": "Status do gateway 2 (WAN2/backup) conforme MIB Sophos XG.\n1=Ativo (failover em curso), 2=Inativo (operação normal).",
+                        "valuemap": {
+                            "name": "Sophos gateway status"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "2m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "network"
+                            },
+                            {
+                                "tag": "no_metrics",
+                                "value": "true"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "6c85dbcbcbc24325b61210a86853c5f4",
+                                "expression": "last(/Sophos Firewall by SNMP/sfos.gateway.status[2])=1",
+                                "name": "Sophos: Link de backup WAN2 ativo — verificar WAN1",
+                                "event_name": "Sophos: Failover ativo — tráfego roteando via WAN2 ({$SOPHOS.IF.WAN2.NAME})",
+                                "opdata": "Gateway WAN2: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O Sophos ativou o gateway de backup (WAN2). Isso indica que o link primário (WAN1) foi detectado como inativo pelo próprio firewall e o tráfego está sendo roteado pelo link de contingência.\n\nVerificar: host '{$HOST.WAN1.NAME}' no Zabbix para confirmar falha do link primário.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "failover"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3cfb280515b44b629ca6f75ecef0b8f7",
+                        "name": "Sophos: Utilização de memória",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.2.3.2.0]",
+                        "key": "sfos.memory.util",
+                        "delay": "3m",
+                        "history": "30d",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Percentual de memória RAM em uso (sfosMemoryPercentageUsed).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "5m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "memory"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "d8d17591b71c4e559e35a80b6cbd4134",
+                                "expression": "avg(/Sophos Firewall by SNMP/sfos.memory.util,5m)>{$SOPHOS.MEM.UTIL.WARN}",
+                                "name": "Sophos: Memória alta (> {$SOPHOS.MEM.UTIL.WARN}%)",
+                                "event_name": "Sophos: Memória {ITEM.LASTVALUE1}% (limite {$SOPHOS.MEM.UTIL.WARN}%)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}%",
+                                "priority": "WARNING",
+                                "description": "Uso de memória RAM acima de {$SOPHOS.MEM.UTIL.WARN}%.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Sophos: Memória crítica (> {$SOPHOS.MEM.UTIL.HIGH}%)",
+                                        "expression": "avg(/Sophos Firewall by SNMP/sfos.memory.util,5m)>{$SOPHOS.MEM.UTIL.HIGH}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "cfc96e48364b4d4d85f02254d6c8eab3",
+                                "expression": "avg(/Sophos Firewall by SNMP/sfos.memory.util,5m)>{$SOPHOS.MEM.UTIL.HIGH}",
+                                "name": "Sophos: Memória crítica (> {$SOPHOS.MEM.UTIL.HIGH}%)",
+                                "event_name": "Sophos: Memória {ITEM.LASTVALUE1}% (limite {$SOPHOS.MEM.UTIL.HIGH}%)",
+                                "opdata": "Atual: {ITEM.LASTVALUE1}%",
+                                "priority": "HIGH",
+                                "description": "Uso de memória RAM acima de {$SOPHOS.MEM.UTIL.HIGH}%.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "capacity"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cf749990103445559352e89415a11c91",
+                        "name": "Sophos: Modelo",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.1.2.0]",
+                        "key": "sfos.model",
+                        "delay": "1h",
+                        "history": "7d",
+                        "value_type": "CHAR",
+                        "description": "Modelo do appliance (sfosDevModel). Ex: XG105_XN02.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1d"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7ce53a9f1872460cabe56fa0f176d4a4",
+                        "name": "Sophos: Usuários ativos (portal)",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.4.1.21067.2.1.2.5.0]",
+                        "key": "sfos.users.live",
+                        "delay": "3m",
+                        "history": "30d",
+                        "description": "Número de usuários autenticados no portal web (sfosLiveUsers).",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "5m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "users"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "be8aa47c4a9940218c0588cfb4028b92",
+                        "name": "Sophos: Uptime",
+                        "type": "SNMP_AGENT",
+                        "snmp_oid": "get[1.3.6.1.2.1.1.3.0]",
+                        "key": "system.uptime",
+                        "delay": "5m",
+                        "history": "7d",
+                        "value_type": "FLOAT",
+                        "units": "uptime",
+                        "description": "Tempo desde o último boot do appliance (sysUpTime).",
+                        "preprocessing": [
+                            {
+                                "type": "MULTIPLIER",
+                                "parameters": [
+                                    "0.01"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "5m"
+                                ]
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    }
                 ],
                 "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "performance"
-                  }
-                ]
-              },
-              {
-                "uuid": "411c46e29ee34e0e9c3de4bf84b91f2b",
-                "expression": "avg(/Sophos Firewall by SNMP/sfos.cpu.util,5m)>{$SOPHOS.CPU.UTIL.HIGH}",
-                "name": "Sophos: CPU crítica (> {$SOPHOS.CPU.UTIL.HIGH}%)",
-                "event_name": "Sophos: CPU {ITEM.LASTVALUE1}% (limite {$SOPHOS.CPU.UTIL.HIGH}%)",
-                "opdata": "Atual: {ITEM.LASTVALUE1}%",
-                "priority": "HIGH",
-                "description": "Uso médio de CPU acima de {$SOPHOS.CPU.UTIL.HIGH}% nos últimos 5 minutos.",
-                "manual_close": "YES",
-                "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "performance"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "uuid": "612242fdcd29400e8daf76480826178b",
-            "name": "Sophos: Utilização de disco",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.2.4.2.0",
-            "key": "sfos.disk.util",
-            "delay": "15m",
-            "history": "30d",
-            "value_type": "FLOAT",
-            "units": "%",
-            "description": "Percentual de disco em uso (sfosDiskPercentageUsed).",
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "15m"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "storage"
-              }
-            ],
-            "triggers": [
-              {
-                "uuid": "9728393f133645dc91e35a01dd5f8c07",
-                "expression": "last(/Sophos Firewall by SNMP/sfos.disk.util)>{$SOPHOS.DISK.UTIL.WARN}",
-                "name": "Sophos: Disco alto (> {$SOPHOS.DISK.UTIL.WARN}%)",
-                "event_name": "Sophos: Disco {ITEM.LASTVALUE1}% (limite {$SOPHOS.DISK.UTIL.WARN}%)",
-                "opdata": "Atual: {ITEM.LASTVALUE1}%",
-                "priority": "WARNING",
-                "description": "Uso de disco acima de {$SOPHOS.DISK.UTIL.WARN}%.",
-                "manual_close": "YES",
-                "dependencies": [
-                  {
-                    "name": "Sophos: Disco crítico (> {$SOPHOS.DISK.UTIL.HIGH}%)",
-                    "expression": "last(/Sophos Firewall by SNMP/sfos.disk.util)>{$SOPHOS.DISK.UTIL.HIGH}"
-                  }
+                    {
+                        "tag": "class",
+                        "value": "network"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "sophos"
+                    }
                 ],
-                "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "capacity"
-                  }
+                "macros": [
+                    {
+                        "macro": "{$HOST.WAN1.NAME}",
+                        "description": "Nome do host WAN1 no Zabbix — referenciado na descrição do trigger de failover"
+                    },
+                    {
+                        "macro": "{$SOPHOS.CPU.UTIL.HIGH}",
+                        "value": "90",
+                        "description": "Uso de CPU (%) para trigger HIGH"
+                    },
+                    {
+                        "macro": "{$SOPHOS.CPU.UTIL.WARN}",
+                        "value": "80",
+                        "description": "Uso de CPU (%) para trigger WARNING"
+                    },
+                    {
+                        "macro": "{$SOPHOS.DISK.UTIL.HIGH}",
+                        "value": "90",
+                        "description": "Uso de disco (%) para trigger HIGH"
+                    },
+                    {
+                        "macro": "{$SOPHOS.DISK.UTIL.WARN}",
+                        "value": "80",
+                        "description": "Uso de disco (%) para trigger WARNING"
+                    },
+                    {
+                        "macro": "{$SOPHOS.IF.LAN.INDEX}",
+                        "value": "8",
+                        "description": "Índice SNMP da interface LAN (ifIndex)."
+                    },
+                    {
+                        "macro": "{$SOPHOS.IF.LAN.NAME}",
+                        "value": "Port4",
+                        "description": "Nome da interface LAN conforme ifDescr (ex: Port4)"
+                    },
+                    {
+                        "macro": "{$SOPHOS.IF.WAN1.INDEX}",
+                        "value": "5",
+                        "description": "Índice SNMP da interface WAN1 (ifIndex). Verificar com snmpwalk .1.3.6.1.2.1.2.2.1.2"
+                    },
+                    {
+                        "macro": "{$SOPHOS.IF.WAN1.NAME}",
+                        "value": "Port1",
+                        "description": "Nome da interface WAN1 conforme ifDescr (ex: Port1)"
+                    },
+                    {
+                        "macro": "{$SOPHOS.IF.WAN2.INDEX}",
+                        "value": "6",
+                        "description": "Índice SNMP da interface WAN2 (ifIndex)."
+                    },
+                    {
+                        "macro": "{$SOPHOS.IF.WAN2.NAME}",
+                        "value": "Port2",
+                        "description": "Nome da interface WAN2 — usado na mensagem do trigger de failover"
+                    },
+                    {
+                        "macro": "{$SOPHOS.MEM.UTIL.HIGH}",
+                        "value": "90",
+                        "description": "Uso de memória (%) para trigger HIGH"
+                    },
+                    {
+                        "macro": "{$SOPHOS.MEM.UTIL.WARN}",
+                        "value": "80",
+                        "description": "Uso de memória (%) para trigger WARNING"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "a0c107c8497a42cb91dc646b38eee58f",
+                        "name": "Sophos gateway status",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Ativo"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "Inativo"
+                            }
+                        ]
+                    }
                 ]
-              },
-              {
-                "uuid": "a2b9012a64994bb39a8e206e36976b7b",
-                "expression": "last(/Sophos Firewall by SNMP/sfos.disk.util)>{$SOPHOS.DISK.UTIL.HIGH}",
-                "name": "Sophos: Disco crítico (> {$SOPHOS.DISK.UTIL.HIGH}%)",
-                "event_name": "Sophos: Disco {ITEM.LASTVALUE1}% (limite {$SOPHOS.DISK.UTIL.HIGH}%)",
-                "opdata": "Atual: {ITEM.LASTVALUE1}%",
-                "priority": "HIGH",
-                "description": "Uso de disco acima de {$SOPHOS.DISK.UTIL.HIGH}%. Logs e relatórios podem ser descartados.",
-                "manual_close": "YES",
-                "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "capacity"
-                  }
+            }
+        ],
+        "graphs": [
+            {
+                "uuid": "ae8fadec32d34644868f59861f038066",
+                "name": "Sophos: CPU e Memória (%)",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "F63100",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "sfos.cpu.util"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "2774A4",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "sfos.memory.util"
+                        }
+                    }
                 ]
-              }
-            ]
-          },
-          {
-            "uuid": "43d7a100ee0a494cbd4f70743c39ebff",
-            "name": "Sophos: Versão do firmware",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.1.3.0",
-            "key": "sfos.firmware.version",
-            "delay": "1h",
-            "history": "7d",
-            "value_type": "CHAR",
-            "description": "Versão do SFOS (sfosDevFWVersion). Ex: SFOS 17.5.17 MR-17-Build837.",
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "1d"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "system"
-              }
-            ],
-            "triggers": [
-              {
-                "uuid": "8531d24011be493bbeb04cf3564b8457",
-                "expression": "change(/Sophos Firewall by SNMP/sfos.firmware.version)=1",
-                "name": "Sophos: Versão do firmware alterada",
-                "opdata": "Versão atual: {ITEM.LASTVALUE1}",
-                "priority": "INFO",
-                "description": "O firmware do Sophos foi atualizado ou modificado.",
-                "manual_close": "YES",
-                "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "notice"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "uuid": "4b720ee74f4944b4a61eae71066d6491",
-            "name": "Sophos: Status do gateway WAN1",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.3.1.1.0",
-            "key": "sfos.gateway.status[1]",
-            "history": "30d",
-            "description": "Status do gateway 1 (WAN1) conforme MIB Sophos XG.\n1=Ativo, 2=Inativo.",
-            "valuemap": {
-              "name": "Sophos gateway status"
             },
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "2m"
+            {
+                "uuid": "9a3d3275018040759aef44b97f01df0d",
+                "name": "Sophos: Disco (%)",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "F56000",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "sfos.disk.util"
+                        }
+                    }
                 ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              },
-              {
-                "tag": "no_metrics",
-                "value": "true"
-              }
-            ]
-          },
-          {
-            "uuid": "792a9c9dee79409681a6165062e04e4e",
-            "name": "Sophos: Status do gateway WAN2 (backup)",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.3.2.1.0",
-            "key": "sfos.gateway.status[2]",
-            "history": "30d",
-            "description": "Status do gateway 2 (WAN2/backup) conforme MIB Sophos XG.\n1=Ativo (failover em curso), 2=Inativo (operação normal).",
-            "valuemap": {
-              "name": "Sophos gateway status"
             },
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "2m"
+            {
+                "uuid": "6e7a24675b9440938d873d0db7d0884d",
+                "name": "Sophos: Throughput LAN (bps)",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "net.if.in[{$SOPHOS.IF.LAN.NAME},bits]"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "2774A4",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "net.if.out[{$SOPHOS.IF.LAN.NAME},bits]"
+                        }
+                    }
                 ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "network"
-              },
-              {
-                "tag": "no_metrics",
-                "value": "true"
-              }
-            ],
-            "triggers": [
-              {
-                "uuid": "6c85dbcbcbc24325b61210a86853c5f4",
-                "expression": "last(/Sophos Firewall by SNMP/sfos.gateway.status[2])=1",
-                "name": "Sophos: Link de backup WAN2 ativo — verificar WAN1",
-                "event_name": "Sophos: Failover ativo — tráfego roteando via WAN2 ({$SOPHOS.IF.WAN2.NAME})",
-                "opdata": "Gateway WAN2: {ITEM.LASTVALUE1}",
-                "priority": "WARNING",
-                "description": "O Sophos ativou o gateway de backup (WAN2). Isso indica que o link primário (WAN1) foi detectado como inativo pelo próprio firewall e o tráfego está sendo roteado pelo link de contingência.\n\nVerificar: host '{$HOST.WAN1.NAME}' no Zabbix para confirmar falha do link primário.",
-                "manual_close": "YES",
-                "tags": [
-                  {
-                    "tag": "component",
-                    "value": "failover"
-                  },
-                  {
-                    "tag": "scope",
-                    "value": "availability"
-                  }
+            },
+            {
+                "uuid": "3d3708d5865a42d9a227204302070b8d",
+                "name": "Sophos: Throughput WAN1 (bps)",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "net.if.in[{$SOPHOS.IF.WAN1.NAME},bits]"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "2774A4",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "net.if.out[{$SOPHOS.IF.WAN1.NAME},bits]"
+                        }
+                    }
                 ]
-              }
-            ]
-          },
-          {
-            "uuid": "3cfb280515b44b629ca6f75ecef0b8f7",
-            "name": "Sophos: Utilização de memória",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.2.3.2.0",
-            "key": "sfos.memory.util",
-            "delay": "3m",
-            "history": "30d",
-            "value_type": "FLOAT",
-            "units": "%",
-            "description": "Percentual de memória RAM em uso (sfosMemoryPercentageUsed).",
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "5m"
+            },
+            {
+                "uuid": "4519f412b75049e7ba97cd11b07a8fb7",
+                "name": "Sophos: Throughput WAN2/backup (bps)",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "1A7C11",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "net.if.in[{$SOPHOS.IF.WAN2.NAME},bits]"
+                        }
+                    },
+                    {
+                        "sortorder": "1",
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "2774A4",
+                        "item": {
+                            "host": "Sophos Firewall by SNMP",
+                            "key": "net.if.out[{$SOPHOS.IF.WAN2.NAME},bits]"
+                        }
+                    }
                 ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "memory"
-              }
-            ],
-            "triggers": [
-              {
-                "uuid": "d8d17591b71c4e559e35a80b6cbd4134",
-                "expression": "avg(/Sophos Firewall by SNMP/sfos.memory.util,5m)>{$SOPHOS.MEM.UTIL.WARN}",
-                "name": "Sophos: Memória alta (> {$SOPHOS.MEM.UTIL.WARN}%)",
-                "event_name": "Sophos: Memória {ITEM.LASTVALUE1}% (limite {$SOPHOS.MEM.UTIL.WARN}%)",
-                "opdata": "Atual: {ITEM.LASTVALUE1}%",
-                "priority": "WARNING",
-                "description": "Uso de memória RAM acima de {$SOPHOS.MEM.UTIL.WARN}%.",
-                "manual_close": "YES",
-                "dependencies": [
-                  {
-                    "name": "Sophos: Memória crítica (> {$SOPHOS.MEM.UTIL.HIGH}%)",
-                    "expression": "avg(/Sophos Firewall by SNMP/sfos.memory.util,5m)>{$SOPHOS.MEM.UTIL.HIGH}"
-                  }
-                ],
-                "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "capacity"
-                  }
-                ]
-              },
-              {
-                "uuid": "cfc96e48364b4d4d85f02254d6c8eab3",
-                "expression": "avg(/Sophos Firewall by SNMP/sfos.memory.util,5m)>{$SOPHOS.MEM.UTIL.HIGH}",
-                "name": "Sophos: Memória crítica (> {$SOPHOS.MEM.UTIL.HIGH}%)",
-                "event_name": "Sophos: Memória {ITEM.LASTVALUE1}% (limite {$SOPHOS.MEM.UTIL.HIGH}%)",
-                "opdata": "Atual: {ITEM.LASTVALUE1}%",
-                "priority": "HIGH",
-                "description": "Uso de memória RAM acima de {$SOPHOS.MEM.UTIL.HIGH}%.",
-                "manual_close": "YES",
-                "tags": [
-                  {
-                    "tag": "scope",
-                    "value": "capacity"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "uuid": "cf749990103445559352e89415a11c91",
-            "name": "Sophos: Modelo",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.1.2.0",
-            "key": "sfos.model",
-            "delay": "1h",
-            "history": "7d",
-            "value_type": "CHAR",
-            "description": "Modelo do appliance (sfosDevModel). Ex: XG105_XN02.",
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "1d"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "system"
-              }
-            ]
-          },
-          {
-            "uuid": "7ce53a9f1872460cabe56fa0f176d4a4",
-            "name": "Sophos: Usuários ativos (portal)",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.4.1.21067.2.1.2.5.0",
-            "key": "sfos.users.live",
-            "delay": "3m",
-            "history": "30d",
-            "description": "Número de usuários autenticados no portal web (sfosLiveUsers).",
-            "preprocessing": [
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "5m"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "users"
-              }
-            ]
-          },
-          {
-            "uuid": "be8aa47c4a9940218c0588cfb4028b92",
-            "name": "Sophos: Uptime",
-            "type": "SNMP_AGENT",
-            "snmp_oid": "1.3.6.1.2.1.1.3.0",
-            "key": "system.uptime",
-            "delay": "5m",
-            "history": "7d",
-            "value_type": "FLOAT",
-            "units": "uptime",
-            "description": "Tempo desde o último boot do appliance (sysUpTime).",
-            "preprocessing": [
-              {
-                "type": "MULTIPLIER",
-                "parameters": [
-                  "0.01"
-                ]
-              },
-              {
-                "type": "DISCARD_UNCHANGED_HEARTBEAT",
-                "parameters": [
-                  "5m"
-                ]
-              }
-            ],
-            "tags": [
-              {
-                "tag": "component",
-                "value": "system"
-              }
-            ]
-          }
-        ],
-        "tags": [
-          {
-            "tag": "class",
-            "value": "network"
-          },
-          {
-            "tag": "target",
-            "value": "sophos"
-          }
-        ],
-        "macros": [
-          {
-            "macro": "{$HOST.WAN1.NAME}",
-            "description": "Nome do host WAN1 no Zabbix — referenciado na descrição do trigger de failover"
-          },
-          {
-            "macro": "{$SOPHOS.CPU.UTIL.HIGH}",
-            "value": "90",
-            "description": "Uso de CPU (%) para trigger HIGH"
-          },
-          {
-            "macro": "{$SOPHOS.CPU.UTIL.WARN}",
-            "value": "80",
-            "description": "Uso de CPU (%) para trigger WARNING"
-          },
-          {
-            "macro": "{$SOPHOS.DISK.UTIL.HIGH}",
-            "value": "90",
-            "description": "Uso de disco (%) para trigger HIGH"
-          },
-          {
-            "macro": "{$SOPHOS.DISK.UTIL.WARN}",
-            "value": "80",
-            "description": "Uso de disco (%) para trigger WARNING"
-          },
-          {
-            "macro": "{$SOPHOS.IF.LAN.INDEX}",
-            "value": "8",
-            "description": "Índice SNMP da interface LAN (ifIndex)."
-          },
-          {
-            "macro": "{$SOPHOS.IF.LAN.NAME}",
-            "value": "Port4",
-            "description": "Nome da interface LAN conforme ifDescr (ex: Port4)"
-          },
-          {
-            "macro": "{$SOPHOS.IF.WAN1.INDEX}",
-            "value": "5",
-            "description": "Índice SNMP da interface WAN1 (ifIndex). Verificar com snmpwalk .1.3.6.1.2.1.2.2.1.2"
-          },
-          {
-            "macro": "{$SOPHOS.IF.WAN1.NAME}",
-            "value": "Port1",
-            "description": "Nome da interface WAN1 conforme ifDescr (ex: Port1)"
-          },
-          {
-            "macro": "{$SOPHOS.IF.WAN2.INDEX}",
-            "value": "6",
-            "description": "Índice SNMP da interface WAN2 (ifIndex)."
-          },
-          {
-            "macro": "{$SOPHOS.IF.WAN2.NAME}",
-            "value": "Port2",
-            "description": "Nome da interface WAN2 — usado na mensagem do trigger de failover"
-          },
-          {
-            "macro": "{$SOPHOS.MEM.UTIL.HIGH}",
-            "value": "90",
-            "description": "Uso de memória (%) para trigger HIGH"
-          },
-          {
-            "macro": "{$SOPHOS.MEM.UTIL.WARN}",
-            "value": "80",
-            "description": "Uso de memória (%) para trigger WARNING"
-          }
-        ],
-        "valuemaps": [
-          {
-            "uuid": "a0c107c8497a42cb91dc646b38eee58f",
-            "name": "Sophos gateway status",
-            "mappings": [
-              {
-                "value": "1",
-                "newvalue": "Ativo"
-              },
-              {
-                "value": "2",
-                "newvalue": "Inativo"
-              }
-            ]
-          }
+            }
         ]
-      }
-    ]
-  }
+    }
 }

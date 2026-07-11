@@ -5,7 +5,7 @@ param(
     'DbPath','BackupPath',
     'Ipv4Enabled','Ipv6Enabled',
     'V4ScopesCount','V4ScopeDiscovery',
-    'V4ScopeStats','V4ScopeGet',
+    'V4ScopeStats','V4ScopeGet','V4ScopeDetails',
     'V4ScopeReservationsCount','V4ScopeOptionsCount',
     'V4LeasesTotal','V4LeasesUsed','V4Utilization'
   )]
@@ -15,6 +15,7 @@ param(
 )
 
 # Garante saída UTF-8 sem BOM — necessário para Zabbix interpretar números corretamente
+# (deve ficar após param() — CmdletBinding/param precisam ser os primeiros statements)
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $OutputEncoding            = [System.Text.UTF8Encoding]::new($false)
 
@@ -26,6 +27,7 @@ function Out-NonEmptyString([string]$s) {
 try {
   Import-Module DhcpServer -ErrorAction Stop
 } catch {
+  # Se não tiver o módulo, devolve algo "não vazio" (evita item virar NOTSUPPORTED por vazio)
   Write-Output "0"
   exit 0
 }
@@ -71,7 +73,11 @@ try {
         }
       }
 
-      $json = $rows | ConvertTo-Json -Compress
+      # ConvertTo-Json colapsa um array de 1 elemento num objeto solto (sem colchetes).
+      # Zabbix exige um array JSON na raiz mesmo com 1 unico escopo -- forcar manualmente
+      # serializando cada item individualmente e unindo com colchetes (compativel com
+      # Windows PowerShell 5.1, que nao tem o parametro -AsArray do PS 6.2+).
+      $json = "[" + (($rows | ForEach-Object { $_ | ConvertTo-Json -Compress }) -join ",") + "]"
       Write-Output (Out-NonEmptyString $json)
     }
 
@@ -79,8 +85,9 @@ try {
       if ([string]::IsNullOrWhiteSpace($ScopeId)) { Write-Output "{}"; exit 0 }
 
       $st = Get-DhcpServerv4ScopeStatistics -ScopeId $ScopeId -ErrorAction Stop
+      # AddressesTotal pode vir nulo/zero em alguns Windows Server — usar InUse+Free
       $obj = [ordered]@{
-        Total     = [int]$st.AddressesTotal
+        Total     = [int]$st.AddressesInUse + [int]$st.AddressesFree
         InUse     = [int]$st.AddressesInUse
         Available = [int]$st.AddressesFree
       }
@@ -100,6 +107,43 @@ try {
       Write-Output (($obj | ConvertTo-Json -Compress))
     }
 
+    'V4ScopeDetails' {
+      if ([string]::IsNullOrWhiteSpace($ScopeId)) { Write-Output "{}"; exit 0 }
+
+      $s     = Get-DhcpServerv4Scope -ScopeId $ScopeId -ErrorAction Stop
+      $stats = Get-DhcpServerv4ScopeStatistics -ScopeId $ScopeId -ErrorAction SilentlyContinue
+
+      $gw     = Get-DhcpServerv4OptionValue -ScopeId $ScopeId -OptionId 3  -ErrorAction SilentlyContinue
+      $dns    = Get-DhcpServerv4OptionValue -ScopeId $ScopeId -OptionId 6  -ErrorAction SilentlyContinue
+      $domain = Get-DhcpServerv4OptionValue -ScopeId $ScopeId -OptionId 15 -ErrorAction SilentlyContinue
+
+      $reservations = @(Get-DhcpServerv4Reservation -ScopeId $ScopeId -ErrorAction SilentlyContinue) | ForEach-Object {
+        [ordered]@{ IPAddress = [string]$_.IPAddress; ClientId = [string]$_.ClientId; Name = [string]$_.Name }
+      }
+
+      $exclusions = @(Get-DhcpServerv4ExclusionRange -ScopeId $ScopeId -ErrorAction SilentlyContinue) | ForEach-Object {
+        [ordered]@{ StartRange = [string]$_.StartRange; EndRange = [string]$_.EndRange }
+      }
+
+      # AddressesTotal pode vir nulo/zero em alguns Windows Server — usar InUse+Free
+      $obj = [ordered]@{
+        StartRange   = [string]$s.StartRange
+        EndRange     = [string]$s.EndRange
+        SubnetMask   = [string]$s.SubnetMask
+        State        = [string]$s.State
+        Name         = [string]$s.Name
+        Total        = [int]$stats.AddressesInUse + [int]$stats.AddressesFree
+        InUse        = [int]$stats.AddressesInUse
+        Available    = [int]$stats.AddressesFree
+        Gateway      = [string]($gw.Value -join ',')
+        Dns          = @($dns.Value)
+        Domain       = [string]($domain.Value -join '')
+        Reservations = @($reservations)
+        Exclusions   = @($exclusions)
+      }
+      Write-Output (($obj | ConvertTo-Json -Compress -Depth 4))
+    }
+
     'V4ScopeReservationsCount' {
       if ([string]::IsNullOrWhiteSpace($ScopeId)) { Write-Output "0"; exit 0 }
       $r = Get-DhcpServerv4Reservation -ScopeId $ScopeId -ErrorAction SilentlyContinue
@@ -112,7 +156,10 @@ try {
       if ($null -eq $o) { Write-Output "0" } else { Write-Output ($o.Count) }
     }
 
+    # ── Totais globais (soma de todos os escopos) ──────────────────────────
+
     'V4LeasesTotal' {
+      # AddressesTotal pode vir nulo/zero em alguns Windows Server — usar InUse+Free
       $scopes = @(Get-DhcpServerv4Scope -ErrorAction Stop)
       $total = 0
       foreach ($s in $scopes) {
@@ -150,10 +197,12 @@ try {
   }
 }
 catch {
+  # Nunca retornar vazio; devolve 0/{} conforme o caso
   switch ($Action) {
     'V4ScopeDiscovery' { Write-Output "[]" }
     'V4ScopeStats'     { Write-Output "{}" }
     'V4ScopeGet'       { Write-Output "{}" }
+    'V4ScopeDetails'   { Write-Output "{}" }
     default            { Write-Output "0" }
   }
 }

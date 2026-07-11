@@ -255,6 +255,35 @@
                     }
                 ]
             }
+        ],
+        "graphs": [
+            {
+                "uuid": "e632078de8c04731a7489e10e9bcc6d0",
+                "name": "WAN: Latência ICMP (RTT)",
+                "graph_items": [
+                    {
+                        "color": "F56000",
+                        "item": {
+                            "host": "Dual WAN Primary Link by Zabbix",
+                            "key": "icmppingsec"
+                        }
+                    }
+                ]
+            },
+            {
+                "uuid": "29992b8c1eb64077a6b1c7c0628eb1ed",
+                "name": "WAN: Perda de pacotes ICMP (%)",
+                "graph_items": [
+                    {
+                        "drawtype": "GRADIENT_LINE",
+                        "color": "F63100",
+                        "item": {
+                            "host": "Dual WAN Primary Link by Zabbix",
+                            "key": "icmppingloss"
+                        }
+                    }
+                ]
+            }
         ]
     }
 }

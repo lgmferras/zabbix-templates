@@ -3,16 +3,8 @@
         "version": "7.4",
         "template_groups": [
             {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
-                "name": "Templates/Applications"
-            },
-            {
                 "uuid": "c2c162144c2d4c5491c8801193af4945",
                 "name": "Templates/Cloud"
-            },
-            {
-                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
-                "name": "Templates/Network devices"
             }
         ],
         "templates": [

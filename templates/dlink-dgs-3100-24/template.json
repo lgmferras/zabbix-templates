@@ -840,7 +840,7 @@
                     },
                     {
                         "macro": "{$SNMP_COMMUNITY}",
-                        "value": "systrix"
+                        "value": "public"
                     }
                 ],
                 "valuemaps": [

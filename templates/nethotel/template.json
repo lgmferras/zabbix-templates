@@ -3,12 +3,8 @@
         "version": "7.4",
         "template_groups": [
             {
-                "uuid": "06db5db48af34ff2a0da0e6958fec95b",
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
                 "name": "Templates/Applications"
-            },
-            {
-                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
-                "name": "Templates/Network devices"
             }
         ],
         "templates": [
@@ -922,6 +918,136 @@
                                 "newvalue": "Stopped"
                             }
                         ]
+                    }
+                ]
+            }
+        ],
+        "triggers": [
+            {
+                "uuid": "c39d536d5ed34cb08e805111a2530333",
+                "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.size)<{$NETHOTEL.BACKUP.MIN_SIZE} and last(/NETHOTEL by Zabbix agent active/nethotel.backup.size)>0 and min(/NETHOTEL by Zabbix agent active/nethotel.backup.running,5m)=0",
+                "name": "NETHOTEL - Backup com tamanho suspeito (menor que 500MB)",
+                "opdata": "Tamanho: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "O arquivo de backup mais recente é menor que {$NETHOTEL.BACKUP.MIN_SIZE} bytes. Pode indicar backup incompleto ou corrompido.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "NETHOTEL - Backup em Execução",
+                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=1",
+                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=0"
+                    },
+                    {
+                        "name": "NETHOTEL - Nenhum arquivo de backup encontrado",
+                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)=-1"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "nethotel"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
+                    }
+                ]
+            },
+            {
+                "uuid": "61ccf14a780745e8a090c1c8c74ecd4b",
+                "expression": "max(/NETHOTEL by Zabbix agent active/nethotel.backup.running,10m)=0\nand max(/NETHOTEL by Zabbix agent active/nethotel.backup.running,40m)=1\nand last(/NETHOTEL by Zabbix agent active/nethotel.backup.size)>0\nand min(/NETHOTEL by Zabbix agent active/nethotel.backup.size,#2)<{$NETHOTEL.BACKUP.MIN_SIZE}",
+                "name": "NETHOTEL - Backup finalizou com tamanho suspeito (após execução)",
+                "opdata": "Tamanho: {ITEM.LASTVALUE3}",
+                "priority": "WARNING",
+                "description": "O backup terminou de rodar mas o tamanho do arquivo e menor que o esperado ({$NETHOTEL.BACKUP.MIN_SIZE} bytes).\n\nCorrecao: usa max(running,10m)=0 para aguardar 10min apos o backup parar antes de checar o size (evita capturar tamanho parcial durante escrita do gbak). min(size,#2) exige 2 leituras consecutivas pequenas.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "NETHOTEL - Backup em Execução",
+                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=1",
+                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=0"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "nethotel"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
+                    }
+                ]
+            },
+            {
+                "uuid": "c719571926d540f299ec96c2723cb321",
+                "expression": "nodata(/NETHOTEL by Zabbix agent active/nethotel.backup.size,{$NETHOTEL.BACKUP.STALE_HOURS})=0\nand trendavg(/NETHOTEL by Zabbix agent active/nethotel.backup.size,1d:now/d)=trendavg(/NETHOTEL by Zabbix agent active/nethotel.backup.size,1d:now/d-1d)\nand max(/NETHOTEL by Zabbix agent active/nethotel.backup.running,{$NETHOTEL.BACKUP.STALE_HOURS})=0\nand last(/NETHOTEL by Zabbix agent active/nethotel.backup.size)>0",
+                "name": "NETHOTEL - Backup sem mudança de tamanho (possível estagnação)",
+                "opdata": "Tamanho: {ITEM.LASTVALUE1} (sem alteração)",
+                "priority": "WARNING",
+                "description": "O tamanho do backup não mudou no período configurado em {$NETHOTEL.BACKUP.STALE_HOURS} e o backup não está em execução. Pode indicar que o processo de backup parou de funcionar.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "NETHOTEL - Backup em Execução",
+                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=1",
+                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=0"
+                    },
+                    {
+                        "name": "NETHOTEL - Nenhum arquivo de backup encontrado",
+                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.age_hours)=-1"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "nethotel"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
+                    }
+                ]
+            },
+            {
+                "uuid": "979d908e65e14884932b279b04d49e59",
+                "expression": "change(/NETHOTEL by Zabbix agent active/nethotel.backup.size)<-{$NETHOTEL.BACKUP.SIZE_DROP}\nand\nmax(/NETHOTEL by Zabbix agent active/nethotel.backup.running,15m)=0",
+                "name": "NETHOTEL - Tamanho do backup diminuiu significativamente",
+                "opdata": "Tamanho atual: {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "O tamanho do backup diminuiu mais de {$NETHOTEL.BACKUP.SIZE_DROP} bytes em relacao ao anterior.\n\nGuarda corrigida: max(running,15m)=0 exige que o backup nao tenha rodado em nenhum momento nos ultimos 15 minutos, evitando falso positivo durante escrita incremental do gbak.exe.",
+                "manual_close": "YES",
+                "dependencies": [
+                    {
+                        "name": "NETHOTEL - Backup em Execução",
+                        "expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=1",
+                        "recovery_expression": "last(/NETHOTEL by Zabbix agent active/nethotel.backup.running)=0"
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "application",
+                        "value": "nethotel"
+                    },
+                    {
+                        "tag": "component",
+                        "value": "backup"
+                    },
+                    {
+                        "tag": "scope",
+                        "value": "data"
                     }
                 ]
             }
