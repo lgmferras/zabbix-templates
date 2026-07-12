@@ -1,12 +1,92 @@
 # Zabbix 7.4 Custom Template Library
 
+![Zabbix](https://img.shields.io/badge/Zabbix-7.4-D40000?style=flat-square&logoColor=white)
+![Templates](https://img.shields.io/badge/Templates-18-7F13EC?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
+
+[🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
+
+---
+
+<a id="pt-br"></a>
+## 🇧🇷 Português
+
+Uma coleção de 18 templates Zabbix de nível enterprise desenvolvidos para ambientes MSP, cobrindo dispositivos de rede, plataformas de nuvem, servidores Windows, gateways IoT e aplicações de negócio.
+
+Todos os templates têm como alvo o **Zabbix 7.4** e seguem convenções consistentes: thresholds orientados por macro, itens com tags, expressões de recuperação em todos os triggers e `DISCARD_UNCHANGED_HEARTBEAT` para reduzir ruído.
+
+---
+
+### Templates
+
+| Template | Categoria | Método | Itens | UserParameters |
+|---|---|---|---|---|
+| [ATHOS PDV](templates/athos-pdv/) | Windows / Aplicações | Zabbix Agent 2 (ativo) | 45 | `user_parameters_athos.conf` |
+| [D-Link DGS-3100-24 Switch](templates/dlink-dgs-3100-24/) | Dispositivos de Rede | SNMP v2c | 16 | — |
+| [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependente | 57 | — |
+| [Dual WAN Backup Link](templates/dual-wan-backup/) | Rede / Disponibilidade | Verificações simples | 4 | — |
+| [Dual WAN Primary Link](templates/dual-wan-primary/) | Rede / Disponibilidade | Verificações simples | 4 + 1 web scenario | — |
+| [Kairos](templates/kairos/) | Windows / Aplicações | Zabbix Agent 2 (ativo) | 1 | `user_parameters_kairos.conf` |
+| [MSPClouds Backup Monitor](templates/mspclouds-backup/) | Aplicações / Nuvem | HTTP Agent + Dependente/LLD | 11 + LLD | — |
+| [NETHOTEL](templates/nethotel/) | Aplicações | Zabbix Agent 2 (ativo) | 15 | `user_parameters_nethotel.conf` |
+| [NFe SEFAZ Monitor](templates/nfe-sefaz-monitor/) | Aplicações | Zabbix Agent 2 (passivo) + Python | 1 + 8/autorizador (LLD) | `nfe.conf` |
+| [Oracle Cloud Billing](templates/oracle-cloud-billing/) | Nuvem / Custo | SCRIPT (OCI Usage Reports API) | 2 | — |
+| [Oracle Cloud Egress](templates/oracle-cloud-egress/) | Nuvem / Custo | SCRIPT (OCI Monitoring API) | 4 | — |
+| [Ricoh SP 3710SF Printer](templates/ricoh-sp3710sf/) | Aplicações / Dispositivos | HTTP (interface web embutida) | 49 | — |
+| [Sophos Firewall](templates/sophos-firewall/) | Dispositivos de Rede / Segurança | SNMP v2c | 15 | — |
+| [TrueNAS](templates/truenas/) | Aplicações / Armazenamento | HTTP Agent + Dependente | 87 | — |
+| [UniFi AP Legacy](templates/unifi-ap-legacy/) | Dispositivos de Rede | SNMP v1/v2c | 10 + 3/VAP | — |
+| [Windows Backup](templates/windows-backup/) | Windows / Backup | Zabbix Agent 2 (ativo) | 5 | `user_parameters_windows_backup.conf` |
+| [Windows DHCP Server](templates/windows-dhcp/) | Windows / Rede | Zabbix Agent 2 (ativo) + PowerShell | 5 + 12 (LLD) | `userparameter_dhcp.conf` + `dhcp_zbx.ps1` |
+| [WireGuard Tunnel](templates/wireguard-tunnel/) | Rede / VPN | Zabbix Agent (ativo) | 7 | `user_parameters_wireguard_linux.conf` / `_windows.conf` |
+
+---
+
+### Princípios de design
+
+- **Thresholds orientados por macro** — todos os níveis de alerta são configuráveis por host, sem editar o template
+- **Expressões de recuperação** em todo trigger — nenhum fechamento manual necessário para problemas transitórios
+- **Itens com tags** — tags `application`, `component` e `scope` para filtragem em dashboards
+- **`DISCARD_UNCHANGED_HEARTBEAT`** — reduz a carga de armazenamento sem perder visibilidade
+- **Dependências** entre triggers — evita tempestades de alertas causadas por falhas em cascata
+
+### Importação
+
+1. Vá em **Configuração → Templates → Importar**
+2. Selecione o `template.json` de qualquer subdiretório
+3. Configure as macros do host conforme documentado no README de cada template
+
+### UserParameters
+
+Templates que usam itens ativos do Zabbix Agent com chaves customizadas exigem um arquivo UserParameter instalado no host monitorado. O arquivo está incluído no diretório de cada template, junto ao `template.json`.
+
+**Hosts Linux** — copie para `/etc/zabbix/zabbix_agent2.d/` e execute `systemctl restart zabbix-agent2`.
+
+**Hosts Windows** — copie para `C:\Program Files\Zabbix Agent 2\zabbix_agent2.d\` e execute `Restart-Service "Zabbix Agent 2"`.
+
+Para o **Windows DHCP Server**, copie também o `dhcp_zbx.ps1` para `C:\Program Files\Zabbix Agent 2\` (o `.conf` faz referência a ele a partir daí).
+
+O **NFe SEFAZ Monitor** é a exceção: ele exige uma imagem customizada do Zabbix Agent 2 com Python 3 (`requests` + `beautifulsoup4`) e uma interface em modo passivo, em vez de um simples UserParameter. Veja o [README](templates/nfe-sefaz-monitor/) dele para a configuração completa.
+
+### Ambiente
+
+Estes templates foram desenvolvidos e testados em um ambiente MSP de produção rodando:
+- Zabbix Server 7.4 em Docker (Linux)
+- 30+ hosts monitorados entre múltiplos clientes
+- Mix de Windows Server, Linux, dispositivos de rede e plataformas de nuvem
+
+---
+
+<a id="en-us"></a>
+## 🇺🇸 English
+
 A collection of 18 enterprise-grade Zabbix templates developed for MSP environments, covering network devices, cloud platforms, Windows servers, IoT gateways and business applications.
 
 All templates target **Zabbix 7.4** and follow consistent conventions: macro-driven thresholds, tagged items, recovery expressions on all triggers and `DISCARD_UNCHANGED_HEARTBEAT` to reduce noise.
 
 ---
 
-## Templates
+### Templates
 
 | Template | Category | Method | Items | UserParameters |
 |---|---|---|---|---|
@@ -31,7 +111,7 @@ All templates target **Zabbix 7.4** and follow consistent conventions: macro-dri
 
 ---
 
-## Design Principles
+### Design Principles
 
 - **Macro-driven thresholds** — all alert levels configurable per host without editing the template
 - **Recovery expressions** on every trigger — no manual close required for transient issues
@@ -39,13 +119,13 @@ All templates target **Zabbix 7.4** and follow consistent conventions: macro-dri
 - **`DISCARD_UNCHANGED_HEARTBEAT`** — reduces storage load without losing visibility
 - **Dependencies** between triggers — prevents alert storms from cascading failures
 
-## Import
+### Import
 
 1. Go to **Configuration → Templates → Import**
 2. Select the `template.json` from any subdirectory
 3. Configure host macros as documented in each template's README
 
-## UserParameters
+### UserParameters
 
 Templates that use Zabbix Agent active items with custom keys require a UserParameter file installed on the monitored host. The file is included in each template's directory alongside `template.json`.
 
@@ -57,12 +137,14 @@ For **Windows DHCP Server**, also copy `dhcp_zbx.ps1` to `C:\Program Files\Zabbi
 
 **NFe SEFAZ Monitor** is the exception: it requires a custom Zabbix Agent 2 image with Python 3 (`requests` + `beautifulsoup4`) and a passive-mode interface rather than a plain UserParameter drop-in. See its [README](templates/nfe-sefaz-monitor/) for the full setup.
 
-## Environment
+### Environment
 
 These templates were developed and tested in a production MSP environment running:
 - Zabbix Server 7.4 on Docker (Linux)
 - 30+ monitored hosts across multiple clients
 - Mix of Windows Server, Linux, network devices and cloud platforms
+
+---
 
 ## Author
 
