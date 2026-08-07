@@ -1038,17 +1038,19 @@
                         "delay": "5m",
                         "value_type": "FLOAT",
                         "units": "%",
-                        "params": "(grep 'cpu ' /proc/stat; sleep 1; grep 'cpu ' /proc/stat) | awk '{u=$2+$4; t=$2+$4+$5; if (NR==1){u1=u; t1=t;} else printf \"%.2f%%\\n\", ($2+$4-u1) * 100 / (t-t1); }'",
+                        "params": "grep 'cpu ' /proc/stat",
                         "username": "{$USER.NAME}",
                         "password": "{$USER.PASSWORD}",
-                        "description": "Time the CPU has spent doing nothing.",
+                        "description": "CPU busy percentage, averaged over the polling interval. Computed server-side from raw /proc/stat jiffie counters (user+system) via CHANGE_PER_SECOND preprocessing -- HZ=100 on this hardware, so jiffies/sec equals percent directly. Previously sampled /proc/stat twice with a 1s sleep inside the SSH session, holding one of the gateway's 3 concurrent dropbear slots open an extra second per poll; single instant read now.",
                         "preprocessing": [
                             {
-                                "type": "STR_REPLACE",
+                                "type": "JAVASCRIPT",
                                 "parameters": [
-                                    "%",
-                                    ""
+                                    "var p = value.trim().split(/\\s+/);\nreturn parseInt(p[1]) + parseInt(p[3]);"
                                 ]
+                            },
+                            {
+                                "type": "CHANGE_PER_SECOND"
                             }
                         ],
                         "timeout": "30s",
@@ -1186,7 +1188,7 @@
                         "name": "JSON Local Conf",
                         "type": "SSH",
                         "key": "ssh.run[lorawan.local_conf,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                        "delay": "10m",
+                        "delay": "1h",
                         "value_type": "TEXT",
                         "params": "cat /etc/lora/local_conf.json",
                         "username": "{$USER.NAME}",
@@ -1482,16 +1484,31 @@
                         },
                         "item_prototypes": [
                             {
-                                "uuid": "2931f0cd98c04c37b9c836353f87e0e7",
-                                "name": "Interface {#IFNAME}: Bits Received",
+                                "uuid": "6ebf68ef83b8495e82b896d84b91a4ab",
+                                "name": "Interface {#IFNAME}: Net Stats",
                                 "type": "SSH",
-                                "key": "ssh.run[lorawan.net.if.in.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                                "key": "ssh.run[lorawan.net.if.stats.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
                                 "delay": "5m",
-                                "units": "bps",
-                                "params": "cat /proc/net/dev | grep -w '{#IFNAME}' | awk '{print $2}'",
+                                "value_type": "TEXT",
+                                "params": "cat /proc/net/dev | grep -w '{#IFNAME}'",
                                 "username": "{$USER.NAME}",
                                 "password": "{$USER.PASSWORD}",
+                                "description": "Raw /proc/net/dev line for this interface; master item for Bits Received and Bits Sent (avoids a second SSH connection to read the same line twice per cycle).",
+                                "timeout": "30s"
+                            },
+                            {
+                                "uuid": "2931f0cd98c04c37b9c836353f87e0e7",
+                                "name": "Interface {#IFNAME}: Bits Received",
+                                "type": "DEPENDENT",
+                                "key": "ssh.run[lorawan.net.if.in.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                                "units": "bps",
                                 "preprocessing": [
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "var f = value.trim().split(/\\s+/);\nreturn f[1];"
+                                        ]
+                                    },
                                     {
                                         "type": "CHANGE_PER_SECOND"
                                     },
@@ -1502,19 +1519,23 @@
                                         ]
                                     }
                                 ],
-                                "timeout": "30s"
+                                "master_item": {
+                                    "key": "ssh.run[lorawan.net.if.stats.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                                }
                             },
                             {
                                 "uuid": "beb2f774822c4ec8bc1248364e1ebbce",
                                 "name": "Interface {#IFNAME}: Bits Sent",
-                                "type": "SSH",
+                                "type": "DEPENDENT",
                                 "key": "ssh.run[lorawan.net.if.out.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                                "delay": "5m",
                                 "units": "bps",
-                                "params": "cat /proc/net/dev | grep -w '{#IFNAME}' | awk '{print $10}'",
-                                "username": "{$USER.NAME}",
-                                "password": "{$USER.PASSWORD}",
                                 "preprocessing": [
+                                    {
+                                        "type": "JAVASCRIPT",
+                                        "parameters": [
+                                            "var f = value.trim().split(/\\s+/);\nreturn f[9];"
+                                        ]
+                                    },
                                     {
                                         "type": "CHANGE_PER_SECOND"
                                     },
@@ -1525,7 +1546,9 @@
                                         ]
                                     }
                                 ],
-                                "timeout": "30s"
+                                "master_item": {
+                                    "key": "ssh.run[lorawan.net.if.stats.{#IFNAME},{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                                }
                             },
                             {
                                 "uuid": "ce77f0d580c3495a8572b8fb7db1b761",

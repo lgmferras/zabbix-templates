@@ -37,6 +37,13 @@ O template se conecta ao gateway Dragino via SSH (`ssh.run[...]`) e executa um p
 As regras de descoberta adicionam itens por interface e por sistema de arquivos além destes (veja abaixo).
 
 > **Otimização de conexões SSH (2026-08):** o gateway Dragino roda em hardware bem limitado (Atheros AR9330, 1 núcleo MIPS ~400MHz, 60MB RAM). Cada handshake SSH via dropbear custa 1.5-3s de CPU nesse hardware, e o template original abria uma conexão independente por item — cerca de 160-200 conexões/hora, incluindo um item (`System Load Average`) que ficou sem `delay` explícito e por isso herdava o intervalo padrão de 1 minuto. Consolidei os 6 itens que liam `logread` de forma redundante (`Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count`, `LoRa RX`) em um único item mestre `Logread Snapshot` — os 6 viraram itens `DEPENDENT` que extraem sua seção via REGEX a partir dessa captura única — e corrigi o `delay` do `System Load Average` para `5m`. Resultado medido em produção: **~204 → ~107 conexões SSH/hora (-48%)**, sem alterar nenhum dado coletado.
+>
+> **v2.0 (2026-08):** três ajustes adicionais, focados em reduzir tanto conexões quanto tempo de CPU por conexão:
+> - `CPU Idle Time` fazia `(grep /proc/stat; sleep 1; grep /proc/stat)` dentro da própria sessão SSH — segurava um dos 3 slots concorrentes do dropbear (`-T 3`) por 1s+ extra a cada ciclo só para tirar uma amostra instantânea. Agora faz uma única leitura de `/proc/stat` e o percentual de CPU busy é calculado no lado do Zabbix via preprocessing `CHANGE_PER_SECOND` (delta entre ciclos de coleta) — sem segurar a conexão, ao custo de o valor passar a representar a média do intervalo de 5 minutos em vez de uma amostra instantânea de 1 segundo (mudança de semântica esperada e documentada).
+> - `JSON Local Conf` (configuração LoRa, que raramente muda em runtime) passou de `10m` para `1h`.
+> - `Interface {#IFNAME}: Bits Received` e `Bits Sent` liam `/proc/net/dev` cada um na sua própria conexão SSH; agora derivam via `DEPENDENT` de um único item mestre `Interface {#IFNAME}: Net Stats`.
+>
+> Comandos validados diretamente no gateway antes do import; após aplicar, os valores em produção foram conferidos via API do Zabbix (histórico de `CPU Idle Time`, `Bits Received/Sent` e `Net Stats`) para confirmar que nenhum item ficou "not supported". Redução adicional estimada: **~85 → ~68 conexões SSH/hora**.
 
 ---
 
@@ -67,11 +74,11 @@ As regras de descoberta adicionam itens por interface e por sistema de arquivos 
 
 | Nome | Prefixo da chave | Intervalo | Descrição |
 |---|---|---|---|
-| CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | Percentual de tempo ocioso da CPU, obtido de `/proc/stat` |
+| CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | Percentual de CPU ocupada (busy), média do intervalo de coleta — leitura única de `/proc/stat`, delta calculado no Zabbix via `CHANGE_PER_SECOND` |
 | Number of CPUs | `ssh.run[lorawan.cpu.number,...]` | 4h | Quantidade de núcleos de CPU |
 | System Disk Discovery | `ssh.run[lorawan.disk.discovery,...]` | 12h | Alimenta a regra de descoberta de sistema de arquivos |
 | System name | `ssh.run[lorawan.hostname,...]` | 12h | Hostname do gateway (vinculado ao inventário do host) |
-| JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 10m | Dump bruto de `/etc/lora/local_conf.json`, usado como item mestre para a maioria dos itens de configuração LoRa |
+| JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 1h | Dump bruto de `/etc/lora/local_conf.json`, usado como item mestre para a maioria dos itens de configuração LoRa — configuração estática, não precisa de polling frequente |
 | Logread Snapshot | `ssh.run[lorawan.logread.snapshot,...]` | 10m | Captura única de `logread`, dividida em seções marcadas (erros, avisos, status LoRaWAN, pacotes RX); item mestre para `Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count` e `LoRa RX`, que agora são `DEPENDENT` — evita 6 conexões SSH redundantes por ciclo |
 | Memory utilization | `ssh.run[lorawan.memused,...]` | 5m | Percentual de uso de memória |
 | System Net if Discovery | `ssh.run[lorawan.net.if.discovery,...]` | 1h | Alimenta a regra de descoberta de interfaces de rede |
@@ -93,7 +100,8 @@ Os 47 itens restantes são itens `DEPENDENT` que parseiam os itens mestres acima
 
 Descobre interfaces de rede que correspondem a `^(eth1).*` e cria, para cada interface:
 
-- **Interface {#IFNAME}: Bits Received / Bits Sent** — a partir de `/proc/net/dev`, convertido para bps via `CHANGE_PER_SECOND` + `MULTIPLIER(8)`
+- **Interface {#IFNAME}: Net Stats** — item mestre SSH (`cat /proc/net/dev | grep -w '{#IFNAME}'`), lido uma única vez por ciclo
+- **Interface {#IFNAME}: Bits Received / Bits Sent** — itens `DEPENDENT` de Net Stats, extraem o campo correspondente via JavaScript e convertem para bps via `CHANGE_PER_SECOND` + `MULTIPLIER(8)`
 - **Interface {#IFNAME}: MAC** — a partir de `/sys/class/net/{#IFNAME}/address`
 - **Gráfico:** *Interface {#IFNAME}: Network traffic*
 
@@ -200,6 +208,13 @@ The template connects to the Dragino gateway via SSH (`ssh.run[...]`) and runs a
 Discovery rules add per-interface and per-filesystem items on top of this (see below).
 
 > **SSH connection optimization (2026-08):** the Dragino gateway runs on quite limited hardware (Atheros AR9330, 1 MIPS core ~400MHz, 60MB RAM). Each dropbear SSH handshake costs 1.5-3s of CPU on that hardware, and the original template opened one independent connection per item — roughly 160-200 connections/hour, including one item (`System Load Average`) that shipped without an explicit `delay` and therefore inherited the 1-minute default interval. I consolidated the 6 items that redundantly read `logread` (`Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count`, `LoRa RX`) into a single master item `Logread Snapshot` — the 6 became `DEPENDENT` items that extract their section via REGEX from that single capture — and fixed `System Load Average`'s `delay` to `5m`. Measured result in production: **~204 → ~107 SSH connections/hour (-48%)**, with no change to any collected data.
+>
+> **v2.0 (2026-08):** three further tweaks, aimed at both connection count and per-connection CPU cost:
+> - `CPU Idle Time` used to run `(grep /proc/stat; sleep 1; grep /proc/stat)` inside the SSH session itself — holding one of dropbear's 3 concurrent slots (`-T 3`) open for an extra 1s+ per cycle just to take one instant sample. It now does a single `/proc/stat` read, and the busy-CPU percentage is computed Zabbix-side via `CHANGE_PER_SECOND` preprocessing (delta between polling cycles) — no more held-open connection, at the cost of the value now representing a 5-minute interval average instead of an instantaneous 1-second sample (an expected, documented semantic change).
+> - `JSON Local Conf` (LoRa configuration, which rarely changes at runtime) went from `10m` to `1h`.
+> - `Interface {#IFNAME}: Bits Received` and `Bits Sent` each read `/proc/net/dev` on their own SSH connection; they now derive as `DEPENDENT` items from a single master item `Interface {#IFNAME}: Net Stats`.
+>
+> Commands validated directly on the gateway before import; after applying, production values were checked via the Zabbix API (history for `CPU Idle Time`, `Bits Received/Sent` and `Net Stats`) to confirm no item went "not supported". Estimated further reduction: **~85 → ~68 SSH connections/hour**.
 
 ---
 
@@ -230,11 +245,11 @@ Discovery rules add per-interface and per-filesystem items on top of this (see b
 
 | Name | Key prefix | Interval | Description |
 |---|---|---|---|
-| CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | CPU idle percentage, sampled from `/proc/stat` |
+| CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | CPU busy percentage, averaged over the polling interval — single `/proc/stat` read, delta computed Zabbix-side via `CHANGE_PER_SECOND` |
 | Number of CPUs | `ssh.run[lorawan.cpu.number,...]` | 4h | CPU core count |
 | System Disk Discovery | `ssh.run[lorawan.disk.discovery,...]` | 12h | Feeds the filesystem discovery rule |
 | System name | `ssh.run[lorawan.hostname,...]` | 12h | Gateway hostname (linked to host inventory) |
-| JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 10m | Raw dump of `/etc/lora/local_conf.json`, used as master item for most LoRa config items |
+| JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 1h | Raw dump of `/etc/lora/local_conf.json`, used as master item for most LoRa config items — static configuration, doesn't need frequent polling |
 | Logread Snapshot | `ssh.run[lorawan.logread.snapshot,...]` | 10m | Single `logread` capture, split into marked sections (errors, warnings, LoRaWAN status, RX packets); master item for `Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count` and `LoRa RX`, which are now `DEPENDENT` — avoids 6 redundant SSH connections per cycle |
 | Memory utilization | `ssh.run[lorawan.memused,...]` | 5m | Memory usage percentage |
 | System Net if Discovery | `ssh.run[lorawan.net.if.discovery,...]` | 1h | Feeds the network interface discovery rule |
@@ -256,7 +271,8 @@ The remaining 47 items are `DEPENDENT` items that parse the master items above u
 
 Discovers network interfaces matching `^(eth1).*` and creates, per interface:
 
-- **Interface {#IFNAME}: Bits Received / Bits Sent** — from `/proc/net/dev`, converted to bps via `CHANGE_PER_SECOND` + `MULTIPLIER(8)`
+- **Interface {#IFNAME}: Net Stats** — SSH master item (`cat /proc/net/dev | grep -w '{#IFNAME}'`), read once per cycle
+- **Interface {#IFNAME}: Bits Received / Bits Sent** — `DEPENDENT` items on Net Stats, extract their field via JavaScript and convert to bps via `CHANGE_PER_SECOND` + `MULTIPLIER(8)`
 - **Interface {#IFNAME}: MAC** — from `/sys/class/net/{#IFNAME}/address`
 - **Graph:** *Interface {#IFNAME}: Network traffic*
 
