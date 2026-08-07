@@ -31,10 +31,12 @@ O template se conecta ao gateway Dragino via SSH (`ssh.run[...]`) e executa um p
 | Métricas de pacotes RX | 7 | Contagem de pacotes, taxa de dados, frequência, SNR, RSSI, tamanho, status |
 | Posição e hardware | 4 | Latitude, longitude, altitude, plataforma do concentrador |
 | CPU e load average | 7 | Utilização de CPU, tempo ocioso de CPU, número de CPUs, load average (1m/5m/15m), contagem de processos |
-| Sistema / diversos | 15 | Utilização de memória, uptime, hostname, modelo, descoberta de disco e interface, parsing de log (erros/avisos/LoRaWAN), dump de configuração bruta |
-| **Total** | **57** | |
+| Sistema / diversos | 16 | Utilização de memória, uptime, hostname, modelo, descoberta de disco e interface, parsing de log (erros/avisos/LoRaWAN), dump de configuração bruta |
+| **Total** | **58** | |
 
 As regras de descoberta adicionam itens por interface e por sistema de arquivos além destes (veja abaixo).
+
+> **Otimização de conexões SSH (2026-08):** o gateway Dragino roda em hardware bem limitado (Atheros AR9330, 1 núcleo MIPS ~400MHz, 60MB RAM). Cada handshake SSH via dropbear custa 1.5-3s de CPU nesse hardware, e o template original abria uma conexão independente por item — cerca de 160-200 conexões/hora, incluindo um item (`System Load Average`) que ficou sem `delay` explícito e por isso herdava o intervalo padrão de 1 minuto. Consolidei os 6 itens que liam `logread` de forma redundante (`Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count`, `LoRa RX`) em um único item mestre `Logread Snapshot` — os 6 viraram itens `DEPENDENT` que extraem sua seção via REGEX a partir dessa captura única — e corrigi o `delay` do `System Load Average` para `5m`. Resultado medido em produção: **~204 → ~107 conexões SSH/hora (-48%)**, sem alterar nenhum dado coletado.
 
 ---
 
@@ -68,17 +70,12 @@ As regras de descoberta adicionam itens por interface e por sistema de arquivos 
 | CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | Percentual de tempo ocioso da CPU, obtido de `/proc/stat` |
 | Number of CPUs | `ssh.run[lorawan.cpu.number,...]` | 4h | Quantidade de núcleos de CPU |
 | System Disk Discovery | `ssh.run[lorawan.disk.discovery,...]` | 12h | Alimenta a regra de descoberta de sistema de arquivos |
-| Lora Last Error | `ssh.run[lorawan.error.last,...]` | 10m | Última linha de `error` do `logread` |
 | System name | `ssh.run[lorawan.hostname,...]` | 12h | Hostname do gateway (vinculado ao inventário do host) |
 | JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 10m | Dump bruto de `/etc/lora/local_conf.json`, usado como item mestre para a maioria dos itens de configuração LoRa |
-| Logread Errors | `ssh.run[lorawan.logread.errors,...]` | 10m | Todas as linhas de `error` do log |
-| Logread LoRaWAN | `ssh.run[lorawan.logread.lorawan,...]` | 10m | JSON de status LoRaWAN extraído do log |
-| Logread Warnings | `ssh.run[lorawan.logread.warnings,...]` | 10m | Todas as linhas de `WARNING` do log |
-| Lora Errors Count | `ssh.run[lorawan.logread_error_count,...]` | 30m | Última linha de erro, ou `0` se não houver nenhuma |
-| LoRa RX | `ssh.run[lorawan.lora.rx,...]` | 10m | JSON do pacote RX extraído do log, usado como item mestre para as métricas de RX |
+| Logread Snapshot | `ssh.run[lorawan.logread.snapshot,...]` | 10m | Captura única de `logread`, dividida em seções marcadas (erros, avisos, status LoRaWAN, pacotes RX); item mestre para `Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count` e `LoRa RX`, que agora são `DEPENDENT` — evita 6 conexões SSH redundantes por ciclo |
 | Memory utilization | `ssh.run[lorawan.memused,...]` | 5m | Percentual de uso de memória |
 | System Net if Discovery | `ssh.run[lorawan.net.if.discovery,...]` | 1h | Alimenta a regra de descoberta de interfaces de rede |
-| System Load Average | `ssh.run[lorawan.system.loadavg,...]` | — | Conteúdo bruto de `/proc/loadavg`, usado como item mestre para as métricas de carga |
+| System Load Average | `ssh.run[lorawan.system.loadavg,...]` | 5m | Conteúdo bruto de `/proc/loadavg`, usado como item mestre para as métricas de carga |
 | System model | `ssh.run[lorawan.system.model,...]` | 12h | Modelo de hardware do gateway |
 | System Uptime | `ssh.run[lorawan.system.uptime,...]` | 10m | Uptime em segundos |
 
@@ -86,7 +83,7 @@ Todos os itens SSH se conectam com `HostkeyAlgorithms=ssh-rsa` (exigido pelo ser
 
 #### Itens dependentes (derivados)
 
-Os 41 itens restantes são itens `DEPENDENT` que parseiam os itens mestres acima usando pré-processamento JSONPATH, JavaScript e REGEX — nenhuma chamada SSH adicional é feita. Exemplos: `Lora Beacon Frequency`, `Lora Gateway ID`, `LoRa RX Packet RSSI`, `Load average (5m avg)`, `Lora Last Warning`.
+Os 47 itens restantes são itens `DEPENDENT` que parseiam os itens mestres acima usando pré-processamento REGEX, JSONPATH e JavaScript — nenhuma chamada SSH adicional é feita. Seis deles (`Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count`, `LoRa RX`) derivam do `Logread Snapshot` extraindo sua seção por REGEX antes de aplicar o parsing próprio; os demais itens que já dependiam de `Logread LoRaWAN`/`LoRa RX` (ex.: `Lora Gateway Altitude`, `LoRa RX Packet RSSI`) continuam funcionando normalmente, agora numa cadeia de dependência de dois níveis. Outros exemplos: `Lora Beacon Frequency`, `Lora Gateway ID`, `Load average (5m avg)`, `Lora Last Warning`.
 
 ---
 
@@ -168,7 +165,7 @@ No host ou no template, defina as seguintes macros:
 
 - **Itens ficam "not supported" / "Connection refused"** — verifique se `{$HOST.SSH_PORT}` corresponde à porta em que o dropbear/sshd está realmente escutando, e se o Zabbix server/proxy consegue alcançá-la (firewall, NAT).
 - **Erros de "Bad key types" ou de handshake** — o parâmetro `HostkeyAlgorithms=ssh-rsa` é necessário porque a maioria dos firmwares Dragino/OpenWrt só oferece chaves de host `ssh-rsa` legadas; se o cliente SSH do seu Zabbix server tiver o `ssh-rsa` desabilitado, ele precisa ser reabilitado para esse host.
-- **Itens dependentes não retornam dados** — seus itens mestres (`lorawan.local_conf`, `lorawan.lora.rx`, `lorawan.logread.lorawan`, `lorawan.system.loadavg`) precisam retornar com sucesso primeiro; verifique esses itens individualmente em *Latest data*.
+- **Itens dependentes não retornam dados** — seus itens mestres (`lorawan.local_conf`, `lorawan.logread.snapshot`, `lorawan.system.loadavg`) precisam retornar com sucesso primeiro; verifique esses itens individualmente em *Latest data*. `Logread LoRaWAN` e `LoRa RX` agora são eles mesmos itens `DEPENDENT` (derivados de `lorawan.logread.snapshot`), então uma falha no `Logread Snapshot` se propaga para toda a cadeia.
 - **Lora Last Error / Logread Errors sempre mostram "OK" ou "No Errors"** — isso é esperado quando o log do gateway não tem linhas correspondentes; não é uma falha de coleta.
 - **Posição (lat/long/altitude) ou métricas de RX ausentes** — esses valores são extraídos do *último* frame de status visto na janela de log; se o gateway não enviou um frame `stat`/`rxpk` recentemente, a saída do item mestre pode ficar vazia e os itens dependentes ficarão sem valor até a chegada do próximo frame.
 - **Erros de parsing de JSON nos itens de `local_conf`** — as expressões JSONPATH assumem o layout padrão de fábrica do `/etc/lora/local_conf.json`; uma atualização de firmware que altere a estrutura desse arquivo vai quebrar os itens dependentes afetados.
@@ -197,10 +194,12 @@ The template connects to the Dragino gateway via SSH (`ssh.run[...]`) and runs a
 | RX packet metrics | 7 | Packet count, data rate, frequency, SNR, RSSI, size, status |
 | Position & hardware | 4 | Latitude, longitude, altitude, concentrator platform |
 | CPU & load average | 7 | CPU utilization, CPU idle time, number of CPUs, load average (1m/5m/15m), process count |
-| System / misc | 15 | Memory utilization, uptime, hostname, model, disk & interface discovery, log parsing (errors/warnings/LoRaWAN), raw config dump |
-| **Total** | **57** | |
+| System / misc | 16 | Memory utilization, uptime, hostname, model, disk & interface discovery, log parsing (errors/warnings/LoRaWAN), raw config dump |
+| **Total** | **58** | |
 
 Discovery rules add per-interface and per-filesystem items on top of this (see below).
+
+> **SSH connection optimization (2026-08):** the Dragino gateway runs on quite limited hardware (Atheros AR9330, 1 MIPS core ~400MHz, 60MB RAM). Each dropbear SSH handshake costs 1.5-3s of CPU on that hardware, and the original template opened one independent connection per item — roughly 160-200 connections/hour, including one item (`System Load Average`) that shipped without an explicit `delay` and therefore inherited the 1-minute default interval. I consolidated the 6 items that redundantly read `logread` (`Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count`, `LoRa RX`) into a single master item `Logread Snapshot` — the 6 became `DEPENDENT` items that extract their section via REGEX from that single capture — and fixed `System Load Average`'s `delay` to `5m`. Measured result in production: **~204 → ~107 SSH connections/hour (-48%)**, with no change to any collected data.
 
 ---
 
@@ -234,17 +233,12 @@ Discovery rules add per-interface and per-filesystem items on top of this (see b
 | CPU Idle Time | `ssh.run[lorawan.cpu.idle.time,...]` | 5m | CPU idle percentage, sampled from `/proc/stat` |
 | Number of CPUs | `ssh.run[lorawan.cpu.number,...]` | 4h | CPU core count |
 | System Disk Discovery | `ssh.run[lorawan.disk.discovery,...]` | 12h | Feeds the filesystem discovery rule |
-| Lora Last Error | `ssh.run[lorawan.error.last,...]` | 10m | Last `error` line from `logread` |
 | System name | `ssh.run[lorawan.hostname,...]` | 12h | Gateway hostname (linked to host inventory) |
 | JSON Local Conf | `ssh.run[lorawan.local_conf,...]` | 10m | Raw dump of `/etc/lora/local_conf.json`, used as master item for most LoRa config items |
-| Logread Errors | `ssh.run[lorawan.logread.errors,...]` | 10m | All `error` lines from the log |
-| Logread LoRaWAN | `ssh.run[lorawan.logread.lorawan,...]` | 10m | LoRaWAN status JSON extracted from the log |
-| Logread Warnings | `ssh.run[lorawan.logread.warnings,...]` | 10m | All `WARNING` lines from the log |
-| Lora Errors Count | `ssh.run[lorawan.logread_error_count,...]` | 30m | Last error line, or `0` if none |
-| LoRa RX | `ssh.run[lorawan.lora.rx,...]` | 10m | RX packet JSON extracted from the log, used as master item for RX metrics |
+| Logread Snapshot | `ssh.run[lorawan.logread.snapshot,...]` | 10m | Single `logread` capture, split into marked sections (errors, warnings, LoRaWAN status, RX packets); master item for `Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count` and `LoRa RX`, which are now `DEPENDENT` — avoids 6 redundant SSH connections per cycle |
 | Memory utilization | `ssh.run[lorawan.memused,...]` | 5m | Memory usage percentage |
 | System Net if Discovery | `ssh.run[lorawan.net.if.discovery,...]` | 1h | Feeds the network interface discovery rule |
-| System Load Average | `ssh.run[lorawan.system.loadavg,...]` | — | Raw content of `/proc/loadavg`, used as master item for load metrics |
+| System Load Average | `ssh.run[lorawan.system.loadavg,...]` | 5m | Raw content of `/proc/loadavg`, used as master item for load metrics |
 | System model | `ssh.run[lorawan.system.model,...]` | 12h | Gateway hardware model |
 | System Uptime | `ssh.run[lorawan.system.uptime,...]` | 10m | Uptime in seconds |
 
@@ -252,7 +246,7 @@ All SSH items connect with `HostkeyAlgorithms=ssh-rsa` (required by the dropbear
 
 #### Dependent items (derived)
 
-The remaining 41 items are `DEPENDENT` items that parse the master items above using JSONPATH, JavaScript and REGEX preprocessing — no extra SSH calls are made. Examples: `Lora Beacon Frequency`, `Lora Gateway ID`, `LoRa RX Packet RSSI`, `Load average (5m avg)`, `Lora Last Warning`.
+The remaining 47 items are `DEPENDENT` items that parse the master items above using REGEX, JSONPATH and JavaScript preprocessing — no extra SSH calls are made. Six of them (`Lora Last Error`, `Logread Errors`, `Logread LoRaWAN`, `Logread Warnings`, `Lora Errors Count`, `LoRa RX`) derive from `Logread Snapshot`, extracting their section via REGEX before applying their own parsing; the items that already depended on `Logread LoRaWAN`/`LoRa RX` (e.g. `Lora Gateway Altitude`, `LoRa RX Packet RSSI`) keep working unchanged, now through a two-level dependency chain. Other examples: `Lora Beacon Frequency`, `Lora Gateway ID`, `Load average (5m avg)`, `Lora Last Warning`.
 
 ---
 
@@ -334,7 +328,7 @@ On the host or template, set the following macros:
 
 - **Items stay unsupported / "Connection refused"** — verify `{$HOST.SSH_PORT}` matches the port dropbear/sshd is actually listening on, and that the Zabbix server/proxy can reach it (firewall, NAT).
 - **"Bad key types" or handshake errors** — the `HostkeyAlgorithms=ssh-rsa` parameter is required because most Dragino/OpenWrt firmware only offers legacy `ssh-rsa` host keys; if your Zabbix server's SSH client has `ssh-rsa` disabled, it must be re-enabled for this host.
-- **Dependent items return no data** — their master items (`lorawan.local_conf`, `lorawan.lora.rx`, `lorawan.logread.lorawan`, `lorawan.system.loadavg`) must return successfully first; check those items individually in *Latest data*.
+- **Dependent items return no data** — their master items (`lorawan.local_conf`, `lorawan.logread.snapshot`, `lorawan.system.loadavg`) must return successfully first; check those items individually in *Latest data*. `Logread LoRaWAN` and `LoRa RX` are themselves `DEPENDENT` items now (derived from `lorawan.logread.snapshot`), so a failure in `Logread Snapshot` propagates through the whole chain.
 - **Lora Last Error / Logread Errors always show "OK" or "No Errors"** — this is expected when the gateway log has no matching lines; it is not a collection failure.
 - **Position (lat/long/altitude) or RX metrics missing** — these are parsed from the *last* status frame seen in the log window; if the gateway hasn't sent a `stat`/`rxpk` frame recently, the master item output can be empty and the dependent items will have no value until the next frame arrives.
 - **JSON parsing errors on `local_conf` items** — the JSONPATH expressions assume the stock `/etc/lora/local_conf.json` layout; a firmware update that changes this file's structure will break the affected dependent items.

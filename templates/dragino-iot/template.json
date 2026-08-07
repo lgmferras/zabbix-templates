@@ -1104,16 +1104,48 @@
                         ]
                     },
                     {
-                        "uuid": "81686283c65e4fdf81d22a5f91caf771",
-                        "name": "Lora Last Error",
+                        "uuid": "5f10da56998441aab17e95b6069fd248",
+                        "name": "Logread Snapshot",
                         "type": "SSH",
-                        "key": "ssh.run[lorawan.error.last,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
                         "delay": "10m",
                         "value_type": "TEXT",
-                        "params": "out=$(logread | grep -i 'error' | tail -n 1) [ -z \"$out\" ] && echo \"No Errors\" || echo \"$out\"",
+                        "params": "LOG=\"$(logread)\"\necho '###ERR_CI###'\necho \"$LOG\" | grep -i 'error' | tail -n 50\necho '###ERR_CS###'\necho \"$LOG\" | grep 'error' | tail -n 50\necho '###WARNINGS###'\necho \"$LOG\" | grep 'WARNING' | tail -n 50\necho '###LORAWAN###'\necho -n '['; echo \"$LOG\" | grep 'LoRaWAN' | sed -n 's/.*JSON: \\(.*\\)/\\1/p' | tail -n 20 | awk '{printf \"%s%s\", sep, $0; sep=\",\"}'; echo ']'\necho '###RX###'\necho -n '['; echo \"$LOG\" | grep 'INFO' | sed -n 's/.*JSON: \\(.*\\)/\\1/p' | grep '\"rxpk\"' | tail -n 20 | awk '{printf \"%s%s\", sep, $0; sep=\",\"}'; echo ']'",
                         "username": "{$USER.NAME}",
                         "password": "{$USER.PASSWORD}",
+                        "description": "Captura unica do logread; alimenta Lora Last Error, Logread Errors, Logread Warnings, Logread LoRaWAN, Lora Errors Count e LoRa RX via itens DEPENDENT (evita 6 conexoes SSH redundantes a cada ciclo).",
                         "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "lora"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "81686283c65e4fdf81d22a5f91caf771",
+                        "name": "Lora Last Error",
+                        "type": "DEPENDENT",
+                        "key": "ssh.run[lorawan.error.last,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "###ERR_CI###\\n?([\\s\\S]*?)\\n?###ERR_CS###",
+                                    "\\1"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var v = value.trim();\nif (v === '') { return 'No Errors'; }\nvar lines = v.split('\\n');\nreturn lines[lines.length - 1];"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
                         "tags": [
                             {
                                 "tag": "component",
@@ -1171,15 +1203,28 @@
                     {
                         "uuid": "9e7c1e78956443b5960336c5eea812bc",
                         "name": "Logread Errors",
-                        "type": "SSH",
+                        "type": "DEPENDENT",
                         "key": "ssh.run[lorawan.logread.errors,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                        "delay": "10m",
                         "value_type": "TEXT",
-                        "params": "logread | grep 'error' || echo \"OK\"",
-                        "username": "{$USER.NAME}",
-                        "password": "{$USER.PASSWORD}",
                         "description": "Coleta linhas de erro do log do gateway",
-                        "timeout": "30s",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "###ERR_CS###\\n?([\\s\\S]*?)\\n?###WARNINGS###",
+                                    "\\1"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return value.trim() === '' ? 'OK' : value;"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
                         "tags": [
                             {
                                 "tag": "component",
@@ -1190,15 +1235,22 @@
                     {
                         "uuid": "f31378bc4f654acc95f661a7f0fb5e2f",
                         "name": "Logread LoRaWAN",
-                        "type": "SSH",
+                        "type": "DEPENDENT",
                         "key": "ssh.run[lorawan.logread.lorawan,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                        "delay": "10m",
                         "value_type": "TEXT",
-                        "params": "echo -n '['; logread | grep 'LoRaWAN' | sed -n 's/.*JSON: \\(.*\\)/\\1/p' | awk '{printf \"%s%s\", sep, $0; sep=\",\"}'; echo ']'",
-                        "username": "{$USER.NAME}",
-                        "password": "{$USER.PASSWORD}",
-                        "description": "Coleta linhas de erro do log do gateway",
-                        "timeout": "30s",
+                        "description": "Extraido do log do gateway",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "###LORAWAN###\\n?([\\s\\S]*?)\\n?###RX###",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
                         "tags": [
                             {
                                 "tag": "component",
@@ -1209,15 +1261,22 @@
                     {
                         "uuid": "ef38b41ad4004052955b7cc14ef419b2",
                         "name": "Logread Warnings",
-                        "type": "SSH",
+                        "type": "DEPENDENT",
                         "key": "ssh.run[lorawan.logread.warnings,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                        "delay": "10m",
                         "value_type": "TEXT",
-                        "params": "logread | grep 'WARNING'",
-                        "username": "{$USER.NAME}",
-                        "password": "{$USER.PASSWORD}",
                         "description": "Coleta linhas de erro do log do gateway",
-                        "timeout": "30s",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "###WARNINGS###\\n?([\\s\\S]*?)\\n?###LORAWAN###",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
                         "tags": [
                             {
                                 "tag": "component",
@@ -1228,13 +1287,26 @@
                     {
                         "uuid": "ca808efe72b4444d8253fc4944fc729a",
                         "name": "Lora Errors Count",
-                        "type": "SSH",
+                        "type": "DEPENDENT",
                         "key": "ssh.run[lorawan.logread_error_count,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                        "delay": "30m",
-                        "params": "out=$(logread | grep 'error' | tail -n 1); [ -z \"$out\" ] && echo \"0\" || echo \"$out\"",
-                        "username": "{$USER.NAME}",
-                        "password": "{$USER.PASSWORD}",
-                        "timeout": "30s",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "###ERR_CS###\\n?([\\s\\S]*?)\\n?###WARNINGS###",
+                                    "\\1"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "var v = value.trim();\nif (v === '') { return '0'; }\nvar lines = v.split('\\n');\nreturn lines[lines.length - 1];"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
                         "tags": [
                             {
                                 "tag": "component",
@@ -1245,15 +1317,22 @@
                     {
                         "uuid": "a9536929abbf4ae3a6f76c2623a14dbd",
                         "name": "LoRa RX",
-                        "type": "SSH",
+                        "type": "DEPENDENT",
                         "key": "ssh.run[lorawan.lora.rx,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
-                        "delay": "10m",
                         "value_type": "TEXT",
-                        "params": "echo -n '['; logread | grep 'INFO' | sed -n 's/.*JSON: \\(.*\\)/\\1/p' | grep '\"rxpk\"' | awk '{printf \"%s%s\", sep, $0; sep=\",\"}'; echo ']'",
-                        "username": "{$USER.NAME}",
-                        "password": "{$USER.PASSWORD}",
                         "description": "Master LoRa RX",
-                        "timeout": "30s",
+                        "preprocessing": [
+                            {
+                                "type": "REGEX",
+                                "parameters": [
+                                    "###RX###\\n?([\\s\\S]*)$",
+                                    "\\1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "ssh.run[lorawan.logread.snapshot,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]"
+                        },
                         "tags": [
                             {
                                 "tag": "component",
@@ -1329,6 +1408,7 @@
                         "name": "System Load Average",
                         "type": "SSH",
                         "key": "ssh.run[lorawan.system.loadavg,{HOST.IP},{$HOST.SSH_PORT},,HostkeyAlgorithms=ssh-rsa]",
+                        "delay": "5m",
                         "value_type": "TEXT",
                         "params": "cat /proc/loadavg",
                         "username": "{$USER.NAME}",
