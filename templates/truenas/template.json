@@ -574,8 +574,16 @@
                         "type": "HTTP_AGENT",
                         "key": "truenas.certificate",
                         "delay": "1h",
-                        "history": "1d",
+                        "history": "0",
                         "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Mantém só os campos públicos de cada certificado. A API /certificate do\n// TrueNAS devolve também a chave privada (privatekey) e o CSR — nada disso\n// pode ser gravado no Zabbix nem repassado aos itens dependentes.\nvar keep = ['id', 'name', 'organization', 'common', 'san', 'from', 'until', 'expired', 'revoked', 'key_type', 'key_length', 'digest_algorithm'];\nreturn JSON.stringify(JSON.parse(value).map(function (c) {\n    var o = {};\n    keep.forEach(function (k) { if (c[k] !== undefined) { o[k] = c[k]; } });\n    return o;\n}));\n"
+                                ]
+                            }
+                        ],
                         "url": "{$TRUENAS.API.URL}/certificate",
                         "headers": [
                             {
@@ -598,6 +606,14 @@
                         "delay": "1h",
                         "history": "1d",
                         "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Mantém só os campos operacionais de cada tarefa. A API /cloudsync devolve\n// também as credenciais do provedor e a senha/salt de criptografia.\nvar keep = ['id', 'description', 'path', 'direction', 'transfer_mode', 'enabled', 'schedule', 'locked', 'job'];\nreturn JSON.stringify(JSON.parse(value).map(function (c) {\n    var o = {};\n    keep.forEach(function (k) { if (c[k] !== undefined) { o[k] = c[k]; } });\n    return o;\n}));\n"
+                                ]
+                            }
+                        ],
                         "url": "{$TRUENAS.API.URL}/cloudsync",
                         "headers": [
                             {
@@ -620,6 +636,14 @@
                         "delay": "1h",
                         "history": "1d",
                         "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Mantém só os campos operacionais de cada tarefa. A API /cloud_backup\n// devolve também as credenciais do provedor e a senha do repositório.\nvar keep = ['id', 'description', 'path', 'enabled', 'schedule', 'keep_last', 'locked', 'job'];\nreturn JSON.stringify(JSON.parse(value).map(function (c) {\n    var o = {};\n    keep.forEach(function (k) { if (c[k] !== undefined) { o[k] = c[k]; } });\n    return o;\n}));\n"
+                                ]
+                            }
+                        ],
                         "url": "{$TRUENAS.API.URL}/cloud_backup",
                         "headers": [
                             {
@@ -2533,6 +2557,14 @@
                         "delay": "1h",
                         "history": "1d",
                         "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Mantém só os campos públicos de cada usuário. A API /user devolve também\n// hashes de senha (unixhash, smbhash), chaves SSH, chaves de API e histórico\n// de senhas — nada disso pode ser gravado no Zabbix.\nvar keep = ['id', 'uid', 'username', 'full_name', 'home', 'shell', 'builtin', 'locked', 'smb', 'password_disabled', 'local'];\nreturn JSON.stringify(JSON.parse(value).map(function (c) {\n    var o = {};\n    keep.forEach(function (k) { if (c[k] !== undefined) { o[k] = c[k]; } });\n    return o;\n}));\n"
+                                ]
+                            }
+                        ],
                         "url": "{$TRUENAS.API.URL}/user",
                         "headers": [
                             {
@@ -2580,6 +2612,14 @@
                         "delay": "10m",
                         "history": "1d",
                         "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "// Mantém só os campos operacionais de cada VM. A API /vm devolve também a\n// lista de dispositivos, que pode conter a senha do console (VNC/SPICE).\nvar keep = ['id', 'name', 'description', 'vcpus', 'cores', 'threads', 'memory', 'min_memory', 'autostart', 'bootloader', 'status'];\nreturn JSON.stringify(JSON.parse(value).map(function (c) {\n    var o = {};\n    keep.forEach(function (k) { if (c[k] !== undefined) { o[k] = c[k]; } });\n    return o;\n}));\n"
+                                ]
+                            }
+                        ],
                         "url": "{$TRUENAS.API.URL}/vm",
                         "headers": [
                             {

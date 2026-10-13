@@ -23,7 +23,7 @@ Todos os templates têm como alvo o **Zabbix 7.4** e seguem convenções consist
 |---|---|---|---|---|
 | [ATHOS PDV](templates/athos-pdv/) | Windows / Aplicações | Zabbix Agent 2 (ativo) | 45 | `user_parameters_athos.conf` |
 | [D-Link DGS-3100-24 Switch](templates/dlink-dgs-3100-24/) | Dispositivos de Rede | SNMP v2c | 16 | — |
-| [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependente | 57 | — |
+| [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependente | 58 | — |
 | [Dual WAN Backup Link](templates/dual-wan-backup/) | Rede / Disponibilidade | Verificações simples | 4 | — |
 | [Dual WAN Primary Link](templates/dual-wan-primary/) | Rede / Disponibilidade | Verificações simples | 4 + 1 web scenario | — |
 | [Kairos](templates/kairos/) | Windows / Aplicações | Zabbix Agent 2 (ativo) | 1 | `user_parameters_kairos.conf` |
@@ -92,7 +92,7 @@ All templates target **Zabbix 7.4** and follow consistent conventions: macro-dri
 |---|---|---|---|---|
 | [ATHOS PDV](templates/athos-pdv/) | Windows / Applications | Zabbix Agent 2 (active) | 45 | `user_parameters_athos.conf` |
 | [D-Link DGS-3100-24 Switch](templates/dlink-dgs-3100-24/) | Network Devices | SNMP v2c | 16 | — |
-| [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependent | 57 | — |
+| [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependent | 58 | — |
 | [Dual WAN Backup Link](templates/dual-wan-backup/) | Network / Availability | Simple checks | 4 | — |
 | [Dual WAN Primary Link](templates/dual-wan-primary/) | Network / Availability | Simple checks | 4 + 1 web scenario | — |
 | [Kairos](templates/kairos/) | Windows / Applications | Zabbix Agent 2 (active) | 1 | `user_parameters_kairos.conf` |

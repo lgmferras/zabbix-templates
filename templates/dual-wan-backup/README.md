@@ -51,7 +51,7 @@ Além dos simple checks acima, o template inclui um **web scenario** que realiza
 | Intervalo | 5m |
 | Tentativas | 3 |
 | URL do step | `https://{HOST.CONN}:{$WAN.HTTP.PORT}/` |
-| Timeout do step | 60s |
+| Timeout do step | 10s |
 | Códigos de status aceitos | `200, 301, 302, 401, 403` |
 | Verificação SSL | Desabilitada (certificados autoassinados) |
 
@@ -160,7 +160,7 @@ In addition to the simple checks above, the template includes a **web scenario**
 | Interval | 5m |
 | Attempts | 3 |
 | Step URL | `https://{HOST.CONN}:{$WAN.HTTP.PORT}/` |
-| Step timeout | 60s |
+| Step timeout | 10s |
 | Accepted status codes | `200, 301, 302, 401, 403` |
 | SSL verification | Disabled (self-signed certificates) |
 

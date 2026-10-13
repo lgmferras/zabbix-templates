@@ -47,9 +47,12 @@ Ajustáveis por host em **Configuration → Hosts → [host] → Macros**.
 
 | Macro | Padrão | Descrição |
 |---|---|---|
-| `{$WIN.BACKUP.AGE.DISASTER}` | `48h` | Tempo sem backup antes de DISASTER |
-| `{$WIN.BACKUP.AGE.WARN}` | `26h` | Tempo sem backup antes de WARNING |
+| `{$WIN.BACKUP.AGE.DISASTER}` | `48` | Idade do último backup, em horas, para DISASTER. Número puro, sem sufixo |
+| `{$WIN.BACKUP.AGE.WARN}` | `26` | Idade do último backup, em horas, para WARNING. Número puro, sem sufixo |
 | `{$WIN.BACKUP.MAX_RUNTIME}` | `4h` | Duração máxima tolerada do processo de backup |
+| `{$WIN.BACKUP.NO_SUCCESS.PERIOD}` | `48h` | Janela sem nenhum evento de sucesso (Event ID 4) para alertar. Período de tempo, com sufixo |
+
+> As macros `AGE.*` são comparadas com `win.backup.age_hours`, que já está em horas. Não use sufixo de tempo (`48h`) nelas: o Zabbix converteria para segundos e o trigger nunca dispararia.
 
 ---
 
@@ -59,7 +62,7 @@ Ajustáveis por host em **Configuration → Hosts → [host] → Macros**.
 
 | Nome | Condição | opdata |
 |---|---|---|
-| Último backup com mais de `{$WIN.BACKUP.AGE.DISASTER}` | `age_hours > AGE.DISASTER and age_hours <> -1` | Idade: {ITEM.LASTVALUE} |
+| Último backup com mais de `{$WIN.BACKUP.AGE.DISASTER}`h | `age_hours > AGE.DISASTER and age_hours <> -1` | Idade: {ITEM.LASTVALUE} |
 | Nenhum evento de backup encontrado no Event Log | `age_hours = -1` | Sem Event ID 4 em Microsoft-Windows-Backup |
 
 ### HIGH
@@ -72,8 +75,8 @@ Ajustáveis por host em **Configuration → Hosts → [host] → Macros**.
 
 | Nome | Condição | Depende de | opdata |
 |---|---|---|---|
-| Último backup com mais de `{$WIN.BACKUP.AGE.WARN}` | `age_hours > AGE.WARN and age_hours <> -1` | Trigger de idade DISASTER | Idade: {ITEM.LASTVALUE} |
-| Sem evento de sucesso (ID 4) nas últimas `{$WIN.BACKUP.AGE.DISASTER}` | `max(last_ok, AGE.DISASTER) = 0` | Trigger de nenhum backup registrado | Sem Event ID 4 nas últimas Xh |
+| Último backup com mais de `{$WIN.BACKUP.AGE.WARN}`h | `age_hours > AGE.WARN and age_hours <> -1` | Trigger de idade DISASTER | Idade: {ITEM.LASTVALUE} |
+| Sem evento de sucesso (ID 4) nas últimas `{$WIN.BACKUP.NO_SUCCESS.PERIOD}` | `max(last_ok, NO_SUCCESS.PERIOD) = 0` | Trigger de nenhum backup registrado | Sem Event ID 4 nas últimas Xh |
 
 ### INFO
 
@@ -249,9 +252,12 @@ Adjustable per host in **Configuration → Hosts → [host] → Macros**.
 
 | Macro | Default | Description |
 |---|---|---|
-| `{$WIN.BACKUP.AGE.DISASTER}` | `48h` | Time without a backup before DISASTER |
-| `{$WIN.BACKUP.AGE.WARN}` | `26h` | Time without a backup before WARNING |
+| `{$WIN.BACKUP.AGE.DISASTER}` | `48` | Age of the last backup, in hours, for DISASTER. Plain number, no suffix |
+| `{$WIN.BACKUP.AGE.WARN}` | `26` | Age of the last backup, in hours, for WARNING. Plain number, no suffix |
 | `{$WIN.BACKUP.MAX_RUNTIME}` | `4h` | Maximum tolerated duration of the backup process |
+| `{$WIN.BACKUP.NO_SUCCESS.PERIOD}` | `48h` | Window with no success event (Event ID 4) before alerting. Time period, with suffix |
+
+> The `AGE.*` macros are compared against `win.backup.age_hours`, which is already in hours. Do not use a time suffix (`48h`) on them: Zabbix would convert it to seconds and the trigger would never fire.
 
 ---
 
@@ -261,7 +267,7 @@ Adjustable per host in **Configuration → Hosts → [host] → Macros**.
 
 | Name | Condition | opdata |
 |---|---|---|
-| Last backup older than `{$WIN.BACKUP.AGE.DISASTER}` | `age_hours > AGE.DISASTER and age_hours <> -1` | Age: {ITEM.LASTVALUE} |
+| Last backup older than `{$WIN.BACKUP.AGE.DISASTER}`h | `age_hours > AGE.DISASTER and age_hours <> -1` | Age: {ITEM.LASTVALUE} |
 | No backup event found in the Event Log | `age_hours = -1` | No Event ID 4 in Microsoft-Windows-Backup |
 
 ### HIGH
@@ -274,8 +280,8 @@ Adjustable per host in **Configuration → Hosts → [host] → Macros**.
 
 | Name | Condition | Depends on | opdata |
 |---|---|---|---|
-| Last backup older than `{$WIN.BACKUP.AGE.WARN}` | `age_hours > AGE.WARN and age_hours <> -1` | DISASTER age trigger | Age: {ITEM.LASTVALUE} |
-| No success event (ID 4) in the last `{$WIN.BACKUP.AGE.DISASTER}` | `max(last_ok, AGE.DISASTER) = 0` | No backup registered trigger | No Event ID 4 in the last Xh |
+| Last backup older than `{$WIN.BACKUP.AGE.WARN}`h | `age_hours > AGE.WARN and age_hours <> -1` | DISASTER age trigger | Age: {ITEM.LASTVALUE} |
+| No success event (ID 4) in the last `{$WIN.BACKUP.NO_SUCCESS.PERIOD}` | `max(last_ok, NO_SUCCESS.PERIOD) = 0` | No backup registered trigger | No Event ID 4 in the last Xh |
 
 ### INFO
 

@@ -199,7 +199,7 @@
                             {
                                 "name": "Homepage",
                                 "url": "https://{HOST.CONN}:{$WAN.HTTP.PORT}/",
-                                "timeout": "60s",
+                                "timeout": "10s",
                                 "status_codes": "200,301,302,401,403"
                             }
                         ],

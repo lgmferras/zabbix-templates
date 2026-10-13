@@ -51,7 +51,7 @@
                                 "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)>{$WIN.BACKUP.AGE.DISASTER} and last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<>-1",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
                                 "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<={$WIN.BACKUP.AGE.DISASTER} or last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1",
-                                "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.DISASTER}",
+                                "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.DISASTER}h",
                                 "opdata": "Idade: {ITEM.LASTVALUE}",
                                 "priority": "DISASTER",
                                 "description": "O último backup está muito atrasado (limite 48h).",
@@ -62,14 +62,14 @@
                                 "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)>{$WIN.BACKUP.AGE.WARN} and last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<>-1",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
                                 "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<={$WIN.BACKUP.AGE.WARN} or last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1",
-                                "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.WARN}",
+                                "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.WARN}h",
                                 "opdata": "Idade: {ITEM.LASTVALUE}",
                                 "priority": "WARNING",
                                 "description": "O último backup está atrasado (limite 26h).",
                                 "manual_close": "YES",
                                 "dependencies": [
                                     {
-                                        "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.DISASTER}",
+                                        "name": "Windows Backup - Último backup com mais de {$WIN.BACKUP.AGE.DISASTER}h",
                                         "expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)>{$WIN.BACKUP.AGE.DISASTER} and last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<>-1",
                                         "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)<={$WIN.BACKUP.AGE.DISASTER} or last(/Windows_Backup_by_Zabbix_agent_2/win.backup.age_hours)=-1"
                                     }
@@ -153,11 +153,11 @@
                         "triggers": [
                             {
                                 "uuid": "79ac3d2a47374e369be47fd10eda9d93",
-                                "expression": "max(/Windows_Backup_by_Zabbix_agent_2/win.backup.last_ok,{$WIN.BACKUP.AGE.DISASTER})=0",
+                                "expression": "max(/Windows_Backup_by_Zabbix_agent_2/win.backup.last_ok,{$WIN.BACKUP.NO_SUCCESS.PERIOD})=0",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
                                 "recovery_expression": "last(/Windows_Backup_by_Zabbix_agent_2/win.backup.last_ok)=1",
-                                "name": "Windows Backup - Sem evento de sucesso (ID 4) nas últimas {$WIN.BACKUP.AGE.DISASTER}",
-                                "opdata": "Sem Event ID 4 nas últimas {$WIN.BACKUP.AGE.DISASTER}",
+                                "name": "Windows Backup - Sem evento de sucesso (ID 4) nas últimas {$WIN.BACKUP.NO_SUCCESS.PERIOD}",
+                                "opdata": "Sem Event ID 4 nas últimas {$WIN.BACKUP.NO_SUCCESS.PERIOD}",
                                 "priority": "WARNING",
                                 "description": "Não foi encontrado evento de sucesso (ID 4) nas últimas 48 horas.",
                                 "manual_close": "YES",
@@ -254,18 +254,23 @@
                 "macros": [
                     {
                         "macro": "{$WIN.BACKUP.AGE.DISASTER}",
-                        "value": "48h",
-                        "description": "Tempo sem backup para DISASTER (ex: 48h)"
+                        "value": "48",
+                        "description": "Idade do último backup, em horas, para DISASTER. Número puro, sem sufixo (o item win.backup.age_hours já está em horas)."
                     },
                     {
                         "macro": "{$WIN.BACKUP.AGE.WARN}",
-                        "value": "26h",
-                        "description": "Tempo sem backup para WARNING (ex: 26h)"
+                        "value": "26",
+                        "description": "Idade do último backup, em horas, para WARNING. Número puro, sem sufixo (o item win.backup.age_hours já está em horas)."
                     },
                     {
                         "macro": "{$WIN.BACKUP.MAX_RUNTIME}",
                         "value": "4h",
                         "description": "Duração máxima tolerada do backup (ex: 4h)"
+                    },
+                    {
+                        "macro": "{$WIN.BACKUP.NO_SUCCESS.PERIOD}",
+                        "value": "48h",
+                        "description": "Janela sem nenhum evento de sucesso (Event ID 4) para alertar. Período de tempo, com sufixo (ex: 48h)."
                     }
                 ],
                 "valuemaps": [

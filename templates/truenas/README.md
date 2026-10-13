@@ -73,6 +73,20 @@ Template Zabbix para monitoramento de appliances **TrueNAS** via REST API v2.0.
 | Pool Disk | `/api/v2.0/pool/disk` | 5m |
 | Pool Replication | `/api/v2.0/replication` | 5m |
 
+### Dados sensíveis nas respostas da API
+
+Alguns endpoints do TrueNAS devolvem segredos junto com os dados de monitoramento. Os itens mestre abaixo têm um passo de pré-processamento JavaScript que mantém só uma lista de campos permitidos, para que nada disso seja gravado no histórico do Zabbix nem nos backups do banco:
+
+| Item mestre | O que a API devolve e é descartado | Histórico |
+|---|---|---|
+| `truenas.certificate` | Chave privada (`privatekey`) e CSR | `0` (só alimenta os dependentes) |
+| `truenas.user` | Hashes de senha (`unixhash`, `smbhash`), chaves SSH, chaves de API, histórico de senhas | 1d |
+| `truenas.cloudsync` | Credenciais do provedor, senha e salt de criptografia | 1d |
+| `truenas.cloud_backup` | Credenciais do provedor, senha do repositório | 1d |
+| `truenas.vm` | Lista de dispositivos (pode conter a senha do console) | 1d |
+
+Se você importou uma versão anterior deste template, reimporte e limpe o histórico desses cinco itens.
+
 ### Itens dependentes (principais)
 
 | Item | Origem | Tipo |
@@ -267,6 +281,20 @@ Zabbix template for monitoring **TrueNAS** appliances via the REST API v2.0.
 | FTP | `/api/v2.0/ftp` | 1h |
 | Pool Disk | `/api/v2.0/pool/disk` | 5m |
 | Pool Replication | `/api/v2.0/replication` | 5m |
+
+### Sensitive data in API responses
+
+Some TrueNAS endpoints return secrets along with monitoring data. The master items below have a JavaScript preprocessing step that keeps only an allowlist of fields, so none of it is stored in Zabbix history or database backups:
+
+| Master item | What the API returns and is dropped | History |
+|---|---|---|
+| `truenas.certificate` | Private key (`privatekey`) and CSR | `0` (only feeds the dependent items) |
+| `truenas.user` | Password hashes (`unixhash`, `smbhash`), SSH keys, API keys, password history | 1d |
+| `truenas.cloudsync` | Provider credentials, encryption password and salt | 1d |
+| `truenas.cloud_backup` | Provider credentials, repository password | 1d |
+| `truenas.vm` | Device list (may hold the console password) | 1d |
+
+If you imported an earlier version of this template, re-import it and clear the history of these five items.
 
 ### Dependent items (main ones)
 
