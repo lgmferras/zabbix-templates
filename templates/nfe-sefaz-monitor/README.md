@@ -1,7 +1,7 @@
 # NFe SEFAZ Monitor
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.4-D40000?style=flat-square&logoColor=white)
-![Version](https://img.shields.io/badge/Version-1.0-7F13EC?style=flat-square)
+![Version](https://img.shields.io/badge/Version-1.1-7F13EC?style=flat-square)
 ![Collection](https://img.shields.io/badge/Collection-Agent_2_passive_+_Python-339933?style=flat-square)
 ![LLD](https://img.shields.io/badge/LLD-per_authorizer-009639?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
@@ -56,23 +56,27 @@ Item mestre passivo nfe.status.json (5m, 1 scrape)
 | Macro | Padrão | Descrição |
 |---|---|---|
 | `{$NFE.UF.MATCHES}` | `^(SP\|SVC-AN)$` | Regex dos autorizadores a descobrir. `SVC-AN` é o autorizador de contingência que serve como backup de SP. Para adicionar um estado: ex. `^(SP\|RJ\|SVC-AN)$`. Para todos os autorizadores: `^.*$` |
+| `{$NFE.CONTINGENCIA.MATCHES}` | `^SVC-` | Regex dos autorizadores de contingência. Os alertas deles são rebaixados para WARNING/INFO |
+| `{$NFE.FAIL.COUNT}` | `2` | Definida no template, mas nenhum trigger a usa hoje |
 
 ---
 
 ## Itens por Autorizador (LLD)
 
-Chave base: `nfe.<serviço>[{#AUTORIZADOR}]`
+Chave base: `nfe.<serviço>[{#AUTORIZADOR}]`. Cada serviço corresponde a um web service da NF-e; a função de cada um também está no campo de descrição do item.
 
-| Serviço | Tipo | Trigger |
-|---|---|---|
-| `autorizacao` | FLOAT (semáforo) | ✅ |
-| `retorno_autorizacao` | FLOAT (semáforo) | ✅ |
-| `inutilizacao` | FLOAT (semáforo) | ✅ |
-| `consulta_protocolo` | FLOAT (semáforo) | ✅ |
-| `status_servico` | FLOAT (semáforo) | ✅ |
-| `consulta_cadastro` | FLOAT (semáforo) | ✅ |
-| `recepcao_evento` | FLOAT (semáforo) | ✅ |
-| `tempo_medio` | CHAR (texto — "-" ou um valor) | — (sem trigger, é texto) |
+| Serviço | Web service | O que faz | Se ficar indisponível |
+|---|---|---|---|
+| `autorizacao` | NFeAutorizacao | Recebe as NF-e transmitidas e concede a autorização de uso. É o serviço que efetivamente emite a nota | Nenhuma nota é autorizada: a empresa não emite nem fatura. Emitir em contingência |
+| `retorno_autorizacao` | NFeRetAutorizacao | Devolve o resultado das NF-e enviadas em lote no modo assíncrono | Quem emite em lote assíncrono não sabe se as notas foram autorizadas. O modo síncrono não é afetado |
+| `recepcao_evento` | NFeRecepcaoEvento | Registra eventos de notas já emitidas: cancelamento, carta de correção, manifestação do destinatário | Não dá para cancelar nota nem enviar carta de correção. O cancelamento tem prazo legal curto |
+| `consulta_protocolo` | NFeConsultaProtocolo | Consulta a situação de uma NF-e pela chave de acesso | Não dá para confirmar a situação de uma nota. A emissão continua |
+| `status_servico` | NFeStatusServico | Informa se o autorizador está em operação; os emissores consultam antes de transmitir | Sistemas que checam o status podem recusar a emissão ou entrar em contingência sozinhos |
+| `inutilizacao` | NFeInutilizacao | Inutiliza faixas de numeração puladas | Não dá para inutilizar numeração. Não afeta a emissão; o prazo é mensal |
+| `consulta_cadastro` | NfeConsultaCadastro | Consulta o cadastro de contribuintes do ICMS do estado | Não dá para validar dados cadastrais de clientes e fornecedores. Não afeta a emissão |
+| `tempo_medio` | — | Tempo médio de resposta informado na página (texto; "-" quando não informado) | Sem trigger |
+
+Os sete primeiros são FLOAT com o value map de semáforo. Nem todo autorizador oferece todos os serviços: as contingências (`SVC-AN`, `SVC-RS`) não têm Consulta Cadastro, por exemplo. Nesses casos o item fica em `-1` (N/D).
 
 ---
 
@@ -97,14 +101,27 @@ Chave base: `nfe.<serviço>[{#AUTORIZADOR}]`
 
 Cobre falha de coleta — o script sai com `exit 1` em caso de erro (problema de rede, mudança no layout da página, problema de certificado) e o item vira NOTSUPPORTED; sem esse trigger, um scrape quebrado passaria despercebido.
 
-### Por autorizador descoberto (14 trigger prototypes — 7 serviços × 2 severidades)
+### Por autorizador descoberto (14 trigger prototypes — 7 serviços × 2 estados)
 
-| Condição | Severidade |
-|---|---|
-| `last(nfe.<serviço>[{#AUTORIZADOR}])=0` (vermelho) | HIGH |
-| `last(nfe.<serviço>[{#AUTORIZADOR}])=2` (amarelo) | WARNING |
+A severidade segue o impacto de cada serviço para quem emite nota. Semáforo amarelo (instável) fica um nível abaixo do vermelho (indisponível).
 
-`tempo_medio` nunca dispara um trigger (é texto). `-1` (N/D) também nunca dispara — é o estado esperado para serviços que um autorizador simplesmente não oferece.
+| Serviço | Indisponível (`=0`) | Instável (`=2`) | Motivo |
+|---|---|---|---|
+| Autorização | HIGH | WARNING | Para a emissão de notas |
+| Retorno Autorização | AVERAGE | WARNING | Trava a emissão em lote assíncrono |
+| Recepção Evento | AVERAGE | WARNING | Impede cancelamento e carta de correção |
+| Consulta Protocolo | WARNING | INFO | Só consulta; a emissão continua |
+| Status Serviço | WARNING | INFO | Não emite nada, mas alguns emissores dependem dele |
+| Inutilização | WARNING | INFO | Sem urgência; prazo mensal |
+| Consulta Cadastro | WARNING | INFO | Só consulta cadastral |
+
+**Contingência**: nos autorizadores que casam com `{$NFE.CONTINGENCIA.MATCHES}` (padrão `^SVC-`), um override da LLD rebaixa tudo para WARNING (indisponível) e INFO (instável). A contingência só importa quando o autorizador normal do estado também está fora, e nesse caso o alerta HIGH do autorizador normal já estará aberto.
+
+Limitação: não existe um alerta único para "autorizador normal **e** contingência fora ao mesmo tempo", que seria o pior caso. Cada autorizador é uma entidade separada da LLD.
+
+`tempo_medio` não gera trigger (é texto). `-1` (N/D) também não dispara nada — é o estado esperado para serviços que o autorizador não oferece.
+
+Cada trigger traz na descrição o que o serviço faz, o impacto e o que fazer.
 
 ---
 
@@ -195,13 +212,11 @@ zabbix_get -s <AGENT-IP> -k nfe.status.json
 
 ---
 
-## Gotcha de Export — `configuration.export` omite os triggers deste template
+## Export do template
 
-Ao exportar este template via API (`configuration.export`, formato JSON), os 14 `trigger_prototypes` da LLD e o trigger nativo `nodata` **não aparecem** no resultado, mesmo pertencendo comprovadamente ao template (verificado via `template.get` com `selectTriggers`/`selectDiscoveries` e `triggerprototype.get`, todos correspondendo ao ID interno do template). A causa raiz não foi identificada (não é um problema de permissão — testado com uma conta Super Admin); pode ser uma particularidade do Zabbix 7.4 específica de discovery rules do tipo `DEPENDENT`.
+O arquivo deste diretório é o `configuration.export` do template em produção, sem edição manual. Os triggers ficam **aninhados**: o `nodata` dentro do item mestre (`items[].triggers`) e os 14 protótipos dentro de cada protótipo de item (`discovery_rules[].item_prototypes[].trigger_prototypes`). Não aparecem em `.triggers` no topo nem em `discovery_rules[].trigger_prototypes`, porque cada um referencia um único item.
 
-**Efeito prático:** um re-export "cru" via `configuration.export` produz um JSON incompleto, sem alertas. O `template.json` deste diretório foi **reconstruído manualmente** — os triggers/trigger prototypes foram buscados via `trigger.get`/`triggerprototype.get` (com `expandExpression`) e inseridos no JSON no formato que o Zabbix espera para import.
-
-**Ao re-sincronizar este template no futuro:** sempre verifique se `.triggers` (nível superior) e `.discovery_rules[].trigger_prototypes` estão presentes em um export novo antes de sobrescrever este arquivo — se vierem vazios/ausentes de novo, repita a reconstrução manual em vez de assumir que os triggers foram removidos no servidor.
+Até a versão 1.0 este README dizia que o export "omitia" os triggers; eles estavam lá, só que aninhados. O arquivo antigo tinha sido reconstruído à mão e trazia cada trigger duas vezes.
 
 ---
 
@@ -220,10 +235,20 @@ docker compose up -d --build zabbix-agent2
 
 ---
 
+## Fontes
+
+- [Portal da NF-e — Disponibilidade](https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx): a página monitorada.
+- [SEFAZ-SP — URL dos web services](https://portal.fazenda.sp.gov.br/servicos/nfe/Paginas/URL-WEBSERVICES.aspx) e [SEFAZ-PE — web services 4.00](https://www.sefaz.pe.gov.br/Servicos/nota-fiscal-eletronica/Paginas/url-web-services-prod-homolog.aspx): nomes oficiais dos web services.
+
+A função de cada web service segue o Manual de Orientação do Contribuinte da NF-e. O manual não pôde ser consultado diretamente na revisão de out/2026; as páginas acima confirmam apenas os nomes dos serviços.
+
+---
+
 ## Changelog
 
 | Versão | Mudanças |
 |---|---|
+| 1.1 | Severidade por impacto do serviço (Autorização HIGH; Retorno Autorização e Recepção Evento AVERAGE; demais WARNING; instável um nível abaixo), override que rebaixa os alertas da contingência, descrição da função em todos os itens e triggers, macro `{$NFE.CONTINGENCIA.MATCHES}`. Arquivo passa a ser o export direto do Zabbix |
 | 1.0 | Versão inicial: item mestre + LLD dependente por autorizador (8 itens/autorizador), 1 trigger nodata + 14 trigger prototypes (HIGH/WARNING), macro `{$NFE.UF.MATCHES}`, value map de semáforo |
 
 ---
@@ -274,23 +299,27 @@ Passive master item nfe.status.json (5m, 1 scrape)
 | Macro | Default | Description |
 |---|---|---|
 | `{$NFE.UF.MATCHES}` | `^(SP\|SVC-AN)$` | Regex of which authorizers to discover. `SVC-AN` is the contingency authorizer that backs up SP. To add a state: e.g. `^(SP\|RJ\|SVC-AN)$`. For all authorizers: `^.*$` |
+| `{$NFE.CONTINGENCIA.MATCHES}` | `^SVC-` | Regex of contingency authorizers. Their alerts are lowered to WARNING/INFO |
+| `{$NFE.FAIL.COUNT}` | `2` | Defined on the template, but no trigger uses it today |
 
 ---
 
 ## Items per Authorizer (LLD)
 
-Base key: `nfe.<service>[{#AUTORIZADOR}]`
+Base key: `nfe.<service>[{#AUTORIZADOR}]`. Each service maps to an NF-e web service; the same explanation is in each item's description field (in Portuguese).
 
-| Service | Type | Trigger |
-|---|---|---|
-| `autorizacao` (authorization) | FLOAT (traffic-light) | ✅ |
-| `retorno_autorizacao` (authorization return) | FLOAT (traffic-light) | ✅ |
-| `inutilizacao` (voiding) | FLOAT (traffic-light) | ✅ |
-| `consulta_protocolo` (protocol lookup) | FLOAT (traffic-light) | ✅ |
-| `status_servico` (service status) | FLOAT (traffic-light) | ✅ |
-| `consulta_cadastro` (registration lookup) | FLOAT (traffic-light) | ✅ |
-| `recepcao_evento` (event reception) | FLOAT (traffic-light) | ✅ |
-| `tempo_medio` (average time) | CHAR (text — "-" or a value) | — (no trigger, it's text) |
+| Service | Web service | What it does | If unavailable |
+|---|---|---|---|
+| `autorizacao` | NFeAutorizacao | Receives transmitted invoices and grants authorization. This is the service that actually issues the invoice | No invoice is authorized: the company cannot issue or bill. Issue in contingency mode |
+| `retorno_autorizacao` | NFeRetAutorizacao | Returns the result for invoices sent as an asynchronous batch | Asynchronous batch senders cannot tell whether invoices were authorized. Synchronous mode is unaffected |
+| `recepcao_evento` | NFeRecepcaoEvento | Registers events on issued invoices: cancellation, correction letter, recipient acknowledgement | Invoices cannot be cancelled or corrected. Cancellation has a short legal deadline |
+| `consulta_protocolo` | NFeConsultaProtocolo | Looks up an invoice's status by access key | An invoice's status cannot be confirmed. Issuing continues |
+| `status_servico` | NFeStatusServico | Reports whether the authorizer is operating; issuing software checks it before transmitting | Software that checks status may refuse to issue or switch to contingency on its own |
+| `inutilizacao` | NFeInutilizacao | Voids skipped number ranges | Number ranges cannot be voided. Issuing is unaffected; the deadline is monthly |
+| `consulta_cadastro` | NfeConsultaCadastro | Looks up the state ICMS taxpayer registry | Customer and supplier registry data cannot be validated. Issuing is unaffected |
+| `tempo_medio` | — | Average response time shown on the page (text; "-" when not reported) | No trigger |
+
+The first seven are FLOAT with the traffic-light value map. Not every authorizer offers every service: the contingency ones (`SVC-AN`, `SVC-RS`) have no Consulta Cadastro, for example. Those items stay at `-1` (N/A).
 
 ---
 
@@ -315,14 +344,27 @@ Base key: `nfe.<service>[{#AUTORIZADOR}]`
 
 Covers collection failure — the script exits with `exit 1` on error (network issue, page layout changed, certificate problem) and the item goes NOTSUPPORTED; without this trigger, a broken scrape would fail silently.
 
-### Per discovered authorizer (14 trigger prototypes — 7 services × 2 severities)
+### Per discovered authorizer (14 trigger prototypes — 7 services × 2 states)
 
-| Condition | Severity |
-|---|---|
-| `last(nfe.<service>[{#AUTORIZADOR}])=0` (red) | HIGH |
-| `last(nfe.<service>[{#AUTORIZADOR}])=2` (yellow) | WARNING |
+Severity follows each service's impact on whoever issues invoices. Yellow (unstable) sits one level below red (unavailable).
 
-`tempo_medio` never fires a trigger (it's text). `-1` (N/A) also never fires — it's the expected state for services an authorizer simply doesn't offer.
+| Service | Unavailable (`=0`) | Unstable (`=2`) | Why |
+|---|---|---|---|
+| Autorização | HIGH | WARNING | Stops invoice issuing |
+| Retorno Autorização | AVERAGE | WARNING | Blocks asynchronous batch issuing |
+| Recepção Evento | AVERAGE | WARNING | Blocks cancellation and correction letters |
+| Consulta Protocolo | WARNING | INFO | Lookup only; issuing continues |
+| Status Serviço | WARNING | INFO | Issues nothing, but some software depends on it |
+| Inutilização | WARNING | INFO | Not urgent; monthly deadline |
+| Consulta Cadastro | WARNING | INFO | Registry lookup only |
+
+**Contingency**: for authorizers matching `{$NFE.CONTINGENCIA.MATCHES}` (default `^SVC-`), an LLD override lowers everything to WARNING (unavailable) and INFO (unstable). Contingency only matters when the state's regular authorizer is also down, and in that case the regular authorizer's HIGH alert is already open.
+
+Limitation: there is no single alert for "regular authorizer **and** contingency down at the same time", which would be the worst case. Each authorizer is a separate LLD entity.
+
+`tempo_medio` never fires a trigger (it's text). `-1` (N/A) also never fires — it's the expected state for services an authorizer doesn't offer.
+
+Each trigger's description states what the service does, the impact and what to do.
 
 ---
 
@@ -413,13 +455,11 @@ zabbix_get -s <AGENT-IP> -k nfe.status.json
 
 ---
 
-## Export Gotcha — `configuration.export` drops this template's triggers
+## Template Export
 
-When exporting this template via the API (`configuration.export`, JSON format), the 14 `trigger_prototypes` on the LLD rule and the native `nodata` trigger **do not appear** in the result, even though they demonstrably belong to the template (verified via `template.get` with `selectTriggers`/`selectDiscoveries` and `triggerprototype.get`, all matching the template's internal ID). The root cause wasn't identified (it isn't a permissions issue — tested with a Super Admin account); it may be a Zabbix 7.4 quirk specific to `DEPENDENT`-type discovery rules.
+The file in this directory is the raw `configuration.export` of the production template. Triggers are **nested**: the `nodata` one inside the master item (`items[].triggers`) and the 14 prototypes inside each item prototype (`discovery_rules[].item_prototypes[].trigger_prototypes`). They do not appear under top-level `.triggers` or `discovery_rules[].trigger_prototypes`, because each references a single item.
 
-**Practical effect:** a raw re-export via `configuration.export` produces an incomplete JSON with no alerting. `template.json` in this directory was **reconstructed manually** — the triggers/trigger prototypes were fetched via `trigger.get`/`triggerprototype.get` (with `expandExpression`) and inserted into the JSON in the format Zabbix expects for import.
-
-**When re-syncing this template in the future:** always check whether `.triggers` (top-level) and `.discovery_rules[].trigger_prototypes` are present in a fresh export before overwriting this file — if they come back empty/missing again, repeat the manual reconstruction rather than assuming the triggers were removed on the server.
+Up to version 1.0 this README said the export "dropped" the triggers; they were there, just nested. The old file had been rebuilt by hand and carried each trigger twice.
 
 ---
 
@@ -438,10 +478,20 @@ docker compose up -d --build zabbix-agent2
 
 ---
 
+## Sources
+
+- [NF-e Portal — Availability](https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx): the monitored page.
+- [SEFAZ-SP — web service URLs](https://portal.fazenda.sp.gov.br/servicos/nfe/Paginas/URL-WEBSERVICES.aspx) and [SEFAZ-PE — web services 4.00](https://www.sefaz.pe.gov.br/Servicos/nota-fiscal-eletronica/Paginas/url-web-services-prod-homolog.aspx): official web service names.
+
+Each web service's function follows the NF-e taxpayer manual (Manual de Orientação do Contribuinte). The manual could not be consulted directly in the Oct 2026 review; the pages above confirm the service names only.
+
+---
+
 ## Changelog
 
 | Version | Changes |
 |---|---|
+| 1.1 | Severity by service impact (Autorização HIGH; Retorno Autorização and Recepção Evento AVERAGE; others WARNING; unstable one level lower), override lowering contingency alerts, function description on every item and trigger, `{$NFE.CONTINGENCIA.MATCHES}` macro. File is now the raw Zabbix export |
 | 1.0 | Initial release: master item + dependent LLD per authorizer (8 items/authorizer), 1 nodata trigger + 14 trigger prototypes (HIGH/WARNING), `{$NFE.UF.MATCHES}` macro, traffic-light value map |
 
 ---

@@ -12,7 +12,7 @@
                 "uuid": "a5bb42b366a646d8a6c097a7f5e7912a",
                 "template": "Template Zabbix NFe Monitor",
                 "name": "Template Zabbix NFe Monitor",
-                "description": "Monitoramento da disponibilidade dos autorizadores de NF-e (SEFAZ) via scraping\nda página oficial https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx.\n\nRequer o UserParameter nfe.status.json (zbx_agent2_conf.d/nfe.conf) e a imagem\ncustom do zabbix-agent2 com Python (Dockerfiles/zabbix-agent2).\n\nStatus do semáforo: Verde (1), Amarelo (2), Vermelho (0), Sem imagem (-1 = serviço\nnão oferecido pelo autorizador). O item mestre coleta 1x e todos os autorizadores/\nserviços derivam dele (LLD dependente — um único scrape a cada 5m).\n\nFiltre os autorizadores relevantes na macro {$NFE.UF.MATCHES} — padrão SP + SVC-AN\n(SEFAZ Virtual de Contingência que atende SP).",
+                "description": "Monitoramento da disponibilidade dos autorizadores de NF-e (SEFAZ) via scraping\nda página oficial https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx.\n\nRequer o UserParameter nfe.status.json (zbx_agent2_conf.d/nfe.conf) e a imagem\ncustom do zabbix-agent2 com Python (Dockerfiles/zabbix-agent2).\n\nStatus do semáforo: Verde (1), Amarelo (2), Vermelho (0), Sem imagem (-1 = serviço\nnão oferecido pelo autorizador). O item mestre coleta 1x e todos os autorizadores/\nserviços derivam dele (LLD dependente — um único scrape a cada 5m).\n\nSeveridade dos alertas, pelo impacto de cada serviço para quem emite nota: Autorização\nindisponível = HIGH; Retorno Autorização e Recepção Evento = AVERAGE; Consulta Protocolo,\nStatus Serviço, Inutilização e Consulta Cadastro = WARNING. Semáforo amarelo fica um nível\nabaixo. Nos autorizadores de contingência ({$NFE.CONTINGENCIA.MATCHES}) tudo é rebaixado\npara WARNING/INFO.\n\nFiltre os autorizadores relevantes na macro {$NFE.UF.MATCHES} — padrão SP + SVC-AN\n(SEFAZ Virtual de Contingência que atende SP).",
                 "groups": [
                     {
                         "name": "Templates/Applications"
@@ -26,7 +26,13 @@
                         "delay": "5m",
                         "history": "1d",
                         "value_type": "TEXT",
-                        "description": "JSON completo com o status de todos os autorizadores (fonte dos itens dependentes e do LLD).",
+                        "description": "JSON com o semáforo de todos os serviços de todos os autorizadores, extraído da página oficial de disponibilidade da NF-e (https://www.nfe.fazenda.gov.br/portal/disponibilidade.aspx). É a única coleta de rede do template: a descoberta e todos os itens por autorizador derivam deste valor.",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "status"
+                            }
+                        ],
                         "triggers": [
                             {
                                 "uuid": "4abedc0271ec4f37a7d75372c5f25a21",
@@ -34,7 +40,17 @@
                                 "name": "NFe: coleta da página da SEFAZ sem dados há 30 minutos",
                                 "priority": "WARNING",
                                 "description": "O scrape da página de disponibilidade falhou repetidamente (script em erro, página fora do ar ou mudança de layout). Sem esse dado, os status por autorizador ficam congelados.",
-                                "manual_close": "YES"
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "status"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
                             }
                         ]
                     }
@@ -54,7 +70,7 @@
                             ]
                         },
                         "lifetime": "30d",
-                        "description": "LLD dependente do item mestre — não gera scrape adicional. Filtrado por {$NFE.UF.MATCHES}.",
+                        "description": "Descobre os autorizadores listados na página da SEFAZ (UFs com ambiente próprio, SEFAZ virtuais e contingências). Depende do item mestre, sem coleta adicional. Só entram os que casam com {$NFE.UF.MATCHES}.",
                         "item_prototypes": [
                             {
                                 "uuid": "c4462c55586a4f36a044ea46c1ae3614",
@@ -62,6 +78,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.autorizacao[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Recebe as NF-e transmitidas pela empresa e concede a autorização de uso. É o serviço que efetivamente emite a nota. (web service NFeAutorizacao).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -70,7 +87,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].autorizacao"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -82,20 +100,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "autorizacao"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "7f9a56849aaa42ea84c5f54738ec1ab1",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Autorização indisponível em {#AUTORIZADOR}",
                                         "priority": "HIGH",
-                                        "description": "A SEFAZ reporta semáforo vermelho para Autorização — emissão de NF-e comprometida neste autorizador."
+                                        "description": "A SEFAZ reporta semáforo vermelho para Autorização em {#AUTORIZADOR}.\n\nO que o serviço faz: Recebe as NF-e transmitidas pela empresa e concede a autorização de uso. É o serviço que efetivamente emite a nota.\nImpacto: Nenhuma NF-e é autorizada por este autorizador: a empresa não consegue emitir nota nem faturar.\nO que fazer: Conferir se a contingência (SVC) do estado está ativa e disponível e orientar o cliente a emitir em contingência pelo sistema emissor.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "c73f2a921e5e4752b534d5b66c07f787",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Autorização instável em {#AUTORIZADOR}",
                                         "priority": "WARNING",
-                                        "description": "A SEFAZ reporta semáforo amarelo para Autorização — pode haver lentidão/intermitência na emissão."
+                                        "description": "A SEFAZ reporta semáforo amarelo para Autorização em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Recebe as NF-e transmitidas pela empresa e concede a autorização de uso. É o serviço que efetivamente emite a nota.\nSe piorar para indisponível: Nenhuma NF-e é autorizada por este autorizador: a empresa não consegue emitir nota nem faturar.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -105,6 +153,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.consulta_cadastro[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Consulta o cadastro de contribuintes do ICMS do estado (situação cadastral e inscrição estadual de um CNPJ). (web service NfeConsultaCadastro).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -113,7 +162,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].consulta_cadastro"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -125,18 +175,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "consulta_cadastro"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "6ad39a9df0494f76a49d53531ef43fc6",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Consulta Cadastro indisponível em {#AUTORIZADOR}",
-                                        "priority": "HIGH"
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Consulta Cadastro em {#AUTORIZADOR}.\n\nO que o serviço faz: Consulta o cadastro de contribuintes do ICMS do estado (situação cadastral e inscrição estadual de um CNPJ).\nImpacto: Os sistemas não conseguem validar ou buscar os dados cadastrais de clientes e fornecedores. Não afeta a emissão de notas.\nO que fazer: Aguardar a normalização; não exige ação imediata.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "7e4549c5269e4fa7a5b156d5efc7edab",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Consulta Cadastro instável em {#AUTORIZADOR}",
-                                        "priority": "WARNING"
+                                        "priority": "INFO",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Consulta Cadastro em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Consulta o cadastro de contribuintes do ICMS do estado (situação cadastral e inscrição estadual de um CNPJ).\nSe piorar para indisponível: Os sistemas não conseguem validar ou buscar os dados cadastrais de clientes e fornecedores. Não afeta a emissão de notas.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -146,6 +228,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.consulta_protocolo[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Consulta a situação atual de uma NF-e pela chave de acesso (autorizada, cancelada, denegada) e devolve o protocolo. (web service NFeConsultaProtocolo).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -154,7 +237,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].consulta_protocolo"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -166,18 +250,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "consulta_protocolo"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "1d69c71c091e4df285f44b52a62e9e67",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Consulta Protocolo indisponível em {#AUTORIZADOR}",
-                                        "priority": "HIGH"
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Consulta Protocolo em {#AUTORIZADOR}.\n\nO que o serviço faz: Consulta a situação atual de uma NF-e pela chave de acesso (autorizada, cancelada, denegada) e devolve o protocolo.\nImpacto: Os sistemas não conseguem confirmar a situação de uma nota, por exemplo depois de uma falha de comunicação no envio. A emissão de notas novas continua.\nO que fazer: Aguardar a normalização; não exige ação imediata.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "d08513ce5f08451080d20f2bb6db95a8",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Consulta Protocolo instável em {#AUTORIZADOR}",
-                                        "priority": "WARNING"
+                                        "priority": "INFO",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Consulta Protocolo em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Consulta a situação atual de uma NF-e pela chave de acesso (autorizada, cancelada, denegada) e devolve o protocolo.\nSe piorar para indisponível: Os sistemas não conseguem confirmar a situação de uma nota, por exemplo depois de uma falha de comunicação no envio. A emissão de notas novas continua.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -187,6 +303,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.inutilizacao[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Inutiliza faixas de numeração de NF-e que foram puladas e não serão usadas. (web service NFeInutilizacao).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -195,7 +312,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].inutilizacao"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -207,18 +325,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "inutilizacao"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "f0db21c2334b452780a7d7fb3931c5e5",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Inutilização indisponível em {#AUTORIZADOR}",
-                                        "priority": "HIGH"
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Inutilização em {#AUTORIZADOR}.\n\nO que o serviço faz: Inutiliza faixas de numeração de NF-e que foram puladas e não serão usadas.\nImpacto: Não é possível inutilizar numeração. Não afeta a emissão; a inutilização tem prazo mensal, então só importa se a parada for longa.\nO que fazer: Aguardar a normalização; não exige ação imediata.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "05927dd8564a4b11a35f24ffd1668d42",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Inutilização instável em {#AUTORIZADOR}",
-                                        "priority": "WARNING"
+                                        "priority": "INFO",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Inutilização em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Inutiliza faixas de numeração de NF-e que foram puladas e não serão usadas.\nSe piorar para indisponível: Não é possível inutilizar numeração. Não afeta a emissão; a inutilização tem prazo mensal, então só importa se a parada for longa.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -228,6 +378,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.recepcao_evento[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Registra os eventos de uma NF-e já emitida: cancelamento, carta de correção (CC-e) e manifestação do destinatário. (web service NFeRecepcaoEvento).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -236,7 +387,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].recepcao_evento"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -248,18 +400,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "recepcao_evento"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "ec0a4a5770ee4e2cbccafbc535d009a0",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Recepção Evento indisponível em {#AUTORIZADOR}",
-                                        "priority": "HIGH"
+                                        "priority": "AVERAGE",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Recepção Evento em {#AUTORIZADOR}.\n\nO que o serviço faz: Registra os eventos de uma NF-e já emitida: cancelamento, carta de correção (CC-e) e manifestação do destinatário.\nImpacto: Não é possível cancelar nota nem enviar carta de correção. O cancelamento tem prazo legal curto, então uma parada longa pode fazer o cliente perder o prazo.\nO que fazer: Avisar os clientes que precisam cancelar notas e acompanhar a normalização.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "49902949f0054554a6e404b708d08427",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Recepção Evento instável em {#AUTORIZADOR}",
-                                        "priority": "WARNING"
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Recepção Evento em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Registra os eventos de uma NF-e já emitida: cancelamento, carta de correção (CC-e) e manifestação do destinatário.\nSe piorar para indisponível: Não é possível cancelar nota nem enviar carta de correção. O cancelamento tem prazo legal curto, então uma parada longa pode fazer o cliente perder o prazo.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -269,6 +453,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.retorno_autorizacao[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Devolve o resultado do processamento das NF-e enviadas em lote no modo assíncrono (a empresa envia, recebe um recibo e consulta aqui se a nota foi autorizada ou rejeitada). (web service NFeRetAutorizacao).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -277,7 +462,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].retorno_autorizacao"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -289,18 +475,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "retorno_autorizacao"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "05f416767c8c4e018ff9866808852525",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Retorno Autorização indisponível em {#AUTORIZADOR}",
-                                        "priority": "HIGH"
+                                        "priority": "AVERAGE",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Retorno Autorização em {#AUTORIZADOR}.\n\nO que o serviço faz: Devolve o resultado do processamento das NF-e enviadas em lote no modo assíncrono (a empresa envia, recebe um recibo e consulta aqui se a nota foi autorizada ou rejeitada).\nImpacto: Quem emite em lote assíncrono fica sem saber se as notas foram autorizadas, e a emissão trava nesse ponto. Quem emite no modo síncrono não é afetado.\nO que fazer: Aguardar a normalização; as notas já enviadas podem ser conferidas depois pela Consulta Protocolo.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "267f877c8fe9402f8483de33939e3ba3",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Retorno Autorização instável em {#AUTORIZADOR}",
-                                        "priority": "WARNING"
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Retorno Autorização em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Devolve o resultado do processamento das NF-e enviadas em lote no modo assíncrono (a empresa envia, recebe um recibo e consulta aqui se a nota foi autorizada ou rejeitada).\nSe piorar para indisponível: Quem emite em lote assíncrono fica sem saber se as notas foram autorizadas, e a emissão trava nesse ponto. Quem emite no modo síncrono não é afetado.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -310,6 +528,7 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.status_servico[{#AUTORIZADOR}]",
                                 "value_type": "FLOAT",
+                                "description": "Informa se o autorizador está em operação. Os sistemas emissores costumam consultar este serviço antes de transmitir. (web service NFeStatusServico).\n\nValores do semáforo da página da SEFAZ: 1 = Disponível (verde), 2 = Instável (amarelo), 0 = Indisponível (vermelho), -1 = N/D (o autorizador não oferece este serviço).",
                                 "valuemap": {
                                     "name": "NFe Status Semáforo"
                                 },
@@ -318,7 +537,8 @@
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].status_servico"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -330,18 +550,50 @@
                                 "master_item": {
                                     "key": "nfe.status.json"
                                 },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "status_servico"
+                                    }
+                                ],
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "1ba4756272854939a4bee7c9ccfa1751",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=0",
                                         "name": "NFe: Status Serviço indisponível em {#AUTORIZADOR}",
-                                        "priority": "HIGH"
+                                        "priority": "WARNING",
+                                        "description": "A SEFAZ reporta semáforo vermelho para Status Serviço em {#AUTORIZADOR}.\n\nO que o serviço faz: Informa se o autorizador está em operação. Os sistemas emissores costumam consultar este serviço antes de transmitir.\nImpacto: A autorização pode continuar funcionando, mas sistemas que consultam o status antes de enviar podem recusar a emissão ou entrar em contingência sozinhos.\nO que fazer: Conferir o item de Autorização do mesmo autorizador para saber se a emissão está de fato parada.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
                                     },
                                     {
                                         "uuid": "aa16e0135e4c4a2390dff068c792c8c5",
                                         "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=2",
                                         "name": "NFe: Status Serviço instável em {#AUTORIZADOR}",
-                                        "priority": "WARNING"
+                                        "priority": "INFO",
+                                        "description": "A SEFAZ reporta semáforo amarelo para Status Serviço em {#AUTORIZADOR}: o serviço responde, mas com lentidão ou falhas intermitentes.\n\nO que o serviço faz: Informa se o autorizador está em operação. Os sistemas emissores costumam consultar este serviço antes de transmitir.\nSe piorar para indisponível: A autorização pode continuar funcionando, mas sistemas que consultam o status antes de enviar podem recusar a emissão ou entrar em contingência sozinhos.",
+                                        "tags": [
+                                            {
+                                                "tag": "component",
+                                                "value": "sefaz"
+                                            },
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -351,13 +603,14 @@
                                 "type": "DEPENDENT",
                                 "key": "nfe.tempo_medio[{#AUTORIZADOR}]",
                                 "value_type": "CHAR",
-                                "description": "Coluna \"Tempo Médio\" da página — valor textual (\"-\" quando não informado). Sem trigger.",
+                                "description": "Coluna \"Tempo Médio\" da página da SEFAZ: tempo médio de resposta informado pelo autorizador. É texto; a página mostra \"-\" quando o autorizador não informa. Não tem trigger.",
                                 "preprocessing": [
                                     {
                                         "type": "JSONPATH",
                                         "parameters": [
                                             "$.[\"{#AUTORIZADOR}\"].tempo_medio"
-                                        ]
+                                        ],
+                                        "error_handler": "DISCARD_VALUE"
                                     },
                                     {
                                         "type": "DISCARD_UNCHANGED_HEARTBEAT",
@@ -368,7 +621,17 @@
                                 ],
                                 "master_item": {
                                     "key": "nfe.status.json"
-                                }
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "sefaz"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "tempo_medio"
+                                    }
+                                ]
                             }
                         ],
                         "master_item": {
@@ -378,101 +641,51 @@
                             {
                                 "type": "JAVASCRIPT",
                                 "parameters": [
-                                    "var data = JSON.parse(value);\nreturn JSON.stringify(Object.keys(data).map(function (k) {\n    return {\"{#AUTORIZADOR}\": k};\n}));"
+                                    "var data;\ntry {\n    data = JSON.parse(value);\n} catch (e) {\n    return \"[]\";\n}\nreturn JSON.stringify(Object.keys(data).map(function (k) {\n    return {\"{#AUTORIZADOR}\": k};\n}));"
                                 ]
                             }
                         ],
-                        "trigger_prototypes": [
+                        "overrides": [
                             {
-                                "uuid": "7f9a56849aaa42ea84c5f54738ec1ab1",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Autorização indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH",
-                                "description": "A SEFAZ reporta semáforo vermelho para Autorização — emissão de NF-e comprometida neste autorizador."
-                            },
-                            {
-                                "uuid": "c73f2a921e5e4752b534d5b66c07f787",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.autorizacao[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Autorização instável em {#AUTORIZADOR}",
-                                "priority": "WARNING",
-                                "description": "A SEFAZ reporta semáforo amarelo para Autorização — pode haver lentidão/intermitência na emissão."
-                            },
-                            {
-                                "uuid": "05f416767c8c4e018ff9866808852525",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Retorno Autorização indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH"
-                            },
-                            {
-                                "uuid": "267f877c8fe9402f8483de33939e3ba3",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.retorno_autorizacao[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Retorno Autorização instável em {#AUTORIZADOR}",
-                                "priority": "WARNING"
-                            },
-                            {
-                                "uuid": "f0db21c2334b452780a7d7fb3931c5e5",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Inutilização indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH"
-                            },
-                            {
-                                "uuid": "05927dd8564a4b11a35f24ffd1668d42",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.inutilizacao[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Inutilização instável em {#AUTORIZADOR}",
-                                "priority": "WARNING"
-                            },
-                            {
-                                "uuid": "1d69c71c091e4df285f44b52a62e9e67",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Consulta Protocolo indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH"
-                            },
-                            {
-                                "uuid": "d08513ce5f08451080d20f2bb6db95a8",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_protocolo[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Consulta Protocolo instável em {#AUTORIZADOR}",
-                                "priority": "WARNING"
-                            },
-                            {
-                                "uuid": "1ba4756272854939a4bee7c9ccfa1751",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Status Serviço indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH"
-                            },
-                            {
-                                "uuid": "aa16e0135e4c4a2390dff068c792c8c5",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.status_servico[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Status Serviço instável em {#AUTORIZADOR}",
-                                "priority": "WARNING"
-                            },
-                            {
-                                "uuid": "6ad39a9df0494f76a49d53531ef43fc6",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Consulta Cadastro indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH"
-                            },
-                            {
-                                "uuid": "7e4549c5269e4fa7a5b156d5efc7edab",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.consulta_cadastro[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Consulta Cadastro instável em {#AUTORIZADOR}",
-                                "priority": "WARNING"
-                            },
-                            {
-                                "uuid": "ec0a4a5770ee4e2cbccafbc535d009a0",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=0",
-                                "name": "NFe: Recepção Evento indisponível em {#AUTORIZADOR}",
-                                "priority": "HIGH"
-                            },
-                            {
-                                "uuid": "49902949f0054554a6e404b708d08427",
-                                "expression": "last(/Template Zabbix NFe Monitor/nfe.recepcao_evento[{#AUTORIZADOR}])=2",
-                                "name": "NFe: Recepção Evento instável em {#AUTORIZADOR}",
-                                "priority": "WARNING"
+                                "name": "Contingência: alertas rebaixados",
+                                "step": "1",
+                                "filter": {
+                                    "conditions": [
+                                        {
+                                            "macro": "{#AUTORIZADOR}",
+                                            "value": "{$NFE.CONTINGENCIA.MATCHES}"
+                                        }
+                                    ]
+                                },
+                                "operations": [
+                                    {
+                                        "operationobject": "TRIGGER_PROTOTYPE",
+                                        "operator": "LIKE",
+                                        "value": "indisponível",
+                                        "severity": "WARNING"
+                                    },
+                                    {
+                                        "operationobject": "TRIGGER_PROTOTYPE",
+                                        "operator": "LIKE",
+                                        "value": "instável",
+                                        "severity": "INFO"
+                                    }
+                                ]
                             }
                         ]
                     }
                 ],
                 "macros": [
+                    {
+                        "macro": "{$NFE.CONTINGENCIA.MATCHES}",
+                        "value": "^SVC-",
+                        "description": "Regex dos autorizadores de contingência (SEFAZ Virtual de Contingência). Os alertas deles são rebaixados: só importam quando o autorizador normal do estado também está fora."
+                    },
+                    {
+                        "macro": "{$NFE.FAIL.COUNT}",
+                        "value": "2",
+                        "description": "Nº de coletas consecutivas (a cada 5m) com resposta inválida/erro antes de disparar a trigger"
+                    },
                     {
                         "macro": "{$NFE.UF.MATCHES}",
                         "value": "^(SP|SVC-AN)$",
@@ -501,16 +714,6 @@
                                 "newvalue": "N/D"
                             }
                         ]
-                    }
-                ],
-                "triggers": [
-                    {
-                        "uuid": "4abedc0271ec4f37a7d75372c5f25a21",
-                        "expression": "nodata(/Template Zabbix NFe Monitor/nfe.status.json,30m)=1",
-                        "name": "NFe: coleta da página da SEFAZ sem dados há 30 minutos",
-                        "priority": "WARNING",
-                        "description": "O scrape da página de disponibilidade falhou repetidamente (script em erro, página fora do ar ou mudança de layout). Sem esse dado, os status por autorizador ficam congelados.",
-                        "manual_close": "YES"
                     }
                 ]
             }
