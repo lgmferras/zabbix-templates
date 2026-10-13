@@ -1,7 +1,7 @@
 # MSPClouds Backup Monitor
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.4-D40000?style=flat-square&logoColor=white)
-![Version](https://img.shields.io/badge/Version-4.0-7F13EC?style=flat-square)
+![Version](https://img.shields.io/badge/Version-4.1-7F13EC?style=flat-square)
 ![Collection](https://img.shields.io/badge/Collection-HTTP_Agent-009639?style=flat-square)
 ![LLD](https://img.shields.io/badge/LLD-per_client-009639?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
@@ -152,6 +152,7 @@ Crie um host "virtual" para cada cliente MSPClouds:
 
 | Versão | Mudanças |
 |---|---|
+| 4.1 | Clientes com mais de um backupset: cada um ganha nome próprio nos itens, pela macro `{#DISPLAY_NAME}` (descrição do login; com o nome do backupset quando a descrição se repete). Com um único backupset o nome continua sendo o do cliente. Antes os itens de dois backupsets do mesmo cliente ficavam com nomes idênticos |
 | 4.0 | Adicionado `mspclouds.status.info` (backups em execução); history 90d e trends 365d nos itens numéricos; opdata no trigger de warning |
 | 3.0 | Descoberta LLD de clientes/backup sets; trigger prototypes por cliente; URL do relatório no opdata |
 
@@ -299,6 +300,7 @@ Create a "virtual" host for each MSPClouds client:
 
 | Version | Changes |
 |---|---|
+| 4.1 | Clients with more than one backup set: each gets its own name on items, through the `{#DISPLAY_NAME}` macro (login description; plus the backup set name when descriptions repeat). With a single backup set the client name is kept. Previously two backup sets of the same client ended up with identical item names |
 | 4.0 | Added `mspclouds.status.info` (running backups); history 90d and trends 365d on numeric items; opdata on the warning trigger |
 | 3.0 | LLD discovery of clients/backup sets; per-client trigger prototypes; report URL in opdata |
 

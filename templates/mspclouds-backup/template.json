@@ -563,7 +563,7 @@
                         "item_prototypes": [
                             {
                                 "uuid": "d1a246ad346b4f3dace8588c974c0695",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Data do Último Backup",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Data do Último Backup",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.last_backup_date[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "history": "7d",
@@ -597,7 +597,7 @@
                             },
                             {
                                 "uuid": "37d1a3333de04d0bb86f8fc74fe6a606",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Timestamp do Último Backup",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Timestamp do Último Backup",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.last_backup_ts[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "units": "unixtime",
@@ -636,7 +636,7 @@
                             },
                             {
                                 "uuid": "937f77b27331495cace1d202f41e1561",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Idade do Último Sucesso",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Idade do Último Sucesso",
                                 "type": "CALCULATED",
                                 "key": "mspclouds.client.last_success_age[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "delay": "1h",
@@ -660,7 +660,7 @@
                             },
                             {
                                 "uuid": "cbe6db2ffade48258f1b1b64432bdb67",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Data do Último Sucesso",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Data do Último Sucesso",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.last_success_date[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "history": "7d",
@@ -694,7 +694,7 @@
                             },
                             {
                                 "uuid": "7fd1427459794fd2acc8b55ddff4adba",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Timestamp do Último Sucesso",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Timestamp do Último Sucesso",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.last_success_ts[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "units": "unixtime",
@@ -757,7 +757,7 @@
                             },
                             {
                                 "uuid": "5cb04b62461744918cc24d35666b1c06",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: URL do Relatório",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: URL do Relatório",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.report_url[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "history": "7d",
@@ -791,7 +791,7 @@
                             },
                             {
                                 "uuid": "ade3f5770a214afcbe5b5506928c4013",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Status",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Status",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.status[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "history": "7d",
@@ -849,7 +849,7 @@
                             },
                             {
                                 "uuid": "a607381277b84cc4b42ac7a0ae29ac2d",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Código do Status",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Código do Status",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.status_code[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "history": "7d",
@@ -883,7 +883,7 @@
                             },
                             {
                                 "uuid": "47372aea27004cca8d4baaa1324fd6e2",
-                                "name": "MSPClouds [{#CLIENT_NAME}]: Descrição do Status",
+                                "name": "MSPClouds [{#DISPLAY_NAME}]: Descrição do Status",
                                 "type": "DEPENDENT",
                                 "key": "mspclouds.client.status_desc[{#CLIENT_ID},{#BACKUPSET_ID}]",
                                 "history": "7d",
@@ -945,6 +945,10 @@
                                 "path": "$.['{#DESTINATION}']"
                             },
                             {
+                                "lld_macro": "{#DISPLAY_NAME}",
+                                "path": "$.['{#DISPLAY_NAME}']"
+                            },
+                            {
                                 "lld_macro": "{#LOGIN_DESC}",
                                 "path": "$.['{#LOGIN_DESC}']"
                             },
@@ -957,7 +961,7 @@
                             {
                                 "type": "JAVASCRIPT",
                                 "parameters": [
-                                    "var data = JSON.parse(value);\nvar result = [];\nif (data.clients && data.clients.length > 0) {\n    data.clients.forEach(function(client) {\n        if (client.backupsets && client.backupsets.length > 0) {\n            client.backupsets.forEach(function(bs) {\n                result.push({\n                    \"{#CLIENT_ID}\": client.id,\n                    \"{#CLIENT_NAME}\": client.name,\n                    \"{#BACKUPSET_ID}\": bs.backup_set_id,\n                    \"{#BACKUPSET_NAME}\": bs.backup_set_name,\n                    \"{#BACKUPSET_TYPE}\": bs.backup_set_type,\n                    \"{#LOGIN_NAME}\": bs.login_name,\n                    \"{#LOGIN_DESC}\": bs.login_description,\n                    \"{#DESTINATION}\": bs.destination_name\n                });\n            });\n        }\n    });\n}\nreturn JSON.stringify(result);"
+                                    "var data = JSON.parse(value);\nvar result = [];\nif (data.clients && data.clients.length > 0) {\n    data.clients.forEach(function(client) {\n        if (client.backupsets && client.backupsets.length > 0) {\n            // Nome de exibição: o do cliente quando ele tem um único backupset.\n            // Com mais de um, cada backupset precisa de um nome próprio, senão os\n            // itens ficam com nomes idênticos: usa a descrição do login e, se dois\n            // backupsets tiverem a mesma descrição, acrescenta o nome do backupset.\n            var many = client.backupsets.length > 1;\n            var seen = {};\n            client.backupsets.forEach(function(bs) {\n                var d = bs.login_description || client.name;\n                seen[d] = (seen[d] || 0) + 1;\n            });\n            client.backupsets.forEach(function(bs) {\n                var display = client.name;\n                if (many) {\n                    display = bs.login_description || client.name;\n                    if (seen[display] > 1) { display = display + ' / ' + bs.backup_set_name; }\n                }\n                result.push({\n                    \"{#CLIENT_ID}\": client.id,\n                    \"{#CLIENT_NAME}\": client.name,\n                    \"{#DISPLAY_NAME}\": display,\n                    \"{#BACKUPSET_ID}\": bs.backup_set_id,\n                    \"{#BACKUPSET_NAME}\": bs.backup_set_name,\n                    \"{#BACKUPSET_TYPE}\": bs.backup_set_type,\n                    \"{#LOGIN_NAME}\": bs.login_name,\n                    \"{#LOGIN_DESC}\": bs.login_description,\n                    \"{#DESTINATION}\": bs.destination_name\n                });\n            });\n        }\n    });\n}\nreturn JSON.stringify(result);"
                                 ]
                             }
                         ]
