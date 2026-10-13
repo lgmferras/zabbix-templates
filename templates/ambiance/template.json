@@ -1,0 +1,1768 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
+                "name": "Templates/Applications"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "0a692910e4424212b174081d0a258cb0",
+                "template": "Ambiance by Zabbix agent active",
+                "name": "Ambiance by Zabbix agent active",
+                "description": "Template para o servidor do dormakaba Ambiance (sistema de gestão de fechaduras de hotel).\nMonitora os serviços do Ambiance e o backup do banco SQL Server (.bak). A severidade de cada alerta segue o impacto descrito pela dormakaba: DISASTER quando todo o sistema para (Server, Web API, Database Engine), HIGH quando a recepção não consegue gravar cartões (codificadores), AVERAGE para a integração com o PMS e a gestão remota de fechaduras, WARNING para interfaces e integrações que só afetam quem as usa.\n\nRequisitos:\n- Zabbix Agent 2 (active mode) instalado no servidor do Ambiance\n- UserParameters de user_parameters_ambiance.conf carregados no agente\n- Backup do SQL Server gravando AMBIANCE-Backup-[1-7].bak em C:\\Program Files\\Microsoft SQL Server\\MSSQL16.AMBIANCE\\MSSQL\\Backup\\ (o caminho fica no arquivo de UserParameters)\n\nOs serviços são verificados pela presença do processo, não pelo estado do serviço Windows.\nMacros ajustáveis por host para personalizar os limites.\n\nAutor: Luis Gustavo Ferras | Systrix\nVersão: 1.2",
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "8ed11f8740db4cc3b3264b9ba68587c1",
+                        "name": "Ambiance Serviço - Ambiance AuroraSync",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.aurorasync",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Sincroniza as credenciais de hóspedes e funcionários com o servidor dormakaba Keyscan Aurora (controle de acesso de perímetro); recurso licenciado.\n\nServiço Windows: Ambiance AuroraSync. Processo verificado: Kaba.AuroraSync.Service.exe. Porta(s): —.\nSe parar: As credenciais deixam de sincronizar com os pontos de acesso Keyscan. Só afeta hotéis com essa integração.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "integration"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "8a026c8654214134b1db4ce7f205ebda",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.aurorasync)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.aurorasync)=1",
+                                "name": "Ambiance - Serviço Ambiance AuroraSync está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo Kaba.AuroraSync.Service.exe (serviço Windows \"Ambiance AuroraSync\", de integração opcional) não está em execução.\n\nFunção: Sincroniza as credenciais de hóspedes e funcionários com o servidor dormakaba Keyscan Aurora (controle de acesso de perímetro); recurso licenciado.\nImpacto: As credenciais deixam de sincronizar com os pontos de acesso Keyscan. Só afeta hotéis com essa integração.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "integration"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ca03793705c64968b92267ef7e1dc755",
+                        "name": "Ambiance Backup - Idade do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.backup.age_hours",
+                        "delay": "1m;10m/1-7,00:00-06:00",
+                        "value_type": "FLOAT",
+                        "units": "h",
+                        "description": "Idade do backup mais recente do banco do Ambiance: horas desde a gravação do último arquivo AMBIANCE-Backup-N.bak pelo job do SQL Server. É o principal sinal de que o backup diário rodou. Retorna -1 quando nenhum arquivo é encontrado.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "a7a744e4530e4fedb717da719bea8d87",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)>{$AMBIANCE.BACKUP.AGE.DISASTER}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)<={$AMBIANCE.BACKUP.AGE.DISASTER}",
+                                "name": "Ambiance - Backup CRÍTICO (mais de {$AMBIANCE.BACKUP.AGE.DISASTER} horas sem backup)",
+                                "opdata": "Idade: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "O backup mais recente do banco do Ambiance tem mais de {$AMBIANCE.BACKUP.AGE.DISASTER} horas. Risco de perda de dados: verifique o job de backup do SQL Server.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "d57dbb1abe9f45c19d5abb0d1161e00f",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)>{$AMBIANCE.BACKUP.AGE.WARN}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)<={$AMBIANCE.BACKUP.AGE.WARN}",
+                                "name": "Ambiance - Backup desatualizado (mais de {$AMBIANCE.BACKUP.AGE.WARN} horas)",
+                                "opdata": "Idade: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O backup mais recente do banco do Ambiance tem mais de {$AMBIANCE.BACKUP.AGE.WARN} horas. Verifique se o job de backup do SQL Server está rodando.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Ambiance - Backup CRÍTICO (mais de {$AMBIANCE.BACKUP.AGE.DISASTER} horas sem backup)",
+                                        "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)>{$AMBIANCE.BACKUP.AGE.DISASTER}",
+                                        "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)<={$AMBIANCE.BACKUP.AGE.DISASTER}"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "bd22023f95bb4055a3bae153c60f7b28",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)=-1",
+                                "name": "Ambiance - Nenhum arquivo de backup encontrado",
+                                "opdata": "Nenhum arquivo AMBIANCE-Backup-N.bak",
+                                "priority": "DISASTER",
+                                "description": "Nenhum arquivo AMBIANCE-Backup-[1-7].bak foi encontrado na pasta de backup do SQL Server (C:\\Program Files\\Microsoft SQL Server\\MSSQL16.AMBIANCE\\MSSQL\\Backup).",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5e6e03f7a1114cfdac8dbc62ba26fe58",
+                        "name": "Ambiance Backup - Quantidade de arquivos de backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.backup.file_count",
+                        "delay": "1h",
+                        "description": "Quantidade de arquivos AMBIANCE-Backup-[1-7].bak na pasta de backup. O job grava um arquivo por dia da semana, em rodízio; menos que {$AMBIANCE.BACKUP.EXPECTED_FILES} indica que algum dia ficou sem backup.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "6h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "4575d239bc1644d5a3d07447271b0a02",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.file_count)<{$AMBIANCE.BACKUP.EXPECTED_FILES}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.file_count)={$AMBIANCE.BACKUP.EXPECTED_FILES}",
+                                "name": "Ambiance - Faltam arquivos de backup (menos de {$AMBIANCE.BACKUP.EXPECTED_FILES})",
+                                "opdata": "Arquivos: {ITEM.LASTVALUE1} de {$AMBIANCE.BACKUP.EXPECTED_FILES}",
+                                "priority": "INFO",
+                                "description": "Há menos de {$AMBIANCE.BACKUP.EXPECTED_FILES} arquivos de backup na pasta. O rodízio semanal está incompleto: algum dia da semana não tem backup.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Ambiance - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)=-1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ee8c8670a9a141d996c2c719206d2e76",
+                        "name": "Ambiance Backup - Nome do arquivo mais recente",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.backup.latest_file",
+                        "delay": "10m",
+                        "value_type": "TEXT",
+                        "description": "Nome do arquivo de backup mais recente (ex: AMBIANCE-Backup-1.bak). O número indica a posição no rodízio semanal; serve para conferir qual arquivo foi gravado por último.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7b12da2f623b4c2aaa494e41c9b6a748",
+                        "name": "Ambiance Backup - Data/hora do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.backup.latest_time",
+                        "delay": "1m;10m/1-7,00:00-06:00",
+                        "value_type": "TEXT",
+                        "description": "Data e hora de gravação do arquivo de backup mais recente, no horário do servidor. Retorna N/A quando nenhum arquivo é encontrado.",
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "3h"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "703a3e008072434f85afbcbd9f03aada",
+                        "name": "Ambiance Backup - Tamanho do último backup",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.backup.size",
+                        "delay": "5m",
+                        "units": "B",
+                        "description": "Tamanho, em bytes, do arquivo de backup mais recente. Um valor muito abaixo do habitual indica backup incompleto ou corrompido; é comparado com {$AMBIANCE.BACKUP.MIN_SIZE} e com os backups das últimas 25 horas. Retorna 0 quando nenhum arquivo é encontrado.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "bd1d3dc150eb4bd19c06ee0ea5404889",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.size)<{$AMBIANCE.BACKUP.MIN_SIZE} and last(/Ambiance by Zabbix agent active/ambiance.backup.size)>0",
+                                "name": "Ambiance - Backup com tamanho suspeito (abaixo do mínimo)",
+                                "opdata": "Tamanho: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O arquivo de backup mais recente é menor que o mínimo configurado em {$AMBIANCE.BACKUP.MIN_SIZE} (bytes). Pode indicar backup incompleto ou corrompido.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Ambiance - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)=-1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "8f5b75fae17947f4aef790b2beeb176c",
+                                "expression": "max(/Ambiance by Zabbix agent active/ambiance.backup.size,25h:now-30m)-max(/Ambiance by Zabbix agent active/ambiance.backup.size,30m)>{$AMBIANCE.BACKUP.SIZE_DROP}",
+                                "name": "Ambiance - Tamanho do backup diminuiu significativamente",
+                                "opdata": "Tamanho atual: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O backup mais recente ficou mais de {$AMBIANCE.BACKUP.SIZE_DROP} bytes menor que os das últimas 25 horas. Compara o maior valor dos últimos 30 minutos com o maior do período anterior, para não alertar enquanto o arquivo ainda está sendo gravado. O alerta se encerra sozinho cerca de 25 horas depois.",
+                                "manual_close": "YES",
+                                "dependencies": [
+                                    {
+                                        "name": "Ambiance - Nenhum arquivo de backup encontrado",
+                                        "expression": "last(/Ambiance by Zabbix agent active/ambiance.backup.age_hours)=-1"
+                                    }
+                                ],
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "backup"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "data"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8068569c5fbb4124992d20ffcf9dc710",
+                        "name": "Ambiance Backup - Tamanho total dos backups",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.backup.total_size",
+                        "delay": "5m",
+                        "units": "B",
+                        "description": "Soma, em bytes, do tamanho de todos os arquivos AMBIANCE-Backup-[1-7].bak. Mostra quanto espaço o rodízio de backups ocupa no disco do servidor.",
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "backup"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "92b838673eda42b4ac0f8a7fe5e299bf",
+                        "name": "Ambiance Serviço - Ambiance PMS BART",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.bart",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Interface de PMS dormakaba BART (web service).\n\nServiço Windows: Ambiance PMS BART. Processo verificado: PMS.BART.Service.Host.exe. Porta(s): 9898.\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via BART. Só afeta hotéis que usam essa interface.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "fc000a24cd7d46d38faa0a36c656c0b0",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.bart)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.bart)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS BART está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo PMS.BART.Service.Host.exe (serviço Windows \"Ambiance PMS BART\", de integração com o PMS) não está em execução.\n\nFunção: Interface de PMS dormakaba BART (web service).\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via BART. Só afeta hotéis que usam essa interface.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "82d9e4479db34ca99756f320c1390f73",
+                        "name": "Ambiance Serviço - AmbianceClient",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.client",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Codifica e lê chaves RFID nos codificadores USB e fala com a unidade de manutenção (Maintenance Unit) ligados a esta máquina.\n\nServiço Windows: AmbianceClient. Processo verificado: DokaClient.exe. Porta(s): 40100.\nSe parar: Não é possível gravar nem ler cartões nos codificadores USB desta máquina, nem usar a unidade de manutenção.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "core"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "c5acb4fe3ec84cec8392c73a312f8652",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.client)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.client)=1",
+                                "name": "Ambiance - Serviço AmbianceClient está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O processo DokaClient.exe (serviço Windows \"AmbianceClient\", central) não está em execução.\n\nFunção: Codifica e lê chaves RFID nos codificadores USB e fala com a unidade de manutenção (Maintenance Unit) ligados a esta máquina.\nImpacto: Não é possível gravar nem ler cartões nos codificadores USB desta máquina, nem usar a unidade de manutenção.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "core"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4e5a830b35b24b56bfdb52c7ce0393a8",
+                        "name": "Ambiance Serviço - Ambiance Database Engine",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.databaseengine",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Camada de dados: grava, consulta e organiza os dados do Ambiance no SQL Server.\n\nServiço Windows: Ambiance Database Engine. Processo verificado: Bus.DatabaseEngine.Service.Host.exe. Porta(s): 5040.\nSe parar: Todo o sistema para: nenhuma operação que dependa de dados funciona.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "core"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "eab28c34497e4e6680421cfbed0679f6",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.databaseengine)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.databaseengine)=1",
+                                "name": "Ambiance - Serviço Ambiance Database Engine está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "O processo Bus.DatabaseEngine.Service.Host.exe (serviço Windows \"Ambiance Database Engine\", central) não está em execução.\n\nFunção: Camada de dados: grava, consulta e organiza os dados do Ambiance no SQL Server.\nImpacto: Todo o sistema para: nenhuma operação que dependa de dados funciona.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "core"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4c4694c5a6d04a3c9c0c2967607b663e",
+                        "name": "Ambiance Serviço - Ambiance Encoder Service",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.encoder",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Codifica e lê chaves RFID nos codificadores ligados por rede (TCP/IP).\n\nServiço Windows: Ambiance Encoder Service. Processo verificado: Encoder.Service.Host.exe. Porta(s): 28000 (HTTP), 28001 (HTTPS).\nSe parar: Não é possível gravar nem ler cartões nos codificadores de rede; a recepção não emite chaves por eles.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "core"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "488abb2f23be485c825c55f5443ceaef",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.encoder)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.encoder)=1",
+                                "name": "Ambiance - Serviço Ambiance Encoder Service está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "HIGH",
+                                "description": "O processo Encoder.Service.Host.exe (serviço Windows \"Ambiance Encoder Service\", central) não está em execução.\n\nFunção: Codifica e lê chaves RFID nos codificadores ligados por rede (TCP/IP).\nImpacto: Não é possível gravar nem ler cartões nos codificadores de rede; a recepção não emite chaves por eles.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "core"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "37557037a9764039b263c2c53fae0350",
+                        "name": "Ambiance Serviço - Ambiance HubGateway",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.hubgateway",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Leva os comandos da Web API às fechaduras online por gateways (GWYI, GWYII, Control4) e pelo serviço VHE.\n\nServiço Windows: Ambiance HubGateway. Processo verificado: HubGatewayService.Host.exe. Porta(s): 27000/27700, 27701 (saída).\nSe parar: Sem gestão remota das fechaduras ligadas por gateway, Control4, INNCOM, Telkonet ou INTEREL. As fechaduras continuam abrindo com as chaves já emitidas.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "online"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "7feb0dc6ef7648a6aa00f35e5564a5cc",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.hubgateway)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.hubgateway)=1",
+                                "name": "Ambiance - Serviço Ambiance HubGateway está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "AVERAGE",
+                                "description": "O processo HubGatewayService.Host.exe (serviço Windows \"Ambiance HubGateway\", de gestão remota de fechaduras) não está em execução.\n\nFunção: Leva os comandos da Web API às fechaduras online por gateways (GWYI, GWYII, Control4) e pelo serviço VHE.\nImpacto: Sem gestão remota das fechaduras ligadas por gateway, Control4, INNCOM, Telkonet ou INTEREL. As fechaduras continuam abrindo com as chaves já emitidas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "online"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9e18bbd0074544a29b11dc2a606709d5",
+                        "name": "Ambiance Serviço - Ambiance HubManager",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.hubmanager",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Gerencia a comunicação remota com as fechaduras online, por todos os dispositivos e interfaces, incluindo os gateways.\n\nServiço Windows: Ambiance HubManager. Processo verificado: Kaba.Bus.HubManager.Service.Host.exe. Porta(s): 9000.\nSe parar: Sem gestão remota de nenhuma fechadura online (comandos, eventos e status em tempo real). As fechaduras continuam abrindo com as chaves já emitidas.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "online"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "91b06bcd5c924ba6838a62ecef4b07e5",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.hubmanager)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.hubmanager)=1",
+                                "name": "Ambiance - Serviço Ambiance HubManager está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "AVERAGE",
+                                "description": "O processo Kaba.Bus.HubManager.Service.Host.exe (serviço Windows \"Ambiance HubManager\", de gestão remota de fechaduras) não está em execução.\n\nFunção: Gerencia a comunicação remota com as fechaduras online, por todos os dispositivos e interfaces, incluindo os gateways.\nImpacto: Sem gestão remota de nenhuma fechadura online (comandos, eventos e status em tempo real). As fechaduras continuam abrindo com as chaves já emitidas.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "online"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d6f0b866c90e4f59a1e31e7740c46da6",
+                        "name": "Ambiance Serviço - Ambiance MatrixSync",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.matrixsyncmanager",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Sincroniza as credenciais de hóspedes e funcionários com o servidor dormakaba MATRIX (controle de acesso de perímetro).\n\nServiço Windows: Ambiance MatrixSync. Processo verificado: Bus.MatrixSyncManager.Service.Host.exe. Porta(s): 5030.\nSe parar: As credenciais deixam de sincronizar com os pontos de acesso MATRIX. Só afeta hotéis com essa integração.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "integration"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "fbef430b17044ef2a5f9001723485d24",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.matrixsyncmanager)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.matrixsyncmanager)=1",
+                                "name": "Ambiance - Serviço Ambiance MatrixSync está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo Bus.MatrixSyncManager.Service.Host.exe (serviço Windows \"Ambiance MatrixSync\", de integração opcional) não está em execução.\n\nFunção: Sincroniza as credenciais de hóspedes e funcionários com o servidor dormakaba MATRIX (controle de acesso de perímetro).\nImpacto: As credenciais deixam de sincronizar com os pontos de acesso MATRIX. Só afeta hotéis com essa integração.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "integration"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e43b2c401fbb40a09553c7ce252169bd",
+                        "name": "Ambiance Serviço - Ambiance MobileKeyDeliveryService",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.mobilekeydelivery",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Emite chaves móveis (BLE e Apple Wallet), entregues pela plataforma LEGIC; recurso licenciado.\n\nServiço Windows: Ambiance MobileKeyDeliveryService. Processo verificado: MobileKeyDeliveryService.exe. Porta(s): 8299.\nSe parar: Não são emitidas chaves móveis. Só afeta hotéis com o recurso de chave no celular.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "integration"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "5f740868c0694dccadfa2999908985b4",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.mobilekeydelivery)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.mobilekeydelivery)=1",
+                                "name": "Ambiance - Serviço Ambiance MobileKeyDeliveryService está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo MobileKeyDeliveryService.exe (serviço Windows \"Ambiance MobileKeyDeliveryService\", de integração opcional) não está em execução.\n\nFunção: Emite chaves móveis (BLE e Apple Wallet), entregues pela plataforma LEGIC; recurso licenciado.\nImpacto: Não são emitidas chaves móveis. Só afeta hotéis com o recurso de chave no celular.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "integration"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "40eb5c16a8714c87a49630a7742c3d2b",
+                        "name": "Ambiance Serviço - Ambiance PMS Agent",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmsagent",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Recebe do sistema de gestão hoteleira (PMS) os registros de hóspedes e os pedidos de emissão de chave e os entrega ao barramento. Atende todas as interfaces de PMS, exceto IRS e PRS.\n\nServiço Windows: Ambiance PMS Agent. Processo verificado: Kaba.PMS.Agent.Host.exe. Porta(s): 9595, 9596.\nSe parar: O PMS deixa de registrar hóspedes e emitir chaves automaticamente (exceto por IRS/PRS). A emissão manual pela interface do Ambiance continua.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "27a03f57e8954e759c6318bd93735c26",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsagent)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsagent)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS Agent está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "AVERAGE",
+                                "description": "O processo Kaba.PMS.Agent.Host.exe (serviço Windows \"Ambiance PMS Agent\", de integração com o PMS) não está em execução.\n\nFunção: Recebe do sistema de gestão hoteleira (PMS) os registros de hóspedes e os pedidos de emissão de chave e os entrega ao barramento. Atende todas as interfaces de PMS, exceto IRS e PRS.\nImpacto: O PMS deixa de registrar hóspedes e emitir chaves automaticamente (exceto por IRS/PRS). A emissão manual pela interface do Ambiance continua.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6869f7b18055427a91d94524c57e5b4a",
+                        "name": "Ambiance Serviço - Ambiance PMS FIAS",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmsfias",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Ouvinte TCP da interface Oracle FIAS (usada pelo Opera e por PMS compatíveis).\n\nServiço Windows: Ambiance PMS FIAS. Processo verificado: Kaba.PMS.FIAS.SocketService.Host.exe. Porta(s): 8265.\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via FIAS. Só afeta hotéis que usam essa interface.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "ea6327ff36214d87a30df1ce0a4e8e23",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsfias)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsfias)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS FIAS está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo Kaba.PMS.FIAS.SocketService.Host.exe (serviço Windows \"Ambiance PMS FIAS\", de integração com o PMS) não está em execução.\n\nFunção: Ouvinte TCP da interface Oracle FIAS (usada pelo Opera e por PMS compatíveis).\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via FIAS. Só afeta hotéis que usam essa interface.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1006b3f70ca34dc79b85a8d7f5c17ea6",
+                        "name": "Ambiance Serviço - Ambiance PMS IRSPRS Agent",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmsirsagent",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Entrega ao barramento os registros de hóspedes e pedidos de chave vindos das interfaces dormakaba IRS e PRS.\n\nServiço Windows: Ambiance PMS IRSPRS Agent. Processo verificado: Kaba.PMS.IRS.Agent.Host.exe. Porta(s): 9696.\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via IRS/PRS. Só afeta hotéis que usam essas interfaces.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "0a2d519ec09742cbbb904bc3e6527421",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsirsagent)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsirsagent)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS IRSPRS Agent está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo Kaba.PMS.IRS.Agent.Host.exe (serviço Windows \"Ambiance PMS IRSPRS Agent\", de integração com o PMS) não está em execução.\n\nFunção: Entrega ao barramento os registros de hóspedes e pedidos de chave vindos das interfaces dormakaba IRS e PRS.\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via IRS/PRS. Só afeta hotéis que usam essas interfaces.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7f7dc45daae9495782816d54aefa4ab1",
+                        "name": "Ambiance Serviço - Ambiance PMS IRSPRS",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmsirssocket",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Ouvinte TCP das interfaces dormakaba IRS e PRS; conversa com o PMS, inclusive por serial (RS232).\n\nServiço Windows: Ambiance PMS IRSPRS. Processo verificado: Kaba.PMS.IRS.SocketService.Host.exe. Porta(s): 8264.\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via IRS/PRS. Só afeta hotéis que usam essas interfaces.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "e882de5dbb7143c2b7a79d687d6efbe0",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsirssocket)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsirssocket)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS IRSPRS está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo Kaba.PMS.IRS.SocketService.Host.exe (serviço Windows \"Ambiance PMS IRSPRS\", de integração com o PMS) não está em execução.\n\nFunção: Ouvinte TCP das interfaces dormakaba IRS e PRS; conversa com o PMS, inclusive por serial (RS232).\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via IRS/PRS. Só afeta hotéis que usam essas interfaces.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "54805045eac34d5da43f973ef1ea32ba",
+                        "name": "Ambiance Serviço - Ambiance PMS LGS API",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmslgs",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "API REST dormakaba LGS para o PMS.\n\nServiço Windows: Ambiance PMS LGS API. Processo verificado: PMS.LGS.API.exe. Porta(s): 5120 (HTTP), 5121 (HTTPS).\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via API REST LGS. Só afeta hotéis que usam essa interface.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "0b90a817df8742abbb0cfe781c3be39e",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmslgs)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmslgs)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS LGS API está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo PMS.LGS.API.exe (serviço Windows \"Ambiance PMS LGS API\", de integração com o PMS) não está em execução.\n\nFunção: API REST dormakaba LGS para o PMS.\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via API REST LGS. Só afeta hotéis que usam essa interface.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "aad33f456b494bda9f7cb0eafb477e86",
+                        "name": "Ambiance Serviço - Ambiance PMS REST API",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmsrestapi",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "API REST dormakaba LGS para o PMS, variante KF2.\n\nServiço Windows: Ambiance PMS REST API. Processo verificado: dkLockServerApiWs.exe. Porta(s): 9090.\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via API REST (KF2). Só afeta hotéis que usam essa interface.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "1eb959983823405080e45be7ff4c49da",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsrestapi)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsrestapi)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS REST API está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo dkLockServerApiWs.exe (serviço Windows \"Ambiance PMS REST API\", de integração com o PMS) não está em execução.\n\nFunção: API REST dormakaba LGS para o PMS, variante KF2.\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via API REST (KF2). Só afeta hotéis que usam essa interface.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "84c85c4588fc49ef8291f3c58c1b996a",
+                        "name": "Ambiance Serviço - Ambiance PMS WS",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.pmsws",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Web service SOAP da API dormakaba LGS para o PMS.\n\nServiço Windows: Ambiance PMS WS. Processo verificado: MessengerNet PMSWS.Host.exe. Porta(s): 80 (HTTP), 443 (HTTPS).\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo PMS via API SOAP LGS. Só afeta hotéis que usam essa interface.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "efd252309d694c64845d69cc0cdc956f",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsws)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.pmsws)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS WS está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo MessengerNet PMSWS.Host.exe (serviço Windows \"Ambiance PMS WS\", de integração com o PMS) não está em execução.\n\nFunção: Web service SOAP da API dormakaba LGS para o PMS.\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo PMS via API SOAP LGS. Só afeta hotéis que usam essa interface.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1b461c2ab7d949978b0741c7517954ad",
+                        "name": "Ambiance Serviço - Ambiance Server",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.server",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Serviço principal: coordena todos os demais e executa os serviços internos do barramento (Bus) como tarefas paralelas.\n\nServiço Windows: Ambiance Server. Processo verificado: KabaService.exe. Porta(s): 49999.\nSe parar: Todo o sistema para: não é possível emitir nem ler chaves, e as integrações deixam de responder.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "core"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "592ea7ddb286479e952595a91c6189c4",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.server)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.server)=1",
+                                "name": "Ambiance - Serviço Ambiance Server está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "O processo KabaService.exe (serviço Windows \"Ambiance Server\", central) não está em execução.\n\nFunção: Serviço principal: coordena todos os demais e executa os serviços internos do barramento (Bus) como tarefas paralelas.\nImpacto: Todo o sistema para: não é possível emitir nem ler chaves, e as integrações deixam de responder.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "core"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "88104e5c1bf4449eb81d255e9a82bd63",
+                        "name": "Ambiance Serviço - Ambiance Service Manager API",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.servicemanagerapi",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Processo de apoio do Service Manager do Ambiance, a ferramenta que inicia e para serviços e faz a verificação periódica de saúde (Watchdog). Provavelmente é o serviço Windows \"Ambiance Watchdog\"; a associação não foi confirmada no servidor.\n\nServiço Windows: Ambiance Service Manager API. Processo verificado: DokaServiceManager.Service.API.exe. Porta(s): 9097 (Watchdog).\nSe parar: Sem a verificação automática de saúde dos serviços. Nada para de funcionar para a recepção.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "management"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "22b8c4d968df49bdba3537f8ece56863",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.servicemanagerapi)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.servicemanagerapi)=1",
+                                "name": "Ambiance - Serviço Ambiance Service Manager API está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "INFO",
+                                "description": "O processo DokaServiceManager.Service.API.exe (serviço Windows \"Ambiance Service Manager API\", de apoio) não está em execução.\n\nFunção: Processo de apoio do Service Manager do Ambiance, a ferramenta que inicia e para serviços e faz a verificação periódica de saúde (Watchdog). Provavelmente é o serviço Windows \"Ambiance Watchdog\"; a associação não foi confirmada no servidor.\nImpacto: Sem a verificação automática de saúde dos serviços. Nada para de funcionar para a recepção.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "management"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "13bc5b5ab4ca4c6f83f370a2a496093c",
+                        "name": "Ambiance Serviço - Ambiance PMS Skytouch",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.skytouch",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Interface com o PMS SkyTouch.\n\nServiço Windows: Ambiance PMS Skytouch. Processo verificado: PMS.SkyTouch.Service.exe. Porta(s): 5020 (HTTP), 5021 (HTTPS).\nSe parar: Sem registro de hóspedes nem emissão de chaves pelo SkyTouch. Só afeta hotéis que usam esse PMS.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "pms"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "572b1eb308a048ae821d6eee6f0505d4",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.skytouch)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.skytouch)=1",
+                                "name": "Ambiance - Serviço Ambiance PMS Skytouch está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo PMS.SkyTouch.Service.exe (serviço Windows \"Ambiance PMS Skytouch\", de integração com o PMS) não está em execução.\n\nFunção: Interface com o PMS SkyTouch.\nImpacto: Sem registro de hóspedes nem emissão de chaves pelo SkyTouch. Só afeta hotéis que usam esse PMS.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "pms"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e9fbf18ba4854058b4836ba58189d22f",
+                        "name": "Ambiance Serviço - Ambiance VHE Service",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.vhe",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Comunicação remota com fechaduras por sistemas de automação de quarto de terceiros (INNCOM, INTEREL, Telkonet); recebe os comandos pelo HubGateway.\n\nServiço Windows: Ambiance VHE Service. Processo verificado: VHEService.Host.exe. Porta(s): 6099, 6007, 6006/5020.\nSe parar: Sem comunicação remota com fechaduras via INNCOM, INTEREL ou Telkonet. Só afeta hotéis com essas integrações.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "online"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "e7996139e5154cf199e7230d3a9b45d7",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.vhe)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.vhe)=1",
+                                "name": "Ambiance - Serviço Ambiance VHE Service está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O processo VHEService.Host.exe (serviço Windows \"Ambiance VHE Service\", de gestão remota de fechaduras) não está em execução.\n\nFunção: Comunicação remota com fechaduras por sistemas de automação de quarto de terceiros (INNCOM, INTEREL, Telkonet); recebe os comandos pelo HubGateway.\nImpacto: Sem comunicação remota com fechaduras via INNCOM, INTEREL ou Telkonet. Só afeta hotéis com essas integrações.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "online"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4b788a4238c04f39ae6b82541da5c9fa",
+                        "name": "Ambiance Serviço - Ambiance Web API",
+                        "type": "ZABBIX_ACTIVE",
+                        "key": "ambiance.webapi",
+                        "delay": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "description": "Gateway de API: recebe as requisições da interface do Ambiance e dos serviços de campo (cliente das estações e gateway dos hubs).\n\nServiço Windows: Ambiance Web API. Processo verificado: Kaba.Web.Gateway.API.exe. Porta(s): 26265 (HTTP), 443 (HTTPS).\nSe parar: Todo o sistema para: a interface do Ambiance deixa de funcionar nas estações.\n\nValores: 1 = em execução, 0 = parado.",
+                        "valuemap": {
+                            "name": "AMBIANCE Service State"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "30m"
+                                ]
+                            }
+                        ],
+                        "timeout": "30s",
+                        "tags": [
+                            {
+                                "tag": "application",
+                                "value": "ambiance"
+                            },
+                            {
+                                "tag": "component",
+                                "value": "service"
+                            },
+                            {
+                                "tag": "subcomponent",
+                                "value": "core"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "f3b50b1ba6404f80aa552dcb5fdd06a1",
+                                "expression": "last(/Ambiance by Zabbix agent active/ambiance.webapi)=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/Ambiance by Zabbix agent active/ambiance.webapi)=1",
+                                "name": "Ambiance - Serviço Ambiance Web API está parado",
+                                "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                "priority": "DISASTER",
+                                "description": "O processo Kaba.Web.Gateway.API.exe (serviço Windows \"Ambiance Web API\", central) não está em execução.\n\nFunção: Gateway de API: recebe as requisições da interface do Ambiance e dos serviços de campo (cliente das estações e gateway dos hubs).\nImpacto: Todo o sistema para: a interface do Ambiance deixa de funcionar nas estações.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "application",
+                                        "value": "ambiance"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "service"
+                                    },
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    },
+                                    {
+                                        "tag": "subcomponent",
+                                        "value": "core"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "application"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "ambiance"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$AMBIANCE.BACKUP.AGE.DISASTER}",
+                        "value": "48",
+                        "description": "Idade do backup mais recente, em horas, para gerar DISASTER. Número puro, sem sufixo."
+                    },
+                    {
+                        "macro": "{$AMBIANCE.BACKUP.AGE.WARN}",
+                        "value": "24",
+                        "description": "Idade do backup mais recente, em horas, para gerar WARNING. Número puro, sem sufixo."
+                    },
+                    {
+                        "macro": "{$AMBIANCE.BACKUP.EXPECTED_FILES}",
+                        "value": "7",
+                        "description": "Quantidade esperada de arquivos de backup (um por dia da semana)."
+                    },
+                    {
+                        "macro": "{$AMBIANCE.BACKUP.MIN_SIZE}",
+                        "value": "10485760",
+                        "description": "Tamanho mínimo aceitável do backup mais recente, em bytes (padrão: 10 MB). Ajuste por host conforme o tamanho real do banco."
+                    },
+                    {
+                        "macro": "{$AMBIANCE.BACKUP.SIZE_DROP}",
+                        "value": "10485760",
+                        "description": "Queda de tamanho entre backups, em bytes, para gerar alerta (padrão: 10 MB)."
+                    },
+                    {
+                        "macro": "{$AMBIANCE.SERVICE.CHECK_INTERVAL}",
+                        "value": "3m",
+                        "description": "Intervalo de checagem dos serviços do Ambiance."
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "1ba8e9d27b7843b09c5a1c604e0d0a50",
+                        "name": "AMBIANCE Service State",
+                        "mappings": [
+                            {
+                                "value": "1",
+                                "newvalue": "Running"
+                            },
+                            {
+                                "value": "0",
+                                "newvalue": "Stopped"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,7 +1,7 @@
 # Zabbix 7.4 Custom Template Library
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.4-D40000?style=flat-square&logoColor=white)
-![Templates](https://img.shields.io/badge/Templates-18-7F13EC?style=flat-square)
+![Templates](https://img.shields.io/badge/Templates-19-7F13EC?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Production-brightgreen?style=flat-square)
 
 [🇧🇷 Português](#pt-br) · [🇺🇸 English](#en-us)
@@ -11,7 +11,7 @@
 <a id="pt-br"></a>
 ## 🇧🇷 Português
 
-Uma coleção de 18 templates Zabbix de nível enterprise desenvolvidos para ambientes MSP, cobrindo dispositivos de rede, plataformas de nuvem, servidores Windows, gateways IoT e aplicações de negócio.
+Uma coleção de 19 templates Zabbix de nível enterprise desenvolvidos para ambientes MSP, cobrindo dispositivos de rede, plataformas de nuvem, servidores Windows, gateways IoT e aplicações de negócio.
 
 Todos os templates têm como alvo o **Zabbix 7.4** e seguem convenções consistentes: thresholds orientados por macro, itens com tags, expressões de recuperação em todos os triggers e `DISCARD_UNCHANGED_HEARTBEAT` para reduzir ruído.
 
@@ -21,6 +21,7 @@ Todos os templates têm como alvo o **Zabbix 7.4** e seguem convenções consist
 
 | Template | Categoria | Método | Itens | UserParameters |
 |---|---|---|---|---|
+| [Ambiance (dormakaba)](templates/ambiance/) | Windows / Aplicações | Zabbix Agent 2 (ativo) | 27 | `user_parameters_ambiance.conf` |
 | [ATHOS PDV](templates/athos-pdv/) | Windows / Aplicações | Zabbix Agent 2 (ativo) | 45 | `user_parameters_athos.conf` |
 | [D-Link DGS-3100-24 Switch](templates/dlink-dgs-3100-24/) | Dispositivos de Rede | SNMP v2c | 16 | — |
 | [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependente | 58 | — |
@@ -80,7 +81,7 @@ Estes templates foram desenvolvidos e testados em um ambiente MSP de produção 
 <a id="en-us"></a>
 ## 🇺🇸 English
 
-A collection of 18 enterprise-grade Zabbix templates developed for MSP environments, covering network devices, cloud platforms, Windows servers, IoT gateways and business applications.
+A collection of 19 enterprise-grade Zabbix templates developed for MSP environments, covering network devices, cloud platforms, Windows servers, IoT gateways and business applications.
 
 All templates target **Zabbix 7.4** and follow consistent conventions: macro-driven thresholds, tagged items, recovery expressions on all triggers and `DISCARD_UNCHANGED_HEARTBEAT` to reduce noise.
 
@@ -90,6 +91,7 @@ All templates target **Zabbix 7.4** and follow consistent conventions: macro-dri
 
 | Template | Category | Method | Items | UserParameters |
 |---|---|---|---|---|
+| [Ambiance (dormakaba)](templates/ambiance/) | Windows / Applications | Zabbix Agent 2 (active) | 27 | `user_parameters_ambiance.conf` |
 | [ATHOS PDV](templates/athos-pdv/) | Windows / Applications | Zabbix Agent 2 (active) | 45 | `user_parameters_athos.conf` |
 | [D-Link DGS-3100-24 Switch](templates/dlink-dgs-3100-24/) | Network Devices | SNMP v2c | 16 | — |
 | [Dragino IoT Gateway](templates/dragino-iot/) | IoT / LoRaWAN | SSH + Dependent | 58 | — |
