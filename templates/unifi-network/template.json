@@ -1,0 +1,3662 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "023751139efb4e7ebfbd743f390dfa3a",
+                "name": "Templates/Network devices"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "baee6b47880b40a2a6c21745b7f71495",
+                "template": "UniFi Network 10.6 by API",
+                "name": "UniFi Network 10.6 by API",
+                "description": "UniFi Network 10.x (UniFi OS Server ou console) pela API, com chave de API (Settings > Control Plane > Integrations > API Keys). Usa a API de integração (v1) e a API clássica/v2 do UniFi Network, que aceitam a mesma chave. Coleta: APs (estado, recursos, clientes, satisfação, porta de rede, EOL), rádios (canal, potência, utilização, interferência, retransmissões), redes Wi-Fi (faixas, segurança, roaming), conexões das últimas 24 h, experiência dos clientes, vizinhança de rádio e o próprio controller. Só agregados: nenhum MAC, IP ou nome de aparelho de cliente é gravado (LGPD). Macros no host: {$UNIFI.API.KEY} (secreta); {$UNIFI.PORT} (11443 no UniFi OS Server, 443 em console UniFi, 8443 na Network Application standalone); {$UNIFI.API.PREFIX} (/proxy/network no UniFi OS, vazio na standalone); {$UNIFI.SITE} (um host por site do controller). {$UNIFI.AP.EOL.ALERT}=0 desliga o alerta por AP fora de linha. Todos os triggers aceitam fechamento manual e os de qualidade têm recuperação com folga (histerese) para não oscilar. Systrix, out/2026.",
+                "vendor": {
+                    "name": "Systrix",
+                    "version": "7.4-1.0"
+                },
+                "groups": [
+                    {
+                        "name": "Templates/Network devices"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "044ec099563e43fbb57847b9938b5d16",
+                        "name": "UniFi OS: porta HTTPS",
+                        "type": "SIMPLE",
+                        "key": "net.tcp.service[https,,{$UNIFI.PORT}]",
+                        "valuemap": {
+                            "name": "UniFi serviço"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "controller"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "8df1b231901b4dda8bb00c0a4e98f884",
+                                "expression": "max(/UniFi Network 10.6 by API/net.tcp.service[https,,{$UNIFI.PORT}],#3)=0",
+                                "name": "UniFi OS: interface HTTPS sem resposta",
+                                "priority": "HIGH",
+                                "description": "O servidor UniFi OS não responde na porta {$UNIFI.PORT}. Os APs continuam funcionando, mas sem gerência, estatísticas nem portal.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0a63d3e87a6c411d81155ab1c552a2a0",
+                        "name": "APs: com rádio de 5 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.dualband",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_dualband"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "50f5f6b2d2ed469782e672fb5070ac67",
+                        "name": "APs: fora de linha do fabricante (EOL)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.eol",
+                        "description": "APs de modelos descontinuados pela Ubiquiti: não recebem mais firmware nem correções de segurança.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_eol"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d075c36d2f3d402cb914b21624afc67b",
+                        "name": "APs: com porta de rede de 100 Mbps",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.fast_ethernet",
+                        "description": "APs cujo hardware só tem porta de 100 Mbps (modelos antigos): o próprio AP limita a velocidade de todos os clientes dele.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_fast_ethernet"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "14a9bbd327474141a1e71badc75302af",
+                        "name": "APs: offline",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.offline",
+                        "description": "APs adotados que o controller não está vendo (desconectados, sem energia ou sem rede).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_offline"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "1f8ae4eb5df14a6eaab1be35e4a15c01",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.aps.offline)>={$UNIFI.APS.OFFLINE.DISASTER}",
+                                "name": "UniFi: vários APs offline",
+                                "opdata": "{ITEM.LASTVALUE1} AP(s) offline",
+                                "priority": "DISASTER",
+                                "description": "{$UNIFI.APS.OFFLINE.DISASTER} ou mais APs offline ao mesmo tempo: provável falha de energia, switch ou PoE que atende vários andares.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2ba34ce18e1a49b7886afb434e43e62e",
+                        "name": "APs: online",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.online",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_online"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "766b7812303544bd96085d02ce016d1c",
+                        "name": "APs: total",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.total",
+                        "description": "Pontos de acesso adotados no site.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "d3a118a11ac8492bafcf73e5d68115c6",
+                                "expression": "nodata(/UniFi Network 10.6 by API/unifi.aps.total,10m)=1",
+                                "name": "UniFi: API sem dados há 10 minutos",
+                                "priority": "AVERAGE",
+                                "description": "A coleta dos APs falhou: chave de API revogada, controller fora do ar ou URL errada. Ver o erro do item \"UniFi: coleta de APs, rádios e clientes\".",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f23b79ece6204afa833f085111c94f58",
+                        "name": "APs: com firmware para atualizar",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.upgradable",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_upgradable"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6ce0065230f546248adce14677b4d811",
+                        "name": "APs: porta de rede negociando abaixo da capacidade",
+                        "type": "DEPENDENT",
+                        "key": "unifi.aps.uplink.limited",
+                        "description": "APs com porta gigabit ligados a 100 Mbps (cabo, conector, porta do switch ou injetor PoE de 100 Mbps).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.aps_uplink_limited"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "ap"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "c9fe683a365b4e898872f310ba3186ec",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.aps.uplink.limited)>0",
+                                "name": "UniFi: APs com porta de rede abaixo da capacidade",
+                                "opdata": "{ITEM.LASTVALUE1} AP(s)",
+                                "priority": "WARNING",
+                                "description": "APs que suportam porta gigabit estão ligados a 100 Mbps. Ver o trigger por AP para saber quais.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5d2b7f7afcd14f7887f418ec3cbeb419",
+                        "name": "Clientes: em 2,4 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.2g",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_2g"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cd5dbb5c80d140beb8642b23cfedf2bc",
+                        "name": "Clientes: em 5 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.5g",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_5g"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4796fbd5129c4fa2a9c26eadec053e48",
+                        "name": "Clientes: em 6 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.6g",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_6g"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7ff8d46f241443f096511f6cf17fa79c",
+                        "name": "Clientes distintos (24 h)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.24h",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.clients_24h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b40d227e1df54fed881a27f65a5b76d6",
+                        "name": "Clientes: em rede de visitantes",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.guest",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_guest"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "030c4262ceaa44d3b226acda7a606a57",
+                        "name": "Clientes: em Wi-Fi 4 (802.11n) ou anterior",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.legacy",
+                        "description": "Aparelhos conectados com padrão 802.11n ou anterior. Em 2,4 GHz é o normal; quanto maior, menor a velocidade possível.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_legacy"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "567523aee6b4467b89d0854a2a6bee91",
+                        "name": "Clientes: com satisfação baixa",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.lowsat",
+                        "description": "Clientes com satisfação abaixo de 50 % segundo o UniFi (combina sinal, retransmissões e latência).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_low_satisfaction"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b3fb1d1c225744a5936ffea10f1d5e05",
+                        "name": "Clientes: retransmissões médias",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.retries.avg",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Percentual médio de pacotes reenviados para os clientes. Acima de 15 % indica interferência ou sinal ruim.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_retries_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "4f7b3929d0834004852ece3b47668e68",
+                        "name": "Clientes: satisfação média",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.satisfaction.avg",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_satisfaction_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "fecb497b158249f29b17ecff5dd47f83",
+                        "name": "Clientes: sinal médio",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.signal.avg",
+                        "value_type": "FLOAT",
+                        "units": "dBm",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_signal_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3b66c4915e99463c82bcc17b5985b959",
+                        "name": "Clientes: conectados",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.total",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "27b3ba250b68443d85e47d7e6879ede7",
+                        "name": "Clientes: com sinal fraco",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.weak",
+                        "description": "Clientes com sinal abaixo de {$UNIFI.CLIENT.SIGNAL.WEAK} dBm: costumam ter lentidão e quedas.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_weak"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "41637f7b5324406ea78390b23e915114",
+                        "name": "Clientes: com sinal fraco (%)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.weak.pct",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_weak_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b4e48ce352be42c291199f80dfa46d4f",
+                        "name": "Clientes: Wi-Fi",
+                        "type": "DEPENDENT",
+                        "key": "unifi.clients.wifi",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.clients_wifi"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5c6caba1879f4125a40aee6631fb9f20",
+                        "name": "Conexões (24 h): associação",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.assoc",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_assoc_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6f1acefa3d7049f7aac98a2408cd4f51",
+                        "name": "Conexões (24 h): tentativas",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.attempts",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_attempts"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "a1f4d6ca7adb4410861cffc7d32d6a5a",
+                                "expression": "nodata(/UniFi Network 10.6 by API/unifi.conn.attempts,30m)=1",
+                                "name": "UniFi: coleta do controller sem dados há 30 minutos",
+                                "priority": "WARNING",
+                                "description": "A coleta do controller (experiência, conexões, vizinhança) falhou. Ver o erro do item \"UniFi: coleta do controller e da experiência Wi-Fi\".",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "b9694401942946dd971720139bbad035",
+                        "name": "Conexões (24 h): autenticação (senha)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.auth",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_auth_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ff5595b369e54f1ba9550d02a141af84",
+                        "name": "Conexões (24 h): DHCP (endereço IP)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.dhcp",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_dhcp_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "daf5f759104e4e8db53030a190aac072",
+                        "name": "Conexões (24 h): DNS",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.dns",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_dns_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ca637cecc531459ebabe2f813e549d54",
+                        "name": "Conexões (24 h): falhas",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.failed",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_failed"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "faedbf1a7b3547d683862f6a5afeddde",
+                        "name": "Conexões (24 h): tempo médio de associação",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.latency.assoc",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_latency_assoc"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c128a5222b034787bcfe735bc4ecd63c",
+                        "name": "Conexões (24 h): tempo médio de autenticação",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.latency.auth",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_latency_auth"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c36f39e7c75f475caafb128e10376780",
+                        "name": "Conexões (24 h): tempo médio de DHCP",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.latency.dhcp",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_latency_dhcp"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5654a4277e7b4a359c9fa867b7fc8008",
+                        "name": "Conexões (24 h): tempo médio de total",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.latency.total",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_latency_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "cf29370d89d045a692e53f43ce3e5f1a",
+                                "expression": "avg(/UniFi Network 10.6 by API/unifi.conn.latency.total,1h)>{$UNIFI.CONN.LATENCY.MAX}",
+                                "name": "UniFi: conexão ao Wi-Fi demorada",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "Os aparelhos levam mais de {$UNIFI.CONN.LATENCY.MAX} s em média para conectar (associação + senha + DHCP + DNS).",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "06381504c6514ab1ac67b11cff8d6106",
+                        "name": "Conexões (24 h): sucesso total",
+                        "type": "DEPENDENT",
+                        "key": "unifi.conn.success",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.conn_success_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "connectivity"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3c9482bc5eeb4fe097d6a583b03a12f8",
+                        "name": "Controller: atualização disponível",
+                        "type": "DEPENDENT",
+                        "key": "unifi.controller.update",
+                        "valuemap": {
+                            "name": "UniFi sim/não"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.update_available"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "controller"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "6e5767c1ab0f466fa845442fd36c2de4",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.controller.update)=1",
+                                "name": "UniFi: atualização do UniFi Network disponível",
+                                "priority": "INFO",
+                                "description": "Há versão mais nova do UniFi Network.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "18cdfcca26124265b8a1698f9a5d5997",
+                        "name": "Controller: tempo de atividade",
+                        "type": "DEPENDENT",
+                        "key": "unifi.controller.uptime",
+                        "units": "uptime",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.uptime"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "controller"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "35e94d32f0a547a988ccf2cd95288b4b",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.controller.uptime)<600",
+                                "name": "UniFi: controller reiniciado",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "INFO",
+                                "description": "O UniFi Network reiniciou há menos de 10 minutos.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9935bdbac9b946ad81420aec727e8bb3",
+                        "name": "Controller: versão do UniFi Network",
+                        "type": "DEPENDENT",
+                        "key": "unifi.controller.version",
+                        "history": "7d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.version"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1d"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "controller"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "bdfe71e0eae24c4b95b78e7911a521b4",
+                        "name": "Controller: estado do Wi-Fi",
+                        "type": "DEPENDENT",
+                        "key": "unifi.controller.wlan_status",
+                        "history": "7d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.wlan_status"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "controller"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3dc9a2e6d1a34b02972cc8490fd53780",
+                        "name": "UniFi: coleta de APs, rádios e clientes",
+                        "type": "SCRIPT",
+                        "key": "unifi.devices.get",
+                        "history": "0",
+                        "value_type": "TEXT",
+                        "params": "// Coleta de APs, rádios, clientes e redes Wi-Fi do UniFi Network 10.x.\n// Só agregados: nenhum MAC, IP ou nome de aparelho de cliente é devolvido.\n// Também não devolve campos sensíveis do controller (x_authkey, x_aes_gcm etc.):\n// o JSON de saída é montado campo a campo.\nvar p = JSON.parse(value);\nvar base = String(p.url || '').replace(/\\/+$/, '');\nvar site = p.site || 'default';\n// '/proxy/network' no UniFi OS (console ou UniFi OS Server); vazio na Network Application standalone\nvar pre = String(p.prefix === undefined ? '/proxy/network' : p.prefix).replace(/\\/+$/, '');\nvar weak = parseFloat(p.weak_signal || '-70');\nif (!p.key) throw 'Macro {$UNIFI.API.KEY} vazia';\n\nfunction get(path) {\n  var r = new HttpRequest();\n  r.addHeader('X-API-KEY: ' + p.key);\n  r.addHeader('Accept: application/json');\n  var body = r.get(base + path);\n  var code = r.getStatus();\n  if (code !== 200) throw 'HTTP ' + code + ' em ' + path + ': ' + String(body).substring(0, 200);\n  return JSON.parse(body);\n}\nfunction num(v, d) { var n = parseFloat(v); return isNaN(n) ? (d === undefined ? -1 : d) : n; }\nfunction r2(v) { return Math.round(v * 100) / 100; }\n\n// nomes comerciais dos modelos (a API clássica devolve códigos como BZ2/U2Lv2)\nvar modelName = {};\ntry {\n  var sites = get(pre + '/integration/v1/sites').data || [];\n  var sid = null;\n  for (var i = 0; i < sites.length; i++) if (sites[i].internalReference === site) sid = sites[i].id;\n  if (sid) {\n    var idv = get(pre + '/integration/v1/sites/' + sid + '/devices?limit=200').data || [];\n    for (var j = 0; j < idv.length; j++) modelName[String(idv[j].macAddress).toLowerCase()] = idv[j].model;\n  }\n} catch (e) { }\n\nvar devs = get(pre + '/api/s/' + site + '/stat/device').data || [];\nvar stas = get(pre + '/api/s/' + site + '/stat/sta').data || [];\nvar wlans = get(pre + '/api/s/' + site + '/rest/wlanconf').data || [];\n\n// clientes por AP e por SSID\nvar perAp = {}, perSsid = {};\nvar cs = { total: 0, wifi: 0, wired: 0, g2: 0, g5: 0, g6: 0, guest: 0, weak: 0, lowsat: 0, legacy: 0, sig: 0, sigN: 0, sat: 0, satN: 0, ret: 0, retN: 0 };\nfor (var k = 0; k < stas.length; k++) {\n  var s = stas[k];\n  cs.total++;\n  if (s.is_wired) { cs.wired++; continue; }\n  cs.wifi++;\n  var band = s.radio === 'na' ? 'g5' : (s.radio === '6e' ? 'g6' : 'g2');\n  cs[band]++;\n  if (s.is_guest) cs.guest++;\n  if (s.radio_proto === 'ng' || s.radio_proto === 'g' || s.radio_proto === 'b') cs.legacy++;\n  var a = perAp[s.ap_mac] || (perAp[s.ap_mac] = { n: 0, weak: 0, sig: 0, sat: 0, satN: 0, ret: 0, retN: 0 });\n  a.n++;\n  if (typeof s.signal === 'number') {\n    cs.sig += s.signal; cs.sigN++; a.sig += s.signal;\n    if (s.signal < weak) { cs.weak++; a.weak++; }\n  }\n  if (typeof s.satisfaction === 'number') {\n    cs.sat += s.satisfaction; cs.satN++; a.sat += s.satisfaction; a.satN++;\n    if (s.satisfaction < 50) cs.lowsat++;\n  }\n  if (typeof s.wifi_tx_retries_percentage === 'number') {\n    cs.ret += s.wifi_tx_retries_percentage; cs.retN++; a.ret += s.wifi_tx_retries_percentage; a.retN++;\n  }\n  var e = s.essid || '(sem nome)';\n  var w = perSsid[e] || (perSsid[e] = { n: 0, sat: 0, satN: 0 });\n  w.n++;\n  if (typeof s.satisfaction === 'number') { w.sat += s.satisfaction; w.satN++; }\n}\n\nvar aps = [], radios = [];\nvar sum = { total: 0, online: 0, offline: 0, eol: 0, upgradable: 0, uplink_limited: 0, fast_ethernet: 0, dualband: 0,\n  r2: { n: 0, cu: 0, ret: 0, intf: 0 }, r5: { n: 0, cu: 0, ret: 0, intf: 0 } };\nvar now = Math.floor(Date.now() / 1000);\nfor (var d = 0; d < devs.length; d++) {\n  var x = devs[d];\n  if (x.type !== 'uap') continue;\n  var mac = String(x.mac).toLowerCase();\n  var up = x.uplink || {};\n  var ss = x['system-stats'] || {};\n  var ap = perAp[x.mac] || { n: 0, weak: 0, sig: 0, sat: 0, satN: 0, ret: 0, retN: 0 };\n  var bands = {};\n  var rts = x.radio_table_stats || [], rt = x.radio_table || [];\n  for (var q = 0; q < rts.length; q++) {\n    var rs = rts[q], cfg = {};\n    for (var z = 0; z < rt.length; z++) if (rt[z].name === rs.name) cfg = rt[z];\n    var bandName = rs.radio === 'na' ? '5 GHz' : (rs.radio === '6e' ? '6 GHz' : '2,4 GHz');\n    bands[rs.radio] = 1;\n    var cu = num(rs.cu_total, 0), self = num(rs.cu_self_rx, 0) + num(rs.cu_self_tx, 0);\n    var intf = Math.max(0, cu - self);\n    radios.push({\n      key: mac + '-' + rs.radio, ap_mac: mac, ap_name: x.name || mac, radio: rs.radio, band: bandName,\n      channel: num(rs.channel), width: cfg.ht ? parseInt(cfg.ht, 10) : -1, tx_power: num(rs.tx_power),\n      tx_power_mode: cfg.tx_power_mode || '', cu_total: cu, cu_self_rx: num(rs.cu_self_rx, 0), cu_self_tx: num(rs.cu_self_tx, 0),\n      interference: intf, clients: num(rs.num_sta, 0), satisfaction: num(rs.satisfaction),\n      tx_retries_pct: num(rs.tx_retries_pct, 0), state: rs.state === 'RUN' ? 1 : 0,\n      min_rssi: cfg.min_rssi_enabled ? num(cfg.min_rssi) : 0\n    });\n    var agg = rs.radio === 'na' ? sum.r5 : (rs.radio === 'ng' ? sum.r2 : null);\n    if (agg && x.state === 1) { agg.n++; agg.cu += cu; agg.ret += num(rs.tx_retries_pct, 0); agg.intf += intf; }\n  }\n  var dual = (bands.na || bands['6e']) ? 1 : 0;\n  sum.total++;\n  if (x.state === 1) sum.online++; else sum.offline++;\n  if (x.model_in_eol) sum.eol++;\n  if (x.upgradable) sum.upgradable++;\n  if (num(up.speed, 0) > 0 && num(up.max_speed, 0) > num(up.speed, 0)) sum.uplink_limited++;\n  if (num(up.max_speed, 0) > 0 && num(up.max_speed, 0) <= 100) sum.fast_ethernet++;\n  if (dual) sum.dualband++;\n  aps.push({\n    mac: mac, name: x.name || mac, model: modelName[mac] || x.model, model_code: x.model, ip: x.ip || '',\n    state: num(x.state, 0), version: x.version || '', upgradable: x.upgradable ? 1 : 0,\n    eol: x.model_in_eol ? 1 : 0, eol_date: x.model_eol_date ? String(x.model_eol_date).substring(0, 10) : '',\n    dualband: dual, uptime: num(x.uptime, 0), last_seen_age: x.last_seen ? now - x.last_seen : -1,\n    cpu: num(ss.cpu), mem: num(ss.mem), load1: x.sys_stats ? num(x.sys_stats.loadavg_1) : -1,\n    clients: num(x.num_sta, 0), clients_guest: num(x['guest-num_sta'], 0), satisfaction: num(x.satisfaction),\n    clients_weak: ap.weak, client_signal_avg: ap.n && ap.sig ? r2(ap.sig / ap.n) : 0,\n    client_satisfaction_avg: ap.satN ? r2(ap.sat / ap.satN) : -1, client_retries_avg: ap.retN ? r2(ap.ret / ap.retN) : -1,\n    uplink_type: up.type || '', uplink_speed: num(up.speed, 0), uplink_max_speed: num(up.max_speed, 0),\n    uplink_full_duplex: up.full_duplex ? 1 : 0, uplink_tx_bps: Math.round(num(up['tx_bytes-r'], 0) * 8),\n    uplink_rx_bps: Math.round(num(up['rx_bytes-r'], 0) * 8), uplink_rx_dropped: num(up.rx_dropped, 0),\n    uplink_errors: num(up.rx_errors, 0) + num(up.tx_errors, 0)\n  });\n}\n\n// redes Wi-Fi (configuração) + clientes por SSID\nvar wl = [], twoGOnly = 0;\nfor (var y = 0; y < wlans.length; y++) {\n  var c = wlans[y], st = perSsid[c.name] || { n: 0, sat: 0, satN: 0 };\n  var bandCfg = c.wlan_band || (c.wlan_bands ? c.wlan_bands.join('+') : 'both');\n  if (c.enabled && bandCfg === '2g' && sum.dualband > 0) twoGOnly++;\n  wl.push({\n    ssid: c.name, enabled: c.enabled ? 1 : 0, band: bandCfg, security: c.security || '', wpa_mode: c.wpa_mode || '',\n    pmf: c.pmf_mode || '', fast_roaming: c.fast_roaming_enabled ? 1 : 0, bss_transition: c.bss_transition ? 1 : 0,\n    min_rate_kbps: num(c.minrate_ng_data_rate_kbps, 0), hidden: c.hide_ssid ? 1 : 0, guest: c.is_guest ? 1 : 0,\n    clients: st.n, satisfaction: st.satN ? r2(st.sat / st.satN) : -1\n  });\n}\n\nfunction avg(a, f) { return a.n ? r2(a[f] / a.n) : -1; }\nreturn JSON.stringify({\n  aps: aps, radios: radios, wlans: wl,\n  summary: {\n    aps_total: sum.total, aps_online: sum.online, aps_offline: sum.offline, aps_eol: sum.eol,\n    aps_upgradable: sum.upgradable, aps_uplink_limited: sum.uplink_limited, aps_fast_ethernet: sum.fast_ethernet,\n    aps_dualband: sum.dualband, wlans_2g_only_with_dualband: twoGOnly,\n    clients_total: cs.total, clients_wifi: cs.wifi, clients_wired: cs.wired, clients_2g: cs.g2, clients_5g: cs.g5,\n    clients_6g: cs.g6, clients_guest: cs.guest, clients_weak: cs.weak,\n    clients_weak_pct: cs.wifi ? r2(cs.weak * 100 / cs.wifi) : 0, clients_low_satisfaction: cs.lowsat,\n    clients_legacy: cs.legacy, clients_signal_avg: cs.sigN ? r2(cs.sig / cs.sigN) : 0,\n    clients_satisfaction_avg: cs.satN ? r2(cs.sat / cs.satN) : -1, clients_retries_avg: cs.retN ? r2(cs.ret / cs.retN) : -1,\n    radio2g_cu_avg: avg(sum.r2, 'cu'), radio2g_retries_avg: avg(sum.r2, 'ret'), radio2g_interference_avg: avg(sum.r2, 'intf'),\n    radio5g_cu_avg: avg(sum.r5, 'cu'), radio5g_retries_avg: avg(sum.r5, 'ret'), radio5g_interference_avg: avg(sum.r5, 'intf')\n  }\n});\n",
+                        "description": "Item mestre (1 min): API clássica (stat/device, stat/sta, rest/wlanconf) e API de integração (nomes dos modelos). Devolve só agregados — nenhum MAC, IP ou nome de aparelho de usuário — e monta a saída campo a campo, sem as chaves internas do controller. history=0.",
+                        "timeout": "60s",
+                        "parameters": [
+                            {
+                                "name": "key",
+                                "value": "{$UNIFI.API.KEY}"
+                            },
+                            {
+                                "name": "prefix",
+                                "value": "{$UNIFI.API.PREFIX}"
+                            },
+                            {
+                                "name": "site",
+                                "value": "{$UNIFI.SITE}"
+                            },
+                            {
+                                "name": "url",
+                                "value": "{$UNIFI.SCHEME}://{HOST.CONN}:{$UNIFI.PORT}"
+                            },
+                            {
+                                "name": "weak_signal",
+                                "value": "{$UNIFI.CLIENT.SIGNAL.WEAK}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "raw"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7bb994ed92a240cc821a2cf0b4f7b27b",
+                        "name": "Controller: dispositivos aguardando adoção",
+                        "type": "DEPENDENT",
+                        "key": "unifi.devices.pending",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.pending_devices"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "controller"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "75b1a6ca910a4d58b5f15ee62d43a23c",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.devices.pending)>0",
+                                "name": "UniFi: dispositivo aguardando adoção",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "INFO",
+                                "description": "Há dispositivo UniFi na rede aguardando adoção no controller.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1a068cb6c209498e8ac54ee2001e5cc7",
+                        "name": "Otimizações recomendadas pendentes",
+                        "type": "DEPENDENT",
+                        "key": "unifi.doctor.pending",
+                        "description": "Ações sugeridas pelo próprio UniFi (WiFi AI / Doctor) ainda não aplicadas.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.doctor_pending"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "config"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "650f7ab9a4df4df3bdf4398eb7fe9d0d",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.doctor.pending)>0",
+                                "name": "UniFi: otimizações recomendadas pendentes",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "INFO",
+                                "description": "O UniFi recomenda otimizações ainda não aplicadas (Wi-Fi AI / Doctor). A lista está no item \"Otimizações recomendadas pendentes (lista)\".",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c2f19850f3d2464e95e6a3d96b1c32a2",
+                        "name": "Otimizações recomendadas pendentes (lista)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.doctor.pending.list",
+                        "history": "7d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.doctor_pending_list"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "config"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "42353f6e4e5741f2a74afff4a8e058ff",
+                        "name": "Experiência: sessões regulares (24 h)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.experience.fair",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Sessões com satisfação entre 60 e 79 %.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.experience_fair_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "experience"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "9533d8c614f5456dbe05e59dc7d96a62",
+                        "name": "Experiência: sessões boas (24 h)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.experience.good",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Percentual das sessões Wi-Fi com satisfação de 80 % ou mais, segundo o UniFi.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.experience_good_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "experience"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e0db2852daef40239e4b21c19cb852fd",
+                        "name": "Experiência: sessões ruins (24 h)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.experience.poor",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Sessões com satisfação abaixo de 60 %: o usuário percebe lentidão ou quedas.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.experience_poor_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "experience"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "6d355cf81f4742faa7b04042d5522997",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.experience.poor)>{$UNIFI.EXPERIENCE.POOR.MAX}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "last(/UniFi Network 10.6 by API/unifi.experience.poor)<{$UNIFI.EXPERIENCE.POOR.MAX}*0.75",
+                                "name": "UniFi: muitas sessões com experiência ruim",
+                                "opdata": "{ITEM.LASTVALUE1} das sessões",
+                                "priority": "WARNING",
+                                "description": "Mais de {$UNIFI.EXPERIENCE.POOR.MAX}% das sessões Wi-Fi das últimas 24 h tiveram satisfação abaixo de 60 %: é o que gera reclamação dos usuários.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e98f3f38e8c14019b3d715a9f6348939",
+                        "name": "Vizinhança: redes em 2,4 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.2g",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_2g"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "547e0762b1d04e2da060e11e760a47fe",
+                        "name": "Vizinhança: redes fortes em 2,4 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.2g.strong",
+                        "description": "Redes de terceiros em 2,4 GHz ouvidas com sinal de {$UNIFI.NEIGHBOR.SIGNAL.STRONG} dBm ou mais: disputam o canal com os APs da rede.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_2g_strong"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "e8cdbaaa482042a0a65f5881dd8eaad8",
+                                "expression": "avg(/UniFi Network 10.6 by API/unifi.neighbors.2g.strong,1h)>{$UNIFI.NEIGHBORS.STRONG.MAX}",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.neighbors.2g.strong,2h)<{$UNIFI.NEIGHBORS.STRONG.MAX}*0.8",
+                                "name": "UniFi: vizinhança de 2,4 GHz muito congestionada",
+                                "opdata": "{ITEM.LASTVALUE1} redes",
+                                "priority": "INFO",
+                                "description": "Mais de {$UNIFI.NEIGHBORS.STRONG.MAX} redes de terceiros fortes em 2,4 GHz: o espectro do prédio está saturado e só 5 GHz oferece folga.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cb6e28ca3f1c49348beef349d89089df",
+                        "name": "Vizinhança: redes fortes perto do canal 1",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.2g.strong.ch1",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_2g_strong_ch1"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "40e4fdae20fb469f9f9ded5a00b6e21d",
+                        "name": "Vizinhança: redes fortes perto do canal 6",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.2g.strong.ch6",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_2g_strong_ch6"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8623680e6fce46618fa71d3cabed827f",
+                        "name": "Vizinhança: redes fortes perto do canal 11",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.2g.strong.ch11",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_2g_strong_ch11"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "605ce5c78c8e4e1fb816f337cf8aac7b",
+                        "name": "Vizinhança: redes em 5 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.5g",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_5g"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5ef72e9576a94ff2aede448363ebf417",
+                        "name": "Vizinhança: redes fortes em 5 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.5g.strong",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_5g_strong"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c32a412240c74061b3abe851bb0da4b3",
+                        "name": "Vizinhança: redes de terceiros",
+                        "type": "DEPENDENT",
+                        "key": "unifi.neighbors.total",
+                        "description": "Redes Wi-Fi de terceiros ouvidas pelos APs (vizinhos, celulares roteadores etc.).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.neighbors_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "neighbors"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7bbed81018904c84876f950dbc45e257",
+                        "name": "Rádios 2,4 GHz: utilização média do canal",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radios.2g.cu",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.radio2g_cu_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "radio"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d560c8eba8c74211a91235a2a03f5c77",
+                        "name": "Rádios 2,4 GHz: interferência média",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radios.2g.interference",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "description": "Parte da ocupação do canal que não é do próprio AP (vizinhos, outros APs e ruído).",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.radio2g_interference_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "radio"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5ef115d3545041c0ac6d4d0ed9b74fa4",
+                        "name": "Rádios 2,4 GHz: retransmissões médias",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radios.2g.retries",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.radio2g_retries_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "radio"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "510bf341feaf496d8aaa52ed8b51e4dd",
+                        "name": "Rádios 5 GHz: utilização média do canal",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radios.5g.cu",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.radio5g_cu_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "radio"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2e68ee0ac85c426a81cdfad4561cfac3",
+                        "name": "Rádios 5 GHz: retransmissões médias",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radios.5g.retries",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.radio5g_retries_avg"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "radio"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "777d824dcc4043da8f8f562c20cb2852",
+                        "name": "Rádios com retransmissões de 15 % ou mais",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radios.high_retries",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.radios_high_retries"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.site.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "radio"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "24e0eb6554ba4be58e3ee20f4e623e9d",
+                        "name": "UniFi: coleta do controller e da experiência Wi-Fi",
+                        "type": "SCRIPT",
+                        "key": "unifi.site.get",
+                        "delay": "5m",
+                        "history": "0",
+                        "value_type": "TEXT",
+                        "params": "// Coleta do controller e da experiência Wi-Fi do site (UniFi Network 10.x):\n// versão/atualização, conexões (24 h), faixas de experiência, retransmissões,\n// vizinhança de rádio, otimizações pendentes e dispositivos aguardando adoção.\n// Só agregados: nenhum MAC ou nome de cliente é devolvido.\nvar p = JSON.parse(value);\nvar base = String(p.url || '').replace(/\\/+$/, '');\nvar site = p.site || 'default';\n// '/proxy/network' no UniFi OS (console ou UniFi OS Server); vazio na Network Application standalone\nvar pre = String(p.prefix === undefined ? '/proxy/network' : p.prefix).replace(/\\/+$/, '');\nvar strong = parseFloat(p.strong_neighbor || '-70');\nif (!p.key) throw 'Macro {$UNIFI.API.KEY} vazia';\n\nfunction get(path, optional) {\n  var r = new HttpRequest();\n  r.addHeader('X-API-KEY: ' + p.key);\n  r.addHeader('Accept: application/json');\n  var body = r.get(base + path);\n  var code = r.getStatus();\n  if (code !== 200) {\n    if (optional) return null;\n    throw 'HTTP ' + code + ' em ' + path + ': ' + String(body).substring(0, 200);\n  }\n  return JSON.parse(body);\n}\nfunction num(v, d) { var n = parseFloat(v); return isNaN(n) ? (d === undefined ? -1 : d) : n; }\nfunction r2(v) { return Math.round(v * 100) / 100; }\n\nvar out = {};\nvar si = (get(pre + '/api/s/' + site + '/stat/sysinfo').data || [{}])[0];\nout.version = si.version || '';\nout.uptime = num(si.uptime, 0);\nout.update_available = si.update_available ? 1 : 0;\nout.name = si.name || '';\n\nvar health = get(pre + '/api/s/' + site + '/stat/health').data || [];\nout.wlan_status = '';\nfor (var h = 0; h < health.length; h++) if (health[h].subsystem === 'wlan') out.wlan_status = health[h].status || '';\n\nvar pend = get(pre + '/integration/v1/pending-devices', true);\nout.pending_devices = pend && pend.totalCount !== undefined ? pend.totalCount : -1;\n\n// Conexões nas últimas 24 h (latências da API em microssegundos → segundos)\nvar wc = get(pre + '/v2/api/site/' + site + '/wifi-connectivity', true) || {};\nvar at = wc.attempts || {}, lt = wc.latencies || {};\nout.conn_attempts = num(at.total_attempts, 0);\nout.conn_failed = num(at.failed_client_connections, 0);\nout.conn_success_pct = num(at.success_ratio);\nout.conn_assoc_pct = num(at.association_ratio);\nout.conn_auth_pct = num(at.authentication_ratio);\nout.conn_dhcp_pct = num(at.dhcp_ratio);\nout.conn_dns_pct = num(at.dns_ratio);\nout.conn_latency_total = lt.total_latency ? r2(lt.total_latency / 1e6) : -1;\nout.conn_latency_assoc = lt.association_latency ? r2(lt.association_latency / 1e6) : -1;\nout.conn_latency_auth = lt.authentication_latency ? r2(lt.authentication_latency / 1e6) : -1;\nout.conn_latency_dhcp = lt.dhcp_latency ? r2(lt.dhcp_latency / 1e6) : -1;\nout.clients_24h = num(wc.total_clients, 0);\n\n// Experiência dos clientes (% das sessões por faixa de satisfação) e retransmissões\nvar ag = get(pre + '/v2/api/site/' + site + '/aggregated-dashboard', true) || {};\nvar cats = (ag.wifi_client_experience || {}).categories || [];\nvar good = 0, fair = 0, poor = 0;\nfor (var c = 0; c < cats.length; c++) {\n  var pct = num(cats[c].session_percentage, 0), id = cats[c].category_id;\n  if (id >= 80) good += pct; else if (id >= 60) fair += pct; else poor += pct;\n}\nout.experience_good_pct = r2(good);\nout.experience_fair_pct = r2(fair);\nout.experience_poor_pct = r2(poor);\nvar rc = (ag.wifi_tx_retries || {}).categories || [], highRet = 0;\nfor (var t = 0; t < rc.length; t++) if (rc[t].category_id >= 15) highRet += num(rc[t].band_count, 0);\nout.radios_high_retries = highRet;\nvar doc = (ag.wifi_doctor || {}).actions || [], docPend = 0, docList = [];\nfor (var a = 0; a < doc.length; a++) if (doc[a].optimization_status === 'PENDING') { docPend++; docList.push(doc[a].id); }\nout.doctor_pending = docPend;\nout.doctor_pending_list = docList.join(', ');\n\n// Vizinhança de rádio (redes de terceiros ouvidas pelos APs)\nvar ro = get(pre + '/api/s/' + site + '/stat/rogueap', true) || {};\nvar rl = ro.data || [];\nvar n = { total: 0, g2: 0, g5: 0, g2strong: 0, g5strong: 0, c1: 0, c6: 0, c11: 0 };\nfor (var r = 0; r < rl.length; r++) {\n  var x = rl[r];\n  if (x.is_ubnt) continue;\n  n.total++;\n  var sig = num(x.signal, -200);\n  if (x.radio === 'ng') {\n    n.g2++;\n    if (sig >= strong) {\n      n.g2strong++;\n      if (x.channel <= 3) n.c1++; else if (x.channel <= 8) n.c6++; else n.c11++;\n    }\n  } else if (x.radio === 'na' || x.radio === '6e') {\n    n.g5++;\n    if (sig >= strong) n.g5strong++;\n  }\n}\nout.neighbors_total = n.total;\nout.neighbors_2g = n.g2;\nout.neighbors_5g = n.g5;\nout.neighbors_2g_strong = n.g2strong;\nout.neighbors_5g_strong = n.g5strong;\nout.neighbors_2g_strong_ch1 = n.c1;\nout.neighbors_2g_strong_ch6 = n.c6;\nout.neighbors_2g_strong_ch11 = n.c11;\nreturn JSON.stringify(out);\n",
+                        "description": "Item mestre (5 min): versão e atualização do controller, conexões das últimas 24 h, faixas de experiência dos clientes, retransmissões, vizinhança de rádio, otimizações pendentes (Wi-Fi AI/Doctor) e dispositivos aguardando adoção. history=0.",
+                        "timeout": "60s",
+                        "parameters": [
+                            {
+                                "name": "key",
+                                "value": "{$UNIFI.API.KEY}"
+                            },
+                            {
+                                "name": "prefix",
+                                "value": "{$UNIFI.API.PREFIX}"
+                            },
+                            {
+                                "name": "site",
+                                "value": "{$UNIFI.SITE}"
+                            },
+                            {
+                                "name": "strong_neighbor",
+                                "value": "{$UNIFI.NEIGHBOR.SIGNAL.STRONG}"
+                            },
+                            {
+                                "name": "url",
+                                "value": "{$UNIFI.SCHEME}://{HOST.CONN}:{$UNIFI.PORT}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "raw"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "cc1bd9f71a314519b2eee8a8e9683073",
+                        "name": "Wi-Fi: redes só em 2,4 GHz havendo APs com 5 GHz",
+                        "type": "DEPENDENT",
+                        "key": "unifi.wlans.2g_only",
+                        "description": "Redes Wi-Fi configuradas só em 2,4 GHz enquanto o site tem APs com rádio de 5 GHz: esses rádios ficam sem uso e todos os aparelhos disputam a faixa de 2,4 GHz.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.summary.wlans_2g_only_with_dualband"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "config"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "ba07ae649be6476ab51f89ab3d35ed08",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.wlans.2g_only)>0",
+                                "name": "UniFi: Wi-Fi só em 2,4 GHz com APs de 5 GHz disponíveis",
+                                "opdata": "{ITEM.LASTVALUE1} rede(s)",
+                                "priority": "WARNING",
+                                "description": "Há rede Wi-Fi configurada só em 2,4 GHz enquanto o site tem APs com rádio de 5 GHz: esses rádios não atendem ninguém e todos os aparelhos disputam a faixa de 2,4 GHz, a mais congestionada. Habilitar a rede nas duas faixas (com band steering) libera 5 GHz para os aparelhos compatíveis.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "discovery_rules": [
+                    {
+                        "uuid": "12bcbdd35ebc4aa8883e9f45e859c2ca",
+                        "name": "Pontos de acesso",
+                        "type": "DEPENDENT",
+                        "key": "unifi.ap.discovery",
+                        "description": "Descobre os APs adotados no site. Um conjunto de itens e triggers por AP.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "09e4db45633a4e83b660826ca3db40b7",
+                                "name": "{#AP.NAME}: retransmissões dos clientes",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.clients.retries[{#AP.MAC}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].client_retries_avg.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "125a1f203c0e4202a9f0df6d57e2e651",
+                                "name": "{#AP.NAME}: sinal médio dos clientes",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.clients.signal[{#AP.MAC}]",
+                                "value_type": "FLOAT",
+                                "units": "dBm",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].client_signal_avg.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "33c80555dbda4039a04ad6da81ce3be1",
+                                "name": "{#AP.NAME}: clientes com sinal fraco",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.clients.weak[{#AP.MAC}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].clients_weak.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "3a2634b9e8c347248c34d0d613856de2",
+                                "name": "{#AP.NAME}: clientes",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.clients[{#AP.MAC}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].clients.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "5f573b14d9734d539602985334db78c5",
+                                        "expression": "min(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}],15m)>{$UNIFI.AP.CLIENTS.MAX}",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "max(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}],15m)<={$UNIFI.AP.CLIENTS.MAX}*0.9",
+                                        "name": "{#AP.NAME}: muitos clientes",
+                                        "opdata": "{ITEM.LASTVALUE1} clientes",
+                                        "priority": "WARNING",
+                                        "description": "Mais de {$UNIFI.AP.CLIENTS.MAX} clientes conectados por 15 minutos: o AP divide o tempo de rádio entre todos e a velocidade de cada um cai.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "capacity"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "44def0baacfc4bd184a794ac3bbc5e46",
+                                "name": "{#AP.NAME}: CPU",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.cpu[{#AP.MAC}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].cpu.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "a73328bf56034e8d84a203107ca6e5d4",
+                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.ap.cpu[{#AP.MAC}],15m)>{$UNIFI.AP.CPU.MAX}",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.ap.cpu[{#AP.MAC}],15m)<{$UNIFI.AP.CPU.MAX}-10",
+                                        "name": "{#AP.NAME}: CPU alta",
+                                        "opdata": "{ITEM.LASTVALUE1}",
+                                        "priority": "WARNING",
+                                        "description": "CPU do AP acima de {$UNIFI.AP.CPU.MAX}% em média nos últimos 15 minutos.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "56bdb2cdee95493282c0606b05f0c04a",
+                                "name": "{#AP.NAME}: tem rádio de 5 GHz",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.dualband[{#AP.MAC}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].dualband.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "ab4b4d5161cc4b049ece2d63923885c5",
+                                "name": "{#AP.NAME}: modelo fora de linha (EOL)",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.eol[{#AP.MAC}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].eol.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "a1d98471feef432fba3b351ed4e63b20",
+                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.eol[{#AP.MAC}])=1 and {$UNIFI.AP.EOL.ALERT}=1",
+                                        "name": "{#AP.NAME}: modelo fora de linha",
+                                        "priority": "INFO",
+                                        "description": "Modelo descontinuado pela Ubiquiti: não recebe mais firmware nem correções de segurança. Planejar a substituição.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "notice"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "9a39fb3993aa469bb9fcd784d2669535",
+                                "name": "{#AP.NAME}: IP",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.ip[{#AP.MAC}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].ip.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "093c992f3bfa4a80b93c3c5acfd61729",
+                                "name": "{#AP.NAME}: memória",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.memory[{#AP.MAC}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].mem.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "8eaec53848ac4b5891e93f65b75645f8",
+                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.ap.memory[{#AP.MAC}],15m)>{$UNIFI.AP.MEM.MAX}",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.ap.memory[{#AP.MAC}],15m)<{$UNIFI.AP.MEM.MAX}-5",
+                                        "name": "{#AP.NAME}: memória alta",
+                                        "opdata": "{ITEM.LASTVALUE1}",
+                                        "priority": "WARNING",
+                                        "description": "Memória do AP acima de {$UNIFI.AP.MEM.MAX}% em média nos últimos 15 minutos.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "c85228334f984c76b313cd633198fd02",
+                                "name": "{#AP.NAME}: modelo",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.model[{#AP.MAC}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].model.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "fdb0a14857e447bf898958a946f0b06e",
+                                "name": "{#AP.NAME}: satisfação",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.satisfaction[{#AP.MAC}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "description": "Satisfação média dos clientes deste AP calculada pelo UniFi (0–100).",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].satisfaction.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "d30de28826e848af9c9336eb345742ad",
+                                "name": "{#AP.NAME}: estado",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.state[{#AP.MAC}]",
+                                "valuemap": {
+                                    "name": "UniFi estado do AP"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].state.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "41cf05a52af04d3eaf7223c0012e8b39",
+                                        "expression": "count(/UniFi Network 10.6 by API/unifi.ap.state[{#AP.MAC}],#5,\"eq\",1)=0",
+                                        "name": "{#AP.NAME}: AP offline",
+                                        "opdata": "Estado: {ITEM.LASTVALUE1}",
+                                        "priority": "HIGH",
+                                        "description": "O controller não vê este AP há 5 coletas seguidas (estados: desconectado, sem heartbeat, adoção com erro). Usuários da área ficam sem Wi-Fi ou migram para APs distantes. Conferir energia/PoE, cabo e porta do switch.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "availability"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "4c989b2bc9864722bd858037ca76e3b5",
+                                "name": "{#AP.NAME}: firmware para atualizar",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.upgradable[{#AP.MAC}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].upgradable.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "c8620f2c8e11487e9d8ad4dacc0734f3",
+                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.upgradable[{#AP.MAC}])=1",
+                                        "name": "{#AP.NAME}: firmware para atualizar",
+                                        "priority": "INFO",
+                                        "description": "Há firmware mais novo para este AP no controller.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "notice"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e85ccb3fa020478a9a7bf2ad9c7c24b1",
+                                "name": "{#AP.NAME}: erros na porta de rede",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.uplink.errors[{#AP.MAC}]",
+                                "description": "Erros de transmissão/recepção na porta de rede do AP desde a última coleta.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].uplink_errors.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "SIMPLE_CHANGE"
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "c05a50502cea461389c77a3ba7c34f05",
+                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.uplink.errors[{#AP.MAC}])>{$UNIFI.AP.UPLINK.ERRORS.MAX}",
+                                        "name": "{#AP.NAME}: erros na porta de rede",
+                                        "opdata": "{ITEM.LASTVALUE1}",
+                                        "priority": "WARNING",
+                                        "description": "Mais de {$UNIFI.AP.UPLINK.ERRORS.MAX} erros de transmissão na porta de rede do AP entre duas coletas: cabo ou porta com defeito.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "124a15b1747d45dba768bc12b4466012",
+                                "name": "{#AP.NAME}: velocidade máxima da porta de rede",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.uplink.max_speed[{#AP.MAC}]",
+                                "units": "Mbps",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].uplink_max_speed.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "330d6254b66549eb85e8563a897843cd",
+                                "name": "{#AP.NAME}: tráfego recebido da rede",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.uplink.rx[{#AP.MAC}]",
+                                "units": "bps",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].uplink_rx_bps.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "a9ead9a870384d3b8cc0c3ccc62f994e",
+                                "name": "{#AP.NAME}: velocidade da porta de rede",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.uplink.speed[{#AP.MAC}]",
+                                "units": "Mbps",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].uplink_speed.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e8914ba7dbd344cf9447942274f25cda",
+                                "name": "{#AP.NAME}: tráfego enviado à rede",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.uplink.tx[{#AP.MAC}]",
+                                "units": "bps",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].uplink_tx_bps.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "895af3ea545a45658df4b43b0a25e8e7",
+                                "name": "{#AP.NAME}: tempo de atividade",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.uptime[{#AP.MAC}]",
+                                "units": "uptime",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].uptime.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "8dc7daada0614637a533ffbeeab8a31c",
+                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.uptime[{#AP.MAC}])<600",
+                                        "name": "{#AP.NAME}: AP reiniciado",
+                                        "opdata": "{ITEM.LASTVALUE1}",
+                                        "priority": "INFO",
+                                        "description": "O AP reiniciou há menos de 10 minutos. Reinícios frequentes indicam falha de energia/PoE ou de hardware.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "notice"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e86d191d8e8c4e3bb3920266f8229192",
+                                "name": "{#AP.NAME}: firmware",
+                                "type": "DEPENDENT",
+                                "key": "unifi.ap.version[{#AP.MAC}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.aps[?(@.mac == '{#AP.MAC}')].version.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "ap"
+                                    }
+                                ]
+                            }
+                        ],
+                        "trigger_prototypes": [
+                            {
+                                "uuid": "fcc75b7d29bb4a7785234cbf4a43ed01",
+                                "expression": "avg(/UniFi Network 10.6 by API/unifi.ap.satisfaction[{#AP.MAC}],30m)<{$UNIFI.AP.SATISFACTION.MIN} and last(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}])>0 and last(/UniFi Network 10.6 by API/unifi.ap.satisfaction[{#AP.MAC}])>=0",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.ap.satisfaction[{#AP.MAC}],1h)>={$UNIFI.AP.SATISFACTION.MIN}+5 or max(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}],1h)=0",
+                                "name": "{#AP.NAME}: experiência dos clientes ruim",
+                                "opdata": "Satisfação {ITEM.LASTVALUE1}, {ITEM.LASTVALUE2} cliente(s)",
+                                "priority": "WARNING",
+                                "description": "Satisfação média dos clientes do AP abaixo de {$UNIFI.AP.SATISFACTION.MIN}% em 30 minutos: sinal fraco, interferência ou AP sobrecarregado. Ver os itens de rádio deste AP.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "f1647e27088843999396da1b21eca78a",
+                                "expression": "last(/UniFi Network 10.6 by API/unifi.ap.uplink.speed[{#AP.MAC}])>0 and last(/UniFi Network 10.6 by API/unifi.ap.uplink.speed[{#AP.MAC}])<last(/UniFi Network 10.6 by API/unifi.ap.uplink.max_speed[{#AP.MAC}])",
+                                "name": "{#AP.NAME}: porta de rede abaixo da capacidade",
+                                "opdata": "{ITEM.LASTVALUE1} de {ITEM.LASTVALUE2} Mbps",
+                                "priority": "WARNING",
+                                "description": "O AP suporta porta mais rápida do que a negociada (ex. gigabit ligado a 100 Mbps). Causas comuns: cabo com par rompido, conector mal crimpado, porta do switch ou injetor PoE de 100 Mbps.",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#AP.MAC}",
+                                "path": "$.mac"
+                            },
+                            {
+                                "lld_macro": "{#AP.MODEL}",
+                                "path": "$.model"
+                            },
+                            {
+                                "lld_macro": "{#AP.NAME}",
+                                "path": "$.name"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.aps"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "7aa4844fc788489e86b39a073f1a33c2",
+                        "name": "Rádios dos APs",
+                        "type": "DEPENDENT",
+                        "key": "unifi.radio.discovery",
+                        "description": "Descobre cada rádio (2,4 / 5 / 6 GHz) de cada AP.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "1a9439e236ed4525bf04de4261b06d56",
+                                "name": "{#AP.NAME} {#BAND}: canal",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.channel[{#RADIO.KEY}]",
+                                "value_type": "FLOAT",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].channel.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e73962295896465d958641492fac4a9c",
+                                "name": "{#AP.NAME} {#BAND}: clientes",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.clients[{#RADIO.KEY}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].clients.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "1545baf5249e4daaa3b82a0970f98ffb",
+                                "name": "{#AP.NAME} {#BAND}: utilização pelo próprio AP (recepção)",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.cu.self_rx[{#RADIO.KEY}]",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].cu_self_rx.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "eecd3599d9734f58a17d1aa660beb792",
+                                "name": "{#AP.NAME} {#BAND}: utilização pelo próprio AP (transmissão)",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.cu.self_tx[{#RADIO.KEY}]",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].cu_self_tx.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "2f330277ed4444c68f7b9dd0791d8f33",
+                                "name": "{#AP.NAME} {#BAND}: utilização do canal",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.cu[{#RADIO.KEY}]",
+                                "units": "%",
+                                "description": "Percentual do tempo em que o canal está ocupado (pelo AP, pelos clientes e por vizinhos). Acima de ~60 % tudo fica lento.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].cu_total.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "0e0c1cab930941b5a3372026e357d020",
+                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.radio.cu[{#RADIO.KEY}],15m)>{$UNIFI.RADIO.CU.MAX}",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.radio.cu[{#RADIO.KEY}],30m)<{$UNIFI.RADIO.CU.MAX}*0.85",
+                                        "name": "{#AP.NAME} {#BAND}: canal congestionado",
+                                        "opdata": "Utilização {ITEM.LASTVALUE1}",
+                                        "priority": "WARNING",
+                                        "description": "Canal ocupado acima de {$UNIFI.RADIO.CU.MAX}% em média nos últimos 15 minutos. Considerar trocar de canal, reduzir a potência dos APs vizinhos ou mover clientes para 5 GHz.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "effa740f6f2d44b6b02151498f1bcc18",
+                                "name": "{#AP.NAME} {#BAND}: interferência",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.interference[{#RADIO.KEY}]",
+                                "units": "%",
+                                "description": "Ocupação do canal que não vem do próprio AP: redes vizinhas, outros APs no mesmo canal e ruído.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].interference.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ],
+                                "trigger_prototypes": [
+                                    {
+                                        "uuid": "3596b0cf843043999cd085bdb88c086f",
+                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.radio.interference[{#RADIO.KEY}],30m)>{$UNIFI.RADIO.INTERFERENCE.MAX}",
+                                        "recovery_mode": "RECOVERY_EXPRESSION",
+                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.radio.interference[{#RADIO.KEY}],1h)<{$UNIFI.RADIO.INTERFERENCE.MAX}*0.75",
+                                        "name": "{#AP.NAME} {#BAND}: interferência alta",
+                                        "opdata": "Interferência {ITEM.LASTVALUE1}",
+                                        "priority": "WARNING",
+                                        "description": "Mais de {$UNIFI.RADIO.INTERFERENCE.MAX}% do canal ocupado por fontes externas ao AP em 30 minutos: redes vizinhas ou outros APs da rede no mesmo canal.",
+                                        "manual_close": "YES",
+                                        "tags": [
+                                            {
+                                                "tag": "scope",
+                                                "value": "performance"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "b7469ac787494cbe9dc3f74340276c5a",
+                                "name": "{#AP.NAME} {#BAND}: RSSI mínimo configurado",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.min_rssi[{#RADIO.KEY}]",
+                                "value_type": "FLOAT",
+                                "units": "dBm",
+                                "description": "Sinal mínimo exigido para o cliente continuar conectado (0 = desativado). Força aparelhos com sinal ruim a migrar para outro AP.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].min_rssi.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "97469d7a45564d1a9ce2d82f340dbd66",
+                                "name": "{#AP.NAME} {#BAND}: retransmissões",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.retries[{#RADIO.KEY}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "description": "Percentual de pacotes que precisaram ser reenviados. Até 10 % é bom; acima de 20 % o Wi-Fi fica lento e instável.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].tx_retries_pct.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "e8acbc3a5798455baf616d1d1aaf9c14",
+                                "name": "{#AP.NAME} {#BAND}: satisfação",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.satisfaction[{#RADIO.KEY}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].satisfaction.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "19ccd5d95a12437b81a7b36d1276a814",
+                                "name": "{#AP.NAME} {#BAND}: em operação",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.state[{#RADIO.KEY}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].state.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "880c3afa5e9d4f428a0eba3313fb75d9",
+                                "name": "{#AP.NAME} {#BAND}: potência de transmissão",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.txpower[{#RADIO.KEY}]",
+                                "value_type": "FLOAT",
+                                "units": "dBm",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].tx_power.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "569acdf8668540de9831a5fbe568203d",
+                                "name": "{#AP.NAME} {#BAND}: largura do canal",
+                                "type": "DEPENDENT",
+                                "key": "unifi.radio.width[{#RADIO.KEY}]",
+                                "units": "MHz",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.radios[?(@.key == '{#RADIO.KEY}')].width.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "ap",
+                                        "value": "{#AP.NAME}"
+                                    },
+                                    {
+                                        "tag": "band",
+                                        "value": "{#BAND}"
+                                    },
+                                    {
+                                        "tag": "component",
+                                        "value": "radio"
+                                    }
+                                ]
+                            }
+                        ],
+                        "trigger_prototypes": [
+                            {
+                                "uuid": "a91c0b3e39d44aef9bba64c5efbfb884",
+                                "expression": "avg(/UniFi Network 10.6 by API/unifi.radio.retries[{#RADIO.KEY}],30m)>{$UNIFI.RADIO.RETRIES.MAX} and avg(/UniFi Network 10.6 by API/unifi.radio.clients[{#RADIO.KEY}],30m)>=1",
+                                "recovery_mode": "RECOVERY_EXPRESSION",
+                                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.radio.retries[{#RADIO.KEY}],1h)<{$UNIFI.RADIO.RETRIES.MAX}*0.75 or max(/UniFi Network 10.6 by API/unifi.radio.clients[{#RADIO.KEY}],1h)=0",
+                                "name": "{#AP.NAME} {#BAND}: retransmissões altas",
+                                "opdata": "Retransmissões {ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "Mais de {$UNIFI.RADIO.RETRIES.MAX}% dos pacotes reenviados em média nos últimos 30 minutos (com clientes conectados): interferência, sinal fraco ou excesso de clientes. É a causa mais comum de \"Wi-Fi lento\".",
+                                "manual_close": "YES",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#AP.MAC}",
+                                "path": "$.ap_mac"
+                            },
+                            {
+                                "lld_macro": "{#AP.NAME}",
+                                "path": "$.ap_name"
+                            },
+                            {
+                                "lld_macro": "{#BAND}",
+                                "path": "$.band"
+                            },
+                            {
+                                "lld_macro": "{#RADIO.KEY}",
+                                "path": "$.key"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.radios"
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "472e5e32c71244319d5c7511c4650ad5",
+                        "name": "Redes Wi-Fi (SSIDs)",
+                        "type": "DEPENDENT",
+                        "key": "unifi.wlan.discovery",
+                        "description": "Descobre as redes Wi-Fi configuradas no site.",
+                        "item_prototypes": [
+                            {
+                                "uuid": "d6f83a430b284c30abcaddef71b5dc0a",
+                                "name": "Wi-Fi {#SSID}: faixas",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.band[{#SSID}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "description": "2g = só 2,4 GHz; 5g = só 5 GHz; both = as duas.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].band.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "56a1db7aa81d42ef975f36de43f6a1a4",
+                                "name": "Wi-Fi {#SSID}: BSS transition (802.11v)",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.bss_transition[{#SSID}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].bss_transition.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "d2d42db198c44393a5d0ccc3722e4b83",
+                                "name": "Wi-Fi {#SSID}: clientes",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.clients[{#SSID}]",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].clients.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "20394211930e42659b814fa93c760cdf",
+                                "name": "Wi-Fi {#SSID}: ativa",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.enabled[{#SSID}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].enabled.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "748a226a1dff4943b8d73985639b8d14",
+                                "name": "Wi-Fi {#SSID}: roaming rápido (802.11r)",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.fast_roaming[{#SSID}]",
+                                "valuemap": {
+                                    "name": "UniFi sim/não"
+                                },
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].fast_roaming.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "180615233ae94b248fc0846d4f1d7dec",
+                                "name": "Wi-Fi {#SSID}: taxa mínima em 2,4 GHz",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.minrate[{#SSID}]",
+                                "units": "Kbps",
+                                "description": "Taxa mínima de dados aceita em 2,4 GHz (0 = padrão). Valores maiores expulsam clientes muito distantes e aceleram a rede.",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].min_rate_kbps.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "MULTIPLIER",
+                                        "parameters": [
+                                            "1000"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "dd0ddd48b5ed4be285f134cfdc0dafdd",
+                                "name": "Wi-Fi {#SSID}: proteção de quadros de gerenciamento (PMF)",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.pmf[{#SSID}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].pmf.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "8f326bc6e9d14bf5ad66bb111eb1537b",
+                                "name": "Wi-Fi {#SSID}: satisfação dos clientes",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.satisfaction[{#SSID}]",
+                                "value_type": "FLOAT",
+                                "units": "%",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].satisfaction.first()"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "6c7dd836e57748dea21402dde7cf1549",
+                                "name": "Wi-Fi {#SSID}: segurança",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.security[{#SSID}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].security.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "cca89714795b40149ef84c220026afc9",
+                                "name": "Wi-Fi {#SSID}: modo WPA",
+                                "type": "DEPENDENT",
+                                "key": "unifi.wlan.wpa[{#SSID}]",
+                                "history": "7d",
+                                "value_type": "CHAR",
+                                "preprocessing": [
+                                    {
+                                        "type": "JSONPATH",
+                                        "parameters": [
+                                            "$.wlans[?(@.ssid == '{#SSID}')].wpa_mode.first()"
+                                        ]
+                                    },
+                                    {
+                                        "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                        "parameters": [
+                                            "1d"
+                                        ]
+                                    }
+                                ],
+                                "master_item": {
+                                    "key": "unifi.devices.get"
+                                },
+                                "tags": [
+                                    {
+                                        "tag": "component",
+                                        "value": "wlan"
+                                    },
+                                    {
+                                        "tag": "ssid",
+                                        "value": "{#SSID}"
+                                    }
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "unifi.devices.get"
+                        },
+                        "lld_macro_paths": [
+                            {
+                                "lld_macro": "{#SSID}",
+                                "path": "$.ssid"
+                            }
+                        ],
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.wlans"
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "network"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "unifi"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$UNIFI.AP.CLIENTS.MAX}",
+                        "value": "30",
+                        "description": "Clientes por AP a partir do qual a velocidade cai bastante (APs antigos de 2,4 GHz saturam antes de 30)."
+                    },
+                    {
+                        "macro": "{$UNIFI.AP.CPU.MAX}",
+                        "value": "80"
+                    },
+                    {
+                        "macro": "{$UNIFI.AP.EOL.ALERT}",
+                        "value": "1",
+                        "description": "1 = um alerta INFO por AP de modelo fora de linha; 0 = desliga (use no host quando o cliente já sabe e a troca está planejada). O item unifi.aps.eol e o app continuam mostrando a contagem."
+                    },
+                    {
+                        "macro": "{$UNIFI.AP.MEM.MAX}",
+                        "value": "90"
+                    },
+                    {
+                        "macro": "{$UNIFI.AP.SATISFACTION.MIN}",
+                        "value": "70"
+                    },
+                    {
+                        "macro": "{$UNIFI.AP.UPLINK.ERRORS.MAX}",
+                        "value": "10"
+                    },
+                    {
+                        "macro": "{$UNIFI.API.KEY}",
+                        "type": "SECRET_TEXT",
+                        "description": "Chave de API do UniFi Network (definir no host)."
+                    },
+                    {
+                        "macro": "{$UNIFI.API.PREFIX}",
+                        "value": "/proxy/network",
+                        "description": "Prefixo das APIs: /proxy/network no UniFi OS (console UniFi ou UniFi OS Server); vazio na UniFi Network Application standalone (Docker/Linux, porta 8443 por padrão)."
+                    },
+                    {
+                        "macro": "{$UNIFI.APS.OFFLINE.DISASTER}",
+                        "value": "3"
+                    },
+                    {
+                        "macro": "{$UNIFI.CLIENT.SIGNAL.WEAK}",
+                        "value": "-70",
+                        "description": "Sinal (dBm) abaixo do qual o cliente conta como \"sinal fraco\"."
+                    },
+                    {
+                        "macro": "{$UNIFI.CLIENTS.WEAK.PCT.MAX}",
+                        "value": "30"
+                    },
+                    {
+                        "macro": "{$UNIFI.CONN.LATENCY.MAX}",
+                        "value": "5",
+                        "description": "Tempo médio para conectar (s) acima do qual o trigger dispara."
+                    },
+                    {
+                        "macro": "{$UNIFI.CONN.SUCCESS.MIN}",
+                        "value": "95"
+                    },
+                    {
+                        "macro": "{$UNIFI.EXPERIENCE.POOR.MAX}",
+                        "value": "20"
+                    },
+                    {
+                        "macro": "{$UNIFI.NEIGHBOR.SIGNAL.STRONG}",
+                        "value": "-70"
+                    },
+                    {
+                        "macro": "{$UNIFI.NEIGHBORS.STRONG.MAX}",
+                        "value": "15"
+                    },
+                    {
+                        "macro": "{$UNIFI.PORT}",
+                        "value": "11443",
+                        "description": "Porta HTTPS do UniFi OS: 11443 no UniFi OS Server, 443 em consoles (UDM, Cloud Key, UCG)."
+                    },
+                    {
+                        "macro": "{$UNIFI.RADIO.CU.MAX}",
+                        "value": "70"
+                    },
+                    {
+                        "macro": "{$UNIFI.RADIO.INTERFERENCE.MAX}",
+                        "value": "40"
+                    },
+                    {
+                        "macro": "{$UNIFI.RADIO.RETRIES.MAX}",
+                        "value": "20"
+                    },
+                    {
+                        "macro": "{$UNIFI.SCHEME}",
+                        "value": "https"
+                    },
+                    {
+                        "macro": "{$UNIFI.SITE}",
+                        "value": "default",
+                        "description": "Nome interno do site (internalReference); \"default\" no site padrão."
+                    },
+                    {
+                        "macro": "{$UNIFI.SITE.SATISFACTION.MIN}",
+                        "value": "75"
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "0e0f6abc115d4957835e5da931d96e67",
+                        "name": "UniFi estado do AP",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Desconectado"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Conectado"
+                            },
+                            {
+                                "value": "2",
+                                "newvalue": "Aguardando adoção"
+                            },
+                            {
+                                "value": "4",
+                                "newvalue": "Atualizando"
+                            },
+                            {
+                                "value": "5",
+                                "newvalue": "Provisionando"
+                            },
+                            {
+                                "value": "6",
+                                "newvalue": "Sem heartbeat"
+                            },
+                            {
+                                "value": "7",
+                                "newvalue": "Adotando"
+                            },
+                            {
+                                "value": "9",
+                                "newvalue": "Erro de adoção"
+                            },
+                            {
+                                "value": "10",
+                                "newvalue": "Adoção falhou"
+                            },
+                            {
+                                "value": "11",
+                                "newvalue": "Isolado"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "68897525cd8b4d84967911249d9038e1",
+                        "name": "UniFi serviço",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Fora do ar"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "No ar"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "6d2aff6f38084952a76f3c4c703d281e",
+                        "name": "UniFi sim/não",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Não"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Sim"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "triggers": [
+            {
+                "uuid": "ae9505dc7e5b447bae5f1b704040bcab",
+                "expression": "last(/UniFi Network 10.6 by API/unifi.conn.dhcp)<{$UNIFI.CONN.SUCCESS.MIN} and last(/UniFi Network 10.6 by API/unifi.conn.attempts)>0",
+                "name": "UniFi: falhas de DHCP ao conectar",
+                "opdata": "DHCP {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "Aparelhos se associam ao Wi-Fi mas não recebem endereço IP: servidor DHCP fora do ar ou faixa de endereços esgotada.",
+                "manual_close": "YES",
+                "tags": [
+                    {
+                        "tag": "scope",
+                        "value": "availability"
+                    }
+                ]
+            },
+            {
+                "uuid": "c2e904dabfb84113bdc9c384bac469f7",
+                "expression": "min(/UniFi Network 10.6 by API/unifi.conn.success,30m)<{$UNIFI.CONN.SUCCESS.MIN} and last(/UniFi Network 10.6 by API/unifi.conn.attempts)>0",
+                "name": "UniFi: muitas falhas de conexão ao Wi-Fi",
+                "opdata": "Sucesso {ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "Menos de {$UNIFI.CONN.SUCCESS.MIN}% das tentativas de conexão das últimas 24 h deram certo. Ver qual etapa falha: associação, autenticação (senha), DHCP ou DNS.",
+                "manual_close": "YES",
+                "tags": [
+                    {
+                        "tag": "scope",
+                        "value": "availability"
+                    }
+                ]
+            },
+            {
+                "uuid": "a1e1b3387b5840c1a38042d6684b3819",
+                "expression": "avg(/UniFi Network 10.6 by API/unifi.clients.weak.pct,30m)>{$UNIFI.CLIENTS.WEAK.PCT.MAX} and last(/UniFi Network 10.6 by API/unifi.clients.wifi)>=5",
+                "recovery_mode": "RECOVERY_EXPRESSION",
+                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.clients.weak.pct,1h)<{$UNIFI.CLIENTS.WEAK.PCT.MAX}*0.75 or max(/UniFi Network 10.6 by API/unifi.clients.wifi,1h)<5",
+                "name": "UniFi: muitos clientes com sinal fraco",
+                "opdata": "{ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "Mais de {$UNIFI.CLIENTS.WEAK.PCT.MAX}% dos clientes com sinal abaixo de {$UNIFI.CLIENT.SIGNAL.WEAK} dBm em 30 minutos: falta cobertura em algumas áreas ou APs com potência baixa.",
+                "manual_close": "YES",
+                "tags": [
+                    {
+                        "tag": "scope",
+                        "value": "performance"
+                    }
+                ]
+            },
+            {
+                "uuid": "d46bede4cc404475b2a4352f920227cd",
+                "expression": "avg(/UniFi Network 10.6 by API/unifi.clients.satisfaction.avg,30m)<{$UNIFI.SITE.SATISFACTION.MIN} and last(/UniFi Network 10.6 by API/unifi.clients.wifi)>=5",
+                "recovery_mode": "RECOVERY_EXPRESSION",
+                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.clients.satisfaction.avg,1h)>={$UNIFI.SITE.SATISFACTION.MIN}+5 or max(/UniFi Network 10.6 by API/unifi.clients.wifi,1h)<5",
+                "name": "UniFi: satisfação média dos clientes baixa",
+                "opdata": "{ITEM.LASTVALUE1}",
+                "priority": "WARNING",
+                "description": "Satisfação média dos clientes Wi-Fi abaixo de {$UNIFI.SITE.SATISFACTION.MIN}% em 30 minutos.",
+                "manual_close": "YES",
+                "tags": [
+                    {
+                        "tag": "scope",
+                        "value": "performance"
+                    }
+                ]
+            }
+        ]
+    }
+}

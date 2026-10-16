@@ -38,6 +38,7 @@ Todos os templates têm como alvo o **Zabbix 7.4** e seguem convenções consist
 | [Sophos Firewall](templates/sophos-firewall/) | Dispositivos de Rede / Segurança | SNMP v2c | 15 | — |
 | [TrueNAS](templates/truenas/) | Aplicações / Armazenamento | HTTP Agent + Dependente | 87 | — |
 | [UniFi AP Legacy](templates/unifi-ap-legacy/) | Dispositivos de Rede | SNMP v1/v2c | 10 + 3/VAP | — |
+| [UniFi Network 10.6](templates/unifi-network/) | Dispositivos de Rede / Wi-Fi | SCRIPT (chave de API) + LLD | 61 + LLD (AP/rádio/SSID) | — |
 | [Windows Backup](templates/windows-backup/) | Windows / Backup | Zabbix Agent 2 (ativo) | 5 | `user_parameters_windows_backup.conf` |
 | [Windows DHCP Server](templates/windows-dhcp/) | Windows / Rede | Zabbix Agent 2 (ativo) + PowerShell | 5 + 12 (LLD) | `userparameter_dhcp.conf` + `dhcp_zbx.ps1` |
 | [WireGuard Tunnel](templates/wireguard-tunnel/) | Rede / VPN | Zabbix Agent (ativo) | 7 | `user_parameters_wireguard_linux.conf` / `_windows.conf` |
@@ -109,6 +110,7 @@ All templates target **Zabbix 7.4** and follow consistent conventions: macro-dri
 | [Sophos Firewall](templates/sophos-firewall/) | Network Devices / Security | SNMP v2c | 15 | — |
 | [TrueNAS](templates/truenas/) | Applications / Storage | HTTP Agent + Dependent | 87 | — |
 | [UniFi AP Legacy](templates/unifi-ap-legacy/) | Network Devices | SNMP v1/v2c | 10 + 3/VAP | — |
+| [UniFi Network 10.6](templates/unifi-network/) | Network Devices / Wi-Fi | SCRIPT (API key) + LLD | 61 + LLD (AP/radio/SSID) | — |
 | [Windows Backup](templates/windows-backup/) | Windows / Backup | Zabbix Agent 2 (active) | 5 | `user_parameters_windows_backup.conf` |
 | [Windows DHCP Server](templates/windows-dhcp/) | Windows / Network | Zabbix Agent 2 (active) + PowerShell | 5 + 12 (LLD) | `userparameter_dhcp.conf` + `dhcp_zbx.ps1` |
 | [WireGuard Tunnel](templates/wireguard-tunnel/) | Network / VPN | Zabbix Agent (active) | 7 | `user_parameters_wireguard_linux.conf` / `_windows.conf` |
