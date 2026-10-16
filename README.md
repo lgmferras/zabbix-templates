@@ -31,6 +31,7 @@ Todos os templates têm como alvo o **Zabbix 7.4** e seguem convenções consist
 | [MSPClouds Backup Monitor](templates/mspclouds-backup/) | Aplicações / Nuvem | HTTP Agent + Dependente/LLD | 11 + LLD | — |
 | [NETHOTEL](templates/nethotel/) | Aplicações | Zabbix Agent 2 (ativo) | 15 | `user_parameters_nethotel.conf` |
 | [NFe SEFAZ Monitor](templates/nfe-sefaz-monitor/) | Aplicações | Zabbix Agent 2 (passivo) + Python | 1 + 8/autorizador (LLD) | `nfe.conf` |
+| [Pi-hole v6](templates/pihole-v6/) | Rede / DNS | SCRIPT (API REST v6) + verificação simples | 23 | — |
 | [Oracle Cloud Billing](templates/oracle-cloud-billing/) | Nuvem / Custo | SCRIPT (OCI Usage Reports API) | 2 | — |
 | [Oracle Cloud Egress](templates/oracle-cloud-egress/) | Nuvem / Custo | SCRIPT (OCI Monitoring API) | 4 | — |
 | [Ricoh SP 3710SF Printer](templates/ricoh-sp3710sf/) | Aplicações / Dispositivos | HTTP (interface web embutida) | 49 | — |
@@ -101,6 +102,7 @@ All templates target **Zabbix 7.4** and follow consistent conventions: macro-dri
 | [MSPClouds Backup Monitor](templates/mspclouds-backup/) | Applications / Cloud | HTTP Agent + Dependent/LLD | 11 + LLD | — |
 | [NETHOTEL](templates/nethotel/) | Applications | Zabbix Agent 2 (active) | 15 | `user_parameters_nethotel.conf` |
 | [NFe SEFAZ Monitor](templates/nfe-sefaz-monitor/) | Applications | Zabbix Agent 2 (passive) + Python | 1 + 8/authorizer (LLD) | `nfe.conf` |
+| [Pi-hole v6](templates/pihole-v6/) | Network / DNS | SCRIPT (REST API v6) + simple check | 23 | — |
 | [Oracle Cloud Billing](templates/oracle-cloud-billing/) | Cloud / Cost | SCRIPT (OCI Usage Reports API) | 2 | — |
 | [Oracle Cloud Egress](templates/oracle-cloud-egress/) | Cloud / Cost | SCRIPT (OCI Monitoring API) | 4 | — |
 | [Ricoh SP 3710SF Printer](templates/ricoh-sp3710sf/) | Applications / Devices | HTTP (embedded web UI) | 49 | — |

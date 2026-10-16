@@ -1,0 +1,816 @@
+{
+    "zabbix_export": {
+        "version": "7.4",
+        "template_groups": [
+            {
+                "uuid": "90e4708006ba409e8bdc270bdf9c9598",
+                "name": "Templates/Applications"
+            }
+        ],
+        "templates": [
+            {
+                "uuid": "9bf9706b468444669744f11eef06ea87",
+                "template": "Pi-hole v6 by HTTP",
+                "name": "Pi-hole v6 by HTTP",
+                "description": "Pi-hole v6 pela API REST (sess\u00e3o aberta e fechada a cada coleta) e porta 53 por checagem simples. Criar no Pi-hole uma senha de aplicativo (Settings > Web interface / API > App password) e inform\u00e1-la em {$PIHOLE.PASSWORD}, como macro secreta no host. Systrix, out/2026.",
+                "vendor": {
+                    "name": "Systrix",
+                    "version": "7.4-1.0"
+                },
+                "groups": [
+                    {
+                        "name": "Templates/Applications"
+                    }
+                ],
+                "items": [
+                    {
+                        "uuid": "d5cfd4b879114bd798ae32413ce4b848",
+                        "name": "DNS: tempo de resposta da porta TCP 53",
+                        "type": "SIMPLE",
+                        "key": "net.tcp.service.perf[tcp,,53]",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "dns"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8e70d69629584559aae5f7cf94247796",
+                        "name": "DNS: porta TCP 53",
+                        "type": "SIMPLE",
+                        "key": "net.tcp.service[tcp,,53]",
+                        "valuemap": {
+                            "name": "Servi\u00e7o"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "dns"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "298c13a38df44c4c95121bca063724db",
+                                "expression": "max(/Pi-hole v6 by HTTP/net.tcp.service[tcp,,53],#3)=0",
+                                "name": "Pi-hole: DNS n\u00e3o responde na porta 53",
+                                "priority": "HIGH",
+                                "description": "Tr\u00eas checagens seguidas sem resposta na porta 53. Quem usa s\u00f3 este Pi-hole fica sem DNS.",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e085c35ee77a4c74a7f8a704ce163a6b",
+                        "name": "Pi-hole: bloqueio",
+                        "type": "DEPENDENT",
+                        "key": "pihole.blocking",
+                        "valuemap": {
+                            "name": "Pi-hole bloqueio"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.blocking"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "blocking"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "dda4347bddc34164a0d2f0a9da6ce494",
+                                "expression": "nodata(/Pi-hole v6 by HTTP/pihole.blocking,10m)=1",
+                                "name": "Pi-hole: API sem dados h\u00e1 10 minutos",
+                                "priority": "AVERAGE",
+                                "description": "A coleta pela API falhou: Pi-hole fora do ar, senha de aplicativo trocada ou URL errada. Ver o erro do item \"Pi-hole: coleta da API\".",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "availability"
+                                    }
+                                ]
+                            },
+                            {
+                                "uuid": "da65273308d74931859dd0734865a103",
+                                "expression": "last(/Pi-hole v6 by HTTP/pihole.blocking)=0",
+                                "name": "Pi-hole: bloqueio desativado",
+                                "priority": "AVERAGE",
+                                "description": "O filtro est\u00e1 desligado (no painel ou pela API); as consultas passam sem bloqueio.",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "security"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0899d3fb692f4ebeba6b761b51b94aa9",
+                        "name": "Pi-hole: clientes ativos",
+                        "type": "DEPENDENT",
+                        "key": "pihole.clients.active",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.clients_active"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "clients"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0fc91e99dc044249ad5695ef9a2a8014",
+                        "name": "Pi-hole: dom\u00ednios \u00fanicos (24h)",
+                        "type": "DEPENDENT",
+                        "key": "pihole.domains.unique",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.unique_domains"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "d40ab97ebbe940e7b1074bb3fcbf526c",
+                        "name": "Pi-hole: CPU do FTL",
+                        "type": "DEPENDENT",
+                        "key": "pihole.ftl.cpu",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ftl_cpu_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c8489f9ba7324bfe96a9c6ae1678eec4",
+                        "name": "Pi-hole: mem\u00f3ria do FTL",
+                        "type": "DEPENDENT",
+                        "key": "pihole.ftl.memory",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ftl_mem_pct"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "55676eabe5ae4f529c4a0e586601850c",
+                        "name": "Pi-hole: tempo de atividade do FTL",
+                        "type": "DEPENDENT",
+                        "key": "pihole.ftl.uptime",
+                        "units": "uptime",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.ftl_uptime"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "system"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "7484fda288bb46f48cf27fabcded44b2",
+                                "expression": "last(/Pi-hole v6 by HTTP/pihole.ftl.uptime)<600",
+                                "name": "Pi-hole: FTL reiniciado",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "INFO",
+                                "description": "O servi\u00e7o de DNS do Pi-hole (FTL) reiniciou h\u00e1 menos de 10 minutos.",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f76c8bd39abe4080987b673f8702be0e",
+                        "name": "Pi-hole: coleta da API",
+                        "type": "SCRIPT",
+                        "key": "pihole.get",
+                        "delay": "2m",
+                        "history": "0",
+                        "value_type": "TEXT",
+                        "params": "// Coleta do Pi-hole v6 pela API REST, com sess\u00e3o aberta e encerrada a cada coleta.\n// Par\u00e2metros: url (ex. http://192.168.0.2:20720) e password (senha de\n// aplicativo do Pi-hole \u2014 Settings > Web interface / API > App password).\nvar p = JSON.parse(value);\nvar base = String(p.url || '').replace(/\\/+$/, '') + '/api';\nif (!p.password) throw 'Macro {$PIHOLE.PASSWORD} vazia';\n\nfunction call(method, path, body, sid) {\n  var r = new HttpRequest();\n  r.addHeader('Content-Type: application/json');\n  if (sid) r.addHeader('X-FTL-SID: ' + sid);\n  var resp = method === 'POST' ? r.post(base + path, JSON.stringify(body))\n    : method === 'DELETE' ? r.delete(base + path) : r.get(base + path);\n  var code = r.getStatus();\n  if (code < 200 || code >= 300) throw 'HTTP ' + code + ' em ' + path + ': ' + String(resp).substring(0, 200);\n  return resp ? JSON.parse(resp) : {};\n}\n\nvar auth = call('POST', '/auth', { password: p.password });\nif (!auth.session || !auth.session.valid) throw 'Login recusado pelo Pi-hole';\nvar sid = auth.session.sid;\nvar out = {};\ntry {\n  var s = call('GET', '/stats/summary', null, sid);\n  out.queries_total = s.queries.total;\n  out.queries_blocked = s.queries.blocked;\n  out.percent_blocked = Math.round(s.queries.percent_blocked * 100) / 100;\n  out.queries_cached = s.queries.cached;\n  out.queries_forwarded = s.queries.forwarded;\n  out.unique_domains = s.queries.unique_domains;\n  out.clients_active = s.clients.active;\n  out.gravity_domains = s.gravity.domains_being_blocked;\n  out.gravity_last_update = s.gravity.last_update;\n\n  out.blocking = call('GET', '/dns/blocking', null, sid).blocking === 'enabled' ? 1 : 0;\n\n  var v = call('GET', '/info/version', null, sid).version;\n  var upd = 0;\n  var parts = [];\n  ['core', 'web', 'ftl'].forEach(function (k) {\n    var loc = v[k] && v[k].local ? v[k].local.version : null;\n    var rem = v[k] && v[k].remote ? v[k].remote.version : null;\n    parts.push(k + ' ' + loc);\n    if (loc && rem && loc !== rem) upd = 1;\n  });\n  out.version = parts.join(', ') + (v.docker && v.docker.local ? ' (imagem ' + v.docker.local + ')' : '');\n  out.update_available = upd;\n\n  var m = call('GET', '/info/messages', null, sid).messages || [];\n  out.messages_count = m.length;\n  out.messages_last = m.length ? String(m[m.length - 1].plain).substring(0, 250) : '';\n\n  var f = call('GET', '/info/ftl', null, sid).ftl;\n  out.ftl_uptime = Math.floor(f.uptime / 1000); // a API devolve milissegundos\n  out.ftl_mem_pct = Math.round(f['%mem'] * 100) / 100;\n  out.ftl_cpu_pct = Math.round(f['%cpu'] * 100) / 100;\n  out.query_frequency = f.query_frequency;\n\n  // Servidores de sa\u00edda reais (exclui \"cache\" e \"blocklist\", que v\u00eam com port -1)\n  var ups = call('GET', '/stats/upstreams', null, sid).upstreams || [];\n  var worst = 0, n = 0;\n  ups.forEach(function (u) {\n    if (u.port > 0) {\n      n++;\n      if (u.count > 0 && u.statistics && u.statistics.response > worst) worst = u.statistics.response;\n    }\n  });\n  out.upstream_count = n;\n  out.upstream_response_max = Math.round(worst * 10000) / 10000;\n} finally {\n  try { call('DELETE', '/auth', null, sid); } catch (e) { }\n}\nreturn JSON.stringify(out);",
+                        "description": "Item mestre: faz login na API REST do Pi-hole v6 com a senha de aplicativo ({$PIHOLE.PASSWORD}), l\u00ea estat\u00edsticas, bloqueio, vers\u00f5es, diagn\u00f3stico, FTL e servidores de sa\u00edda, e encerra a sess\u00e3o. history=0: s\u00f3 alimenta os dependentes.",
+                        "timeout": "30s",
+                        "parameters": [
+                            {
+                                "name": "password",
+                                "value": "{$PIHOLE.PASSWORD}"
+                            },
+                            {
+                                "name": "url",
+                                "value": "{$PIHOLE.SCHEME}://{HOST.CONN}:{$PIHOLE.PORT}"
+                            }
+                        ],
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "raw"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "5665016b947847838d5b1a80b1127e33",
+                        "name": "Pi-hole: idade da lista de bloqueio",
+                        "type": "DEPENDENT",
+                        "key": "pihole.gravity.age",
+                        "units": "s",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gravity_last_update"
+                                ]
+                            },
+                            {
+                                "type": "JAVASCRIPT",
+                                "parameters": [
+                                    "return Math.floor(Date.now() / 1000) - parseInt(value, 10);"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "gravity"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "b57f47c291c4483aabcb059996b9fd70",
+                                "expression": "last(/Pi-hole v6 by HTTP/pihole.gravity.age)>{$PIHOLE.GRAVITY.MAXAGE}",
+                                "name": "Pi-hole: lista de bloqueio desatualizada h\u00e1 mais de {$PIHOLE.GRAVITY.MAXAGE}",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "O gravity n\u00e3o roda h\u00e1 mais tempo que o esperado (no secund\u00e1rio, a sincroniza\u00e7\u00e3o com o prim\u00e1rio pode ter parado).",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "fd7071dd1ea8458b880f483f575f26c5",
+                        "name": "Pi-hole: dom\u00ednios na lista de bloqueio",
+                        "type": "DEPENDENT",
+                        "key": "pihole.gravity.domains",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.gravity_domains"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "gravity"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "40d45a191b64492bb493ac815485be5d",
+                                "expression": "last(/Pi-hole v6 by HTTP/pihole.gravity.domains)<{$PIHOLE.GRAVITY.MIN}",
+                                "name": "Pi-hole: lista de bloqueio com menos de {$PIHOLE.GRAVITY.MIN} dom\u00ednios",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "As listas n\u00e3o foram baixadas ou foram desativadas; o filtro est\u00e1 praticamente vazio.",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "security"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2d0adc99b6204e1da8e2adc976b66295",
+                        "name": "Pi-hole: avisos de diagn\u00f3stico",
+                        "type": "DEPENDENT",
+                        "key": "pihole.messages.count",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.messages_count"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "diagnostics"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "b65419c8c9e44d86824d624457ec725b",
+                                "expression": "last(/Pi-hole v6 by HTTP/pihole.messages.count)>0",
+                                "name": "Pi-hole: h\u00e1 avisos de diagn\u00f3stico",
+                                "opdata": "{ITEM.LASTVALUE1} aviso(s)",
+                                "priority": "WARNING",
+                                "description": "O Pi-hole registrou avisos (Settings > Diagnosis). O texto do \u00faltimo est\u00e1 no item \"Pi-hole: \u00faltimo aviso de diagn\u00f3stico\".",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "c5423e987a0e4f66b9192200930a28f6",
+                        "name": "Pi-hole: \u00faltimo aviso de diagn\u00f3stico",
+                        "type": "DEPENDENT",
+                        "key": "pihole.messages.last",
+                        "history": "7d",
+                        "value_type": "TEXT",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.messages_last"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1h"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "diagnostics"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "2fbe2351095549e7a6c763ecf6588fc3",
+                        "name": "Pi-hole: consultas por segundo",
+                        "type": "DEPENDENT",
+                        "key": "pihole.qps",
+                        "value_type": "FLOAT",
+                        "units": "qps",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.query_frequency"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "8e08a96e422b4adeb656451ed3f5ec3f",
+                        "name": "Pi-hole: consultas bloqueadas (24h)",
+                        "type": "DEPENDENT",
+                        "key": "pihole.queries.blocked",
+                        "units": "consultas",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.queries_blocked"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "158b0a9b376b492cb477b18b60ce8fba",
+                        "name": "Pi-hole: consultas bloqueadas % (24h)",
+                        "type": "DEPENDENT",
+                        "key": "pihole.queries.blocked.pct",
+                        "value_type": "FLOAT",
+                        "units": "%",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.percent_blocked"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "1ea8a073cda24b90870b093015bb2999",
+                        "name": "Pi-hole: consultas respondidas pelo cache (24h)",
+                        "type": "DEPENDENT",
+                        "key": "pihole.queries.cached",
+                        "units": "consultas",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.queries_cached"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "e31f26adff5b4353949bc2216f2ddf79",
+                        "name": "Pi-hole: consultas encaminhadas (24h)",
+                        "type": "DEPENDENT",
+                        "key": "pihole.queries.forwarded",
+                        "units": "consultas",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.queries_forwarded"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "a4810cec9cdd4b329a8e280e6a8680b8",
+                        "name": "Pi-hole: consultas (24h)",
+                        "type": "DEPENDENT",
+                        "key": "pihole.queries.total",
+                        "units": "consultas",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.queries_total"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "queries"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "3835daa7af874748bf9d9c1a117cbd0e",
+                        "name": "Pi-hole: atualiza\u00e7\u00e3o dispon\u00edvel",
+                        "type": "DEPENDENT",
+                        "key": "pihole.update.available",
+                        "valuemap": {
+                            "name": "Pi-hole atualiza\u00e7\u00e3o"
+                        },
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.update_available"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "version"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "86f6649d2a38437698fe171e260127a9",
+                                "expression": "last(/Pi-hole v6 by HTTP/pihole.update.available)=1",
+                                "name": "Pi-hole: atualiza\u00e7\u00e3o dispon\u00edvel",
+                                "priority": "INFO",
+                                "description": "H\u00e1 vers\u00e3o mais nova do core, da interface ou do FTL.",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "notice"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "64a92f8601334c03867fdc55ba6611ee",
+                        "name": "Pi-hole: servidores de sa\u00edda configurados",
+                        "type": "DEPENDENT",
+                        "key": "pihole.upstream.count",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.upstream_count"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "upstream"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "288cf458b15c42cfa6aa68379233afde",
+                        "name": "Pi-hole: pior tempo m\u00e9dio de resposta de sa\u00edda",
+                        "type": "DEPENDENT",
+                        "key": "pihole.upstream.response.max",
+                        "value_type": "FLOAT",
+                        "units": "s",
+                        "description": "Maior tempo m\u00e9dio de resposta entre os servidores de sa\u00edda que j\u00e1 receberam consultas.",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.upstream_response_max"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "upstream"
+                            }
+                        ],
+                        "triggers": [
+                            {
+                                "uuid": "4ce0114bc98a43bb9cbba17cefe0e67d",
+                                "expression": "avg(/Pi-hole v6 by HTTP/pihole.upstream.response.max,15m)>{$PIHOLE.UPSTREAM.RESPONSE.MAX}",
+                                "name": "Pi-hole: servidores de sa\u00edda lentos",
+                                "opdata": "{ITEM.LASTVALUE1}",
+                                "priority": "WARNING",
+                                "description": "Tempo m\u00e9dio de resposta dos servidores de sa\u00edda acima de {$PIHOLE.UPSTREAM.RESPONSE.MAX}s em 15 minutos.",
+                                "tags": [
+                                    {
+                                        "tag": "scope",
+                                        "value": "performance"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "ecf9422a3251459da4ec1bcbbf13afd0",
+                        "name": "Pi-hole: vers\u00e3o",
+                        "type": "DEPENDENT",
+                        "key": "pihole.version",
+                        "history": "7d",
+                        "value_type": "CHAR",
+                        "preprocessing": [
+                            {
+                                "type": "JSONPATH",
+                                "parameters": [
+                                    "$.version"
+                                ]
+                            },
+                            {
+                                "type": "DISCARD_UNCHANGED_HEARTBEAT",
+                                "parameters": [
+                                    "1d"
+                                ]
+                            }
+                        ],
+                        "master_item": {
+                            "key": "pihole.get"
+                        },
+                        "tags": [
+                            {
+                                "tag": "component",
+                                "value": "version"
+                            }
+                        ]
+                    }
+                ],
+                "tags": [
+                    {
+                        "tag": "class",
+                        "value": "application"
+                    },
+                    {
+                        "tag": "target",
+                        "value": "pihole"
+                    }
+                ],
+                "macros": [
+                    {
+                        "macro": "{$PIHOLE.GRAVITY.MAXAGE}",
+                        "value": "8d",
+                        "description": "Idade m\u00e1xima da lista de bloqueio. O prim\u00e1rio atualiza uma vez por semana; o secund\u00e1rio sincronizado, a cada 6 h."
+                    },
+                    {
+                        "macro": "{$PIHOLE.GRAVITY.MIN}",
+                        "value": "1000",
+                        "description": "M\u00ednimo de dom\u00ednios esperado na lista de bloqueio."
+                    },
+                    {
+                        "macro": "{$PIHOLE.PASSWORD}",
+                        "type": "SECRET_TEXT",
+                        "description": "Senha de aplicativo do Pi-hole. Definir no host."
+                    },
+                    {
+                        "macro": "{$PIHOLE.PORT}",
+                        "value": "20720",
+                        "description": "Porta da interface web do Pi-hole."
+                    },
+                    {
+                        "macro": "{$PIHOLE.SCHEME}",
+                        "value": "http",
+                        "description": "http ou https (com https, o certificado do Pi-hole precisa ser v\u00e1lido para o endere\u00e7o da interface)."
+                    },
+                    {
+                        "macro": "{$PIHOLE.UPSTREAM.RESPONSE.MAX}",
+                        "value": "0.5",
+                        "description": "Tempo m\u00e9dio de resposta aceit\u00e1vel dos servidores de sa\u00edda, em segundos."
+                    }
+                ],
+                "valuemaps": [
+                    {
+                        "uuid": "91256f31ae514ec29722e11ed359c30d",
+                        "name": "Pi-hole atualiza\u00e7\u00e3o",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Atualizado"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Atualiza\u00e7\u00e3o dispon\u00edvel"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "f1d12c1a783d429cb81bba880637e9b6",
+                        "name": "Pi-hole bloqueio",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Desativado"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Ativado"
+                            }
+                        ]
+                    },
+                    {
+                        "uuid": "0abbcb67ac8e435fa8f1dc71d76eb56b",
+                        "name": "Servi\u00e7o",
+                        "mappings": [
+                            {
+                                "value": "0",
+                                "newvalue": "Parado"
+                            },
+                            {
+                                "value": "1",
+                                "newvalue": "Em execu\u00e7\u00e3o"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
