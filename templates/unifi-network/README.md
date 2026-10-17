@@ -37,9 +37,13 @@ A mesma chave dá acesso às APIs de integração (v1), clássica (`/api/s/<site
 
 ### Pré-requisitos
 
-1. No controller: **Settings → Control Plane → Integrations → API Keys**, crie uma chave e copie-a, porque ela não aparece de novo.
+1. Escolha como o Zabbix vai se autenticar no controller:
+   - **UniFi OS** (console UniFi ou UniFi OS Server): vá em **Settings → Control Plane → Integrations → API Keys**, crie uma chave e copie-a, porque ela não aparece de novo.
+   - **Network Application standalone:** esse menu não existe, porque a tela de chaves é do UniFi OS. Em **Settings → Admins**, crie um usuário local com o papel **View Only**.
 2. No Zabbix, crie um host por site do controller, com uma interface no IP do controller.
-3. Vincule o template e defina no host a macro `{$UNIFI.API.KEY}` como **texto secreto**.
+3. Vincule o template e defina no host:
+   - **UniFi OS:** `{$UNIFI.API.KEY}` como texto secreto.
+   - **Standalone:** `{$UNIFI.USER}`, e `{$UNIFI.PASSWORD}` como texto secreto.
 4. Ajuste `{$UNIFI.PORT}` e `{$UNIFI.API.PREFIX}` conforme a tabela abaixo.
 
 | Controller | `{$UNIFI.PORT}` | `{$UNIFI.API.PREFIX}` |
@@ -53,6 +57,7 @@ A mesma chave dá acesso às APIs de integração (v1), clássica (`/api/s/<site
 | Macro | Padrão | Descrição |
 |---|---|---|
 | `{$UNIFI.API.KEY}` | — | Chave de API (secreta) |
+| `{$UNIFI.USER}` / `{$UNIFI.PASSWORD}` | — | Usuário View Only e senha (secreta), só na standalone sem chave |
 | `{$UNIFI.SCHEME}` / `{$UNIFI.PORT}` | `https` / `11443` | Endereço da interface |
 | `{$UNIFI.API.PREFIX}` | `/proxy/network` | Vazio na standalone |
 | `{$UNIFI.SITE}` | `default` | Site do controller |
@@ -94,9 +99,13 @@ One key covers the Integration (v1), classic (`/api/s/<site>`) and v2 APIs. The 
 
 ### Setup
 
-1. On the controller: **Settings → Control Plane → Integrations → API Keys**. Create a key and copy it, because it is shown only once.
+1. Choose how Zabbix authenticates to the controller:
+   - **UniFi OS** (UniFi console or UniFi OS Server): go to **Settings → Control Plane → Integrations → API Keys**, then create a key and copy it, because it is shown only once.
+   - **Standalone Network Application:** that menu doesn't exist, because the API key screen belongs to UniFi OS. In **Settings → Admins**, create a local **View Only** user.
 2. In Zabbix, create one host per controller site, with an interface on the controller IP.
-3. Link the template and set `{$UNIFI.API.KEY}` on the host as **secret text**.
+3. Link the template and set on the host:
+   - **UniFi OS:** `{$UNIFI.API.KEY}` as secret text.
+   - **Standalone:** `{$UNIFI.USER}`, and `{$UNIFI.PASSWORD}` as secret text.
 4. Set `{$UNIFI.PORT}` and `{$UNIFI.API.PREFIX}`:
    - UniFi OS Server: `11443`, `/proxy/network`.
    - UniFi console: `443`, `/proxy/network`.
