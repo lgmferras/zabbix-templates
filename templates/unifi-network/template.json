@@ -10,9 +10,9 @@
         "templates": [
             {
                 "uuid": "baee6b47880b40a2a6c21745b7f71495",
-                "template": "UniFi Network 10.6 by API",
-                "name": "UniFi Network 10.6 by API",
-                "description": "UniFi Network 10.x (UniFi OS Server ou console) pela API, com chave de API (Settings > Control Plane > Integrations > API Keys). Usa a API de integração (v1) e a API clássica/v2 do UniFi Network, que aceitam a mesma chave. Coleta: APs (estado, recursos, clientes, satisfação, porta de rede, EOL), rádios (canal, potência, utilização, interferência, retransmissões), redes Wi-Fi (faixas, segurança, roaming), conexões das últimas 24 h, experiência dos clientes, vizinhança de rádio e o próprio controller. Só agregados: nenhum MAC, IP ou nome de aparelho de cliente é gravado (LGPD). Macros no host: {$UNIFI.API.KEY} (secreta); {$UNIFI.PORT} (11443 no UniFi OS Server, 443 em console UniFi, 8443 na Network Application standalone); {$UNIFI.API.PREFIX} (/proxy/network no UniFi OS, vazio na standalone); {$UNIFI.SITE} (um host por site do controller). {$UNIFI.AP.EOL.ALERT}=0 desliga o alerta por AP fora de linha. Todos os triggers aceitam fechamento manual e os de qualidade têm recuperação com folga (histerese) para não oscilar. Systrix, out/2026.",
+                "template": "UniFi Network by API",
+                "name": "UniFi Network by API",
+                "description": "UniFi Network (aplicação Network 10.x) pela API, validado no UniFi OS Server 5.1 com Network 10.6; a Network Application standalone usa os mesmos caminhos sem o prefixo /proxy/network, com chave de API (Settings > Control Plane > Integrations > API Keys). Usa a API de integração (v1) e a API clássica/v2 do UniFi Network, que aceitam a mesma chave. Coleta: APs (estado, recursos, clientes, satisfação, porta de rede, EOL), rádios (canal, potência, utilização, interferência, retransmissões), redes Wi-Fi (faixas, segurança, roaming), conexões das últimas 24 h, experiência dos clientes, vizinhança de rádio e o próprio controller. Só agregados: nenhum MAC, IP ou nome de aparelho de cliente é gravado (LGPD). Macros no host: {$UNIFI.API.KEY} (secreta); {$UNIFI.PORT} (11443 no UniFi OS Server, 443 em console UniFi, 8443 na Network Application standalone); {$UNIFI.API.PREFIX} (/proxy/network no UniFi OS, vazio na standalone); {$UNIFI.SITE} (um host por site do controller). {$UNIFI.AP.EOL.ALERT}=0 desliga o alerta por AP fora de linha. Os triggers têm a tag glpi=nao (não abrem chamado no GLPI). Todos aceitam fechamento manual e os de qualidade têm recuperação com folga (histerese) para não oscilar. Systrix, out/2026.",
                 "vendor": {
                     "name": "Systrix",
                     "version": "7.4-1.0"
@@ -40,12 +40,16 @@
                         "triggers": [
                             {
                                 "uuid": "8df1b231901b4dda8bb00c0a4e98f884",
-                                "expression": "max(/UniFi Network 10.6 by API/net.tcp.service[https,,{$UNIFI.PORT}],#3)=0",
+                                "expression": "max(/UniFi Network by API/net.tcp.service[https,,{$UNIFI.PORT}],#3)=0",
                                 "name": "UniFi OS: interface HTTPS sem resposta",
                                 "priority": "HIGH",
                                 "description": "O servidor UniFi OS não responde na porta {$UNIFI.PORT}. Os APs continuam funcionando, mas sem gerência, estatísticas nem portal.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "availability"
@@ -151,13 +155,17 @@
                         "triggers": [
                             {
                                 "uuid": "1f8ae4eb5df14a6eaab1be35e4a15c01",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.aps.offline)>={$UNIFI.APS.OFFLINE.DISASTER}",
+                                "expression": "last(/UniFi Network by API/unifi.aps.offline)>={$UNIFI.APS.OFFLINE.DISASTER}",
                                 "name": "UniFi: vários APs offline",
                                 "opdata": "{ITEM.LASTVALUE1} AP(s) offline",
                                 "priority": "DISASTER",
                                 "description": "{$UNIFI.APS.OFFLINE.DISASTER} ou mais APs offline ao mesmo tempo: provável falha de energia, switch ou PoE que atende vários andares.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "availability"
@@ -215,12 +223,16 @@
                         "triggers": [
                             {
                                 "uuid": "d3a118a11ac8492bafcf73e5d68115c6",
-                                "expression": "nodata(/UniFi Network 10.6 by API/unifi.aps.total,10m)=1",
+                                "expression": "nodata(/UniFi Network by API/unifi.aps.total,10m)=1",
                                 "name": "UniFi: API sem dados há 10 minutos",
                                 "priority": "AVERAGE",
                                 "description": "A coleta dos APs falhou: chave de API revogada, controller fora do ar ou URL errada. Ver o erro do item \"UniFi: coleta de APs, rádios e clientes\".",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "availability"
@@ -278,13 +290,17 @@
                         "triggers": [
                             {
                                 "uuid": "c9fe683a365b4e898872f310ba3186ec",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.aps.uplink.limited)>0",
+                                "expression": "last(/UniFi Network by API/unifi.aps.uplink.limited)>0",
                                 "name": "UniFi: APs com porta de rede abaixo da capacidade",
                                 "opdata": "{ITEM.LASTVALUE1} AP(s)",
                                 "priority": "WARNING",
                                 "description": "APs que suportam porta gigabit estão ligados a 100 Mbps. Ver o trigger por AP para saber quais.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -677,12 +693,16 @@
                         "triggers": [
                             {
                                 "uuid": "a1f4d6ca7adb4410861cffc7d32d6a5a",
-                                "expression": "nodata(/UniFi Network 10.6 by API/unifi.conn.attempts,30m)=1",
+                                "expression": "nodata(/UniFi Network by API/unifi.conn.attempts,30m)=1",
                                 "name": "UniFi: coleta do controller sem dados há 30 minutos",
                                 "priority": "WARNING",
                                 "description": "A coleta do controller (experiência, conexões, vizinhança) falhou. Ver o erro do item \"UniFi: coleta do controller e da experiência Wi-Fi\".",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "availability"
@@ -891,13 +911,17 @@
                         "triggers": [
                             {
                                 "uuid": "cf29370d89d045a692e53f43ce3e5f1a",
-                                "expression": "avg(/UniFi Network 10.6 by API/unifi.conn.latency.total,1h)>{$UNIFI.CONN.LATENCY.MAX}",
+                                "expression": "avg(/UniFi Network by API/unifi.conn.latency.total,1h)>{$UNIFI.CONN.LATENCY.MAX}",
                                 "name": "UniFi: conexão ao Wi-Fi demorada",
                                 "opdata": "{ITEM.LASTVALUE1}",
                                 "priority": "WARNING",
                                 "description": "Os aparelhos levam mais de {$UNIFI.CONN.LATENCY.MAX} s em média para conectar (associação + senha + DHCP + DNS).",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -959,12 +983,16 @@
                         "triggers": [
                             {
                                 "uuid": "6e5767c1ab0f466fa845442fd36c2de4",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.controller.update)=1",
+                                "expression": "last(/UniFi Network by API/unifi.controller.update)=1",
                                 "name": "UniFi: atualização do UniFi Network disponível",
                                 "priority": "INFO",
                                 "description": "Há versão mais nova do UniFi Network.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "notice"
@@ -999,13 +1027,17 @@
                         "triggers": [
                             {
                                 "uuid": "35e94d32f0a547a988ccf2cd95288b4b",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.controller.uptime)<600",
+                                "expression": "last(/UniFi Network by API/unifi.controller.uptime)<600",
                                 "name": "UniFi: controller reiniciado",
                                 "opdata": "{ITEM.LASTVALUE1}",
                                 "priority": "INFO",
                                 "description": "O UniFi Network reiniciou há menos de 10 minutos.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "notice"
@@ -1140,13 +1172,17 @@
                         "triggers": [
                             {
                                 "uuid": "75b1a6ca910a4d58b5f15ee62d43a23c",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.devices.pending)>0",
+                                "expression": "last(/UniFi Network by API/unifi.devices.pending)>0",
                                 "name": "UniFi: dispositivo aguardando adoção",
                                 "opdata": "{ITEM.LASTVALUE1}",
                                 "priority": "INFO",
                                 "description": "Há dispositivo UniFi na rede aguardando adoção no controller.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "notice"
@@ -1181,13 +1217,17 @@
                         "triggers": [
                             {
                                 "uuid": "650f7ab9a4df4df3bdf4398eb7fe9d0d",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.doctor.pending)>0",
+                                "expression": "last(/UniFi Network by API/unifi.doctor.pending)>0",
                                 "name": "UniFi: otimizações recomendadas pendentes",
                                 "opdata": "{ITEM.LASTVALUE1}",
                                 "priority": "INFO",
                                 "description": "O UniFi recomenda otimizações ainda não aplicadas (Wi-Fi AI / Doctor). A lista está no item \"Otimizações recomendadas pendentes (lista)\".",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "notice"
@@ -1307,15 +1347,19 @@
                         "triggers": [
                             {
                                 "uuid": "6d355cf81f4742faa7b04042d5522997",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.experience.poor)>{$UNIFI.EXPERIENCE.POOR.MAX}",
+                                "expression": "last(/UniFi Network by API/unifi.experience.poor)>{$UNIFI.EXPERIENCE.POOR.MAX}",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
-                                "recovery_expression": "last(/UniFi Network 10.6 by API/unifi.experience.poor)<{$UNIFI.EXPERIENCE.POOR.MAX}*0.75",
+                                "recovery_expression": "last(/UniFi Network by API/unifi.experience.poor)<{$UNIFI.EXPERIENCE.POOR.MAX}*0.75",
                                 "name": "UniFi: muitas sessões com experiência ruim",
                                 "opdata": "{ITEM.LASTVALUE1} das sessões",
                                 "priority": "WARNING",
                                 "description": "Mais de {$UNIFI.EXPERIENCE.POOR.MAX}% das sessões Wi-Fi das últimas 24 h tiveram satisfação abaixo de 60 %: é o que gera reclamação dos usuários.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -1373,15 +1417,19 @@
                         "triggers": [
                             {
                                 "uuid": "e8cdbaaa482042a0a65f5881dd8eaad8",
-                                "expression": "avg(/UniFi Network 10.6 by API/unifi.neighbors.2g.strong,1h)>{$UNIFI.NEIGHBORS.STRONG.MAX}",
+                                "expression": "avg(/UniFi Network by API/unifi.neighbors.2g.strong,1h)>{$UNIFI.NEIGHBORS.STRONG.MAX}",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
-                                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.neighbors.2g.strong,2h)<{$UNIFI.NEIGHBORS.STRONG.MAX}*0.8",
+                                "recovery_expression": "avg(/UniFi Network by API/unifi.neighbors.2g.strong,2h)<{$UNIFI.NEIGHBORS.STRONG.MAX}*0.8",
                                 "name": "UniFi: vizinhança de 2,4 GHz muito congestionada",
                                 "opdata": "{ITEM.LASTVALUE1} redes",
                                 "priority": "INFO",
                                 "description": "Mais de {$UNIFI.NEIGHBORS.STRONG.MAX} redes de terceiros fortes em 2,4 GHz: o espectro do prédio está saturado e só 5 GHz oferece folga.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -1744,13 +1792,17 @@
                         "triggers": [
                             {
                                 "uuid": "ba07ae649be6476ab51f89ab3d35ed08",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.wlans.2g_only)>0",
+                                "expression": "last(/UniFi Network by API/unifi.wlans.2g_only)>0",
                                 "name": "UniFi: Wi-Fi só em 2,4 GHz com APs de 5 GHz disponíveis",
                                 "opdata": "{ITEM.LASTVALUE1} rede(s)",
                                 "priority": "WARNING",
                                 "description": "Há rede Wi-Fi configurada só em 2,4 GHz enquanto o site tem APs com rádio de 5 GHz: esses rádios não atendem ninguém e todos os aparelhos disputam a faixa de 2,4 GHz, a mais congestionada. Habilitar a rede nas duas faixas (com band steering) libera 5 GHz para os aparelhos compatíveis.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -1882,15 +1934,19 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "5f573b14d9734d539602985334db78c5",
-                                        "expression": "min(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}],15m)>{$UNIFI.AP.CLIENTS.MAX}",
+                                        "expression": "min(/UniFi Network by API/unifi.ap.clients[{#AP.MAC}],15m)>{$UNIFI.AP.CLIENTS.MAX}",
                                         "recovery_mode": "RECOVERY_EXPRESSION",
-                                        "recovery_expression": "max(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}],15m)<={$UNIFI.AP.CLIENTS.MAX}*0.9",
+                                        "recovery_expression": "max(/UniFi Network by API/unifi.ap.clients[{#AP.MAC}],15m)<={$UNIFI.AP.CLIENTS.MAX}*0.9",
                                         "name": "{#AP.NAME}: muitos clientes",
                                         "opdata": "{ITEM.LASTVALUE1} clientes",
                                         "priority": "WARNING",
                                         "description": "Mais de {$UNIFI.AP.CLIENTS.MAX} clientes conectados por 15 minutos: o AP divide o tempo de rádio entre todos e a velocidade de cada um cai.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "capacity"
@@ -1930,15 +1986,19 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "a73328bf56034e8d84a203107ca6e5d4",
-                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.ap.cpu[{#AP.MAC}],15m)>{$UNIFI.AP.CPU.MAX}",
+                                        "expression": "avg(/UniFi Network by API/unifi.ap.cpu[{#AP.MAC}],15m)>{$UNIFI.AP.CPU.MAX}",
                                         "recovery_mode": "RECOVERY_EXPRESSION",
-                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.ap.cpu[{#AP.MAC}],15m)<{$UNIFI.AP.CPU.MAX}-10",
+                                        "recovery_expression": "avg(/UniFi Network by API/unifi.ap.cpu[{#AP.MAC}],15m)<{$UNIFI.AP.CPU.MAX}-10",
                                         "name": "{#AP.NAME}: CPU alta",
                                         "opdata": "{ITEM.LASTVALUE1}",
                                         "priority": "WARNING",
                                         "description": "CPU do AP acima de {$UNIFI.AP.CPU.MAX}% em média nos últimos 15 minutos.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "performance"
@@ -2009,12 +2069,16 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "a1d98471feef432fba3b351ed4e63b20",
-                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.eol[{#AP.MAC}])=1 and {$UNIFI.AP.EOL.ALERT}=1",
+                                        "expression": "last(/UniFi Network by API/unifi.ap.eol[{#AP.MAC}])=1 and {$UNIFI.AP.EOL.ALERT}=1",
                                         "name": "{#AP.NAME}: modelo fora de linha",
                                         "priority": "INFO",
                                         "description": "Modelo descontinuado pela Ubiquiti: não recebe mais firmware nem correções de segurança. Planejar a substituição.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "notice"
@@ -2089,15 +2153,19 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "8eaec53848ac4b5891e93f65b75645f8",
-                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.ap.memory[{#AP.MAC}],15m)>{$UNIFI.AP.MEM.MAX}",
+                                        "expression": "avg(/UniFi Network by API/unifi.ap.memory[{#AP.MAC}],15m)>{$UNIFI.AP.MEM.MAX}",
                                         "recovery_mode": "RECOVERY_EXPRESSION",
-                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.ap.memory[{#AP.MAC}],15m)<{$UNIFI.AP.MEM.MAX}-5",
+                                        "recovery_expression": "avg(/UniFi Network by API/unifi.ap.memory[{#AP.MAC}],15m)<{$UNIFI.AP.MEM.MAX}-5",
                                         "name": "{#AP.NAME}: memória alta",
                                         "opdata": "{ITEM.LASTVALUE1}",
                                         "priority": "WARNING",
                                         "description": "Memória do AP acima de {$UNIFI.AP.MEM.MAX}% em média nos últimos 15 minutos.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "performance"
@@ -2203,13 +2271,17 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "41cf05a52af04d3eaf7223c0012e8b39",
-                                        "expression": "count(/UniFi Network 10.6 by API/unifi.ap.state[{#AP.MAC}],#5,\"eq\",1)=0",
+                                        "expression": "count(/UniFi Network by API/unifi.ap.state[{#AP.MAC}],#5,\"eq\",1)=0",
                                         "name": "{#AP.NAME}: AP offline",
                                         "opdata": "Estado: {ITEM.LASTVALUE1}",
                                         "priority": "HIGH",
                                         "description": "O controller não vê este AP há 5 coletas seguidas (estados: desconectado, sem heartbeat, adoção com erro). Usuários da área ficam sem Wi-Fi ou migram para APs distantes. Conferir energia/PoE, cabo e porta do switch.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "availability"
@@ -2250,12 +2322,16 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "c8620f2c8e11487e9d8ad4dacc0734f3",
-                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.upgradable[{#AP.MAC}])=1",
+                                        "expression": "last(/UniFi Network by API/unifi.ap.upgradable[{#AP.MAC}])=1",
                                         "name": "{#AP.NAME}: firmware para atualizar",
                                         "priority": "INFO",
                                         "description": "Há firmware mais novo para este AP no controller.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "notice"
@@ -2297,13 +2373,17 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "c05a50502cea461389c77a3ba7c34f05",
-                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.uplink.errors[{#AP.MAC}])>{$UNIFI.AP.UPLINK.ERRORS.MAX}",
+                                        "expression": "last(/UniFi Network by API/unifi.ap.uplink.errors[{#AP.MAC}])>{$UNIFI.AP.UPLINK.ERRORS.MAX}",
                                         "name": "{#AP.NAME}: erros na porta de rede",
                                         "opdata": "{ITEM.LASTVALUE1}",
                                         "priority": "WARNING",
                                         "description": "Mais de {$UNIFI.AP.UPLINK.ERRORS.MAX} erros de transmissão na porta de rede do AP entre duas coletas: cabo ou porta com defeito.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "performance"
@@ -2454,13 +2534,17 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "8dc7daada0614637a533ffbeeab8a31c",
-                                        "expression": "last(/UniFi Network 10.6 by API/unifi.ap.uptime[{#AP.MAC}])<600",
+                                        "expression": "last(/UniFi Network by API/unifi.ap.uptime[{#AP.MAC}])<600",
                                         "name": "{#AP.NAME}: AP reiniciado",
                                         "opdata": "{ITEM.LASTVALUE1}",
                                         "priority": "INFO",
                                         "description": "O AP reiniciou há menos de 10 minutos. Reinícios frequentes indicam falha de energia/PoE ou de hardware.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "notice"
@@ -2508,15 +2592,19 @@
                         "trigger_prototypes": [
                             {
                                 "uuid": "fcc75b7d29bb4a7785234cbf4a43ed01",
-                                "expression": "avg(/UniFi Network 10.6 by API/unifi.ap.satisfaction[{#AP.MAC}],30m)<{$UNIFI.AP.SATISFACTION.MIN} and last(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}])>0 and last(/UniFi Network 10.6 by API/unifi.ap.satisfaction[{#AP.MAC}])>=0",
+                                "expression": "avg(/UniFi Network by API/unifi.ap.satisfaction[{#AP.MAC}],30m)<{$UNIFI.AP.SATISFACTION.MIN} and last(/UniFi Network by API/unifi.ap.clients[{#AP.MAC}])>0 and last(/UniFi Network by API/unifi.ap.satisfaction[{#AP.MAC}])>=0",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
-                                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.ap.satisfaction[{#AP.MAC}],1h)>={$UNIFI.AP.SATISFACTION.MIN}+5 or max(/UniFi Network 10.6 by API/unifi.ap.clients[{#AP.MAC}],1h)=0",
+                                "recovery_expression": "avg(/UniFi Network by API/unifi.ap.satisfaction[{#AP.MAC}],1h)>={$UNIFI.AP.SATISFACTION.MIN}+5 or max(/UniFi Network by API/unifi.ap.clients[{#AP.MAC}],1h)=0",
                                 "name": "{#AP.NAME}: experiência dos clientes ruim",
                                 "opdata": "Satisfação {ITEM.LASTVALUE1}, {ITEM.LASTVALUE2} cliente(s)",
                                 "priority": "WARNING",
                                 "description": "Satisfação média dos clientes do AP abaixo de {$UNIFI.AP.SATISFACTION.MIN}% em 30 minutos: sinal fraco, interferência ou AP sobrecarregado. Ver os itens de rádio deste AP.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -2525,13 +2613,17 @@
                             },
                             {
                                 "uuid": "f1647e27088843999396da1b21eca78a",
-                                "expression": "last(/UniFi Network 10.6 by API/unifi.ap.uplink.speed[{#AP.MAC}])>0 and last(/UniFi Network 10.6 by API/unifi.ap.uplink.speed[{#AP.MAC}])<last(/UniFi Network 10.6 by API/unifi.ap.uplink.max_speed[{#AP.MAC}])",
+                                "expression": "last(/UniFi Network by API/unifi.ap.uplink.speed[{#AP.MAC}])>0 and last(/UniFi Network by API/unifi.ap.uplink.speed[{#AP.MAC}])<last(/UniFi Network by API/unifi.ap.uplink.max_speed[{#AP.MAC}])",
                                 "name": "{#AP.NAME}: porta de rede abaixo da capacidade",
                                 "opdata": "{ITEM.LASTVALUE1} de {ITEM.LASTVALUE2} Mbps",
                                 "priority": "WARNING",
                                 "description": "O AP suporta porta mais rápida do que a negociada (ex. gigabit ligado a 100 Mbps). Causas comuns: cabo com par rompido, conector mal crimpado, porta do switch ou injetor PoE de 100 Mbps.",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -2734,15 +2826,19 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "0e0c1cab930941b5a3372026e357d020",
-                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.radio.cu[{#RADIO.KEY}],15m)>{$UNIFI.RADIO.CU.MAX}",
+                                        "expression": "avg(/UniFi Network by API/unifi.radio.cu[{#RADIO.KEY}],15m)>{$UNIFI.RADIO.CU.MAX}",
                                         "recovery_mode": "RECOVERY_EXPRESSION",
-                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.radio.cu[{#RADIO.KEY}],30m)<{$UNIFI.RADIO.CU.MAX}*0.85",
+                                        "recovery_expression": "avg(/UniFi Network by API/unifi.radio.cu[{#RADIO.KEY}],30m)<{$UNIFI.RADIO.CU.MAX}*0.85",
                                         "name": "{#AP.NAME} {#BAND}: canal congestionado",
                                         "opdata": "Utilização {ITEM.LASTVALUE1}",
                                         "priority": "WARNING",
                                         "description": "Canal ocupado acima de {$UNIFI.RADIO.CU.MAX}% em média nos últimos 15 minutos. Considerar trocar de canal, reduzir a potência dos APs vizinhos ou mover clientes para 5 GHz.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "performance"
@@ -2786,15 +2882,19 @@
                                 "trigger_prototypes": [
                                     {
                                         "uuid": "3596b0cf843043999cd085bdb88c086f",
-                                        "expression": "avg(/UniFi Network 10.6 by API/unifi.radio.interference[{#RADIO.KEY}],30m)>{$UNIFI.RADIO.INTERFERENCE.MAX}",
+                                        "expression": "avg(/UniFi Network by API/unifi.radio.interference[{#RADIO.KEY}],30m)>{$UNIFI.RADIO.INTERFERENCE.MAX}",
                                         "recovery_mode": "RECOVERY_EXPRESSION",
-                                        "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.radio.interference[{#RADIO.KEY}],1h)<{$UNIFI.RADIO.INTERFERENCE.MAX}*0.75",
+                                        "recovery_expression": "avg(/UniFi Network by API/unifi.radio.interference[{#RADIO.KEY}],1h)<{$UNIFI.RADIO.INTERFERENCE.MAX}*0.75",
                                         "name": "{#AP.NAME} {#BAND}: interferência alta",
                                         "opdata": "Interferência {ITEM.LASTVALUE1}",
                                         "priority": "WARNING",
                                         "description": "Mais de {$UNIFI.RADIO.INTERFERENCE.MAX}% do canal ocupado por fontes externas ao AP em 30 minutos: redes vizinhas ou outros APs da rede no mesmo canal.",
                                         "manual_close": "YES",
                                         "tags": [
+                                            {
+                                                "tag": "glpi",
+                                                "value": "nao"
+                                            },
                                             {
                                                 "tag": "scope",
                                                 "value": "performance"
@@ -3007,15 +3107,19 @@
                         "trigger_prototypes": [
                             {
                                 "uuid": "a91c0b3e39d44aef9bba64c5efbfb884",
-                                "expression": "avg(/UniFi Network 10.6 by API/unifi.radio.retries[{#RADIO.KEY}],30m)>{$UNIFI.RADIO.RETRIES.MAX} and avg(/UniFi Network 10.6 by API/unifi.radio.clients[{#RADIO.KEY}],30m)>=1",
+                                "expression": "avg(/UniFi Network by API/unifi.radio.retries[{#RADIO.KEY}],30m)>{$UNIFI.RADIO.RETRIES.MAX} and avg(/UniFi Network by API/unifi.radio.clients[{#RADIO.KEY}],30m)>=1",
                                 "recovery_mode": "RECOVERY_EXPRESSION",
-                                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.radio.retries[{#RADIO.KEY}],1h)<{$UNIFI.RADIO.RETRIES.MAX}*0.75 or max(/UniFi Network 10.6 by API/unifi.radio.clients[{#RADIO.KEY}],1h)=0",
+                                "recovery_expression": "avg(/UniFi Network by API/unifi.radio.retries[{#RADIO.KEY}],1h)<{$UNIFI.RADIO.RETRIES.MAX}*0.75 or max(/UniFi Network by API/unifi.radio.clients[{#RADIO.KEY}],1h)=0",
                                 "name": "{#AP.NAME} {#BAND}: retransmissões altas",
                                 "opdata": "Retransmissões {ITEM.LASTVALUE1}",
                                 "priority": "WARNING",
                                 "description": "Mais de {$UNIFI.RADIO.RETRIES.MAX}% dos pacotes reenviados em média nos últimos 30 minutos (com clientes conectados): interferência, sinal fraco ou excesso de clientes. É a causa mais comum de \"Wi-Fi lento\".",
                                 "manual_close": "YES",
                                 "tags": [
+                                    {
+                                        "tag": "glpi",
+                                        "value": "nao"
+                                    },
                                     {
                                         "tag": "scope",
                                         "value": "performance"
@@ -3408,6 +3512,10 @@
                         "value": "network"
                     },
                     {
+                        "tag": "glpi",
+                        "value": "nao"
+                    },
+                    {
                         "tag": "target",
                         "value": "unifi"
                     }
@@ -3595,13 +3703,17 @@
         "triggers": [
             {
                 "uuid": "ae9505dc7e5b447bae5f1b704040bcab",
-                "expression": "last(/UniFi Network 10.6 by API/unifi.conn.dhcp)<{$UNIFI.CONN.SUCCESS.MIN} and last(/UniFi Network 10.6 by API/unifi.conn.attempts)>0",
+                "expression": "last(/UniFi Network by API/unifi.conn.dhcp)<{$UNIFI.CONN.SUCCESS.MIN} and last(/UniFi Network by API/unifi.conn.attempts)>0",
                 "name": "UniFi: falhas de DHCP ao conectar",
                 "opdata": "DHCP {ITEM.LASTVALUE1}",
                 "priority": "WARNING",
                 "description": "Aparelhos se associam ao Wi-Fi mas não recebem endereço IP: servidor DHCP fora do ar ou faixa de endereços esgotada.",
                 "manual_close": "YES",
                 "tags": [
+                    {
+                        "tag": "glpi",
+                        "value": "nao"
+                    },
                     {
                         "tag": "scope",
                         "value": "availability"
@@ -3610,13 +3722,17 @@
             },
             {
                 "uuid": "c2e904dabfb84113bdc9c384bac469f7",
-                "expression": "min(/UniFi Network 10.6 by API/unifi.conn.success,30m)<{$UNIFI.CONN.SUCCESS.MIN} and last(/UniFi Network 10.6 by API/unifi.conn.attempts)>0",
+                "expression": "min(/UniFi Network by API/unifi.conn.success,30m)<{$UNIFI.CONN.SUCCESS.MIN} and last(/UniFi Network by API/unifi.conn.attempts)>0",
                 "name": "UniFi: muitas falhas de conexão ao Wi-Fi",
                 "opdata": "Sucesso {ITEM.LASTVALUE1}",
                 "priority": "WARNING",
                 "description": "Menos de {$UNIFI.CONN.SUCCESS.MIN}% das tentativas de conexão das últimas 24 h deram certo. Ver qual etapa falha: associação, autenticação (senha), DHCP ou DNS.",
                 "manual_close": "YES",
                 "tags": [
+                    {
+                        "tag": "glpi",
+                        "value": "nao"
+                    },
                     {
                         "tag": "scope",
                         "value": "availability"
@@ -3625,15 +3741,19 @@
             },
             {
                 "uuid": "a1e1b3387b5840c1a38042d6684b3819",
-                "expression": "avg(/UniFi Network 10.6 by API/unifi.clients.weak.pct,30m)>{$UNIFI.CLIENTS.WEAK.PCT.MAX} and last(/UniFi Network 10.6 by API/unifi.clients.wifi)>=5",
+                "expression": "avg(/UniFi Network by API/unifi.clients.weak.pct,30m)>{$UNIFI.CLIENTS.WEAK.PCT.MAX} and last(/UniFi Network by API/unifi.clients.wifi)>=5",
                 "recovery_mode": "RECOVERY_EXPRESSION",
-                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.clients.weak.pct,1h)<{$UNIFI.CLIENTS.WEAK.PCT.MAX}*0.75 or max(/UniFi Network 10.6 by API/unifi.clients.wifi,1h)<5",
+                "recovery_expression": "avg(/UniFi Network by API/unifi.clients.weak.pct,1h)<{$UNIFI.CLIENTS.WEAK.PCT.MAX}*0.75 or max(/UniFi Network by API/unifi.clients.wifi,1h)<5",
                 "name": "UniFi: muitos clientes com sinal fraco",
                 "opdata": "{ITEM.LASTVALUE1}",
                 "priority": "WARNING",
                 "description": "Mais de {$UNIFI.CLIENTS.WEAK.PCT.MAX}% dos clientes com sinal abaixo de {$UNIFI.CLIENT.SIGNAL.WEAK} dBm em 30 minutos: falta cobertura em algumas áreas ou APs com potência baixa.",
                 "manual_close": "YES",
                 "tags": [
+                    {
+                        "tag": "glpi",
+                        "value": "nao"
+                    },
                     {
                         "tag": "scope",
                         "value": "performance"
@@ -3642,15 +3762,19 @@
             },
             {
                 "uuid": "d46bede4cc404475b2a4352f920227cd",
-                "expression": "avg(/UniFi Network 10.6 by API/unifi.clients.satisfaction.avg,30m)<{$UNIFI.SITE.SATISFACTION.MIN} and last(/UniFi Network 10.6 by API/unifi.clients.wifi)>=5",
+                "expression": "avg(/UniFi Network by API/unifi.clients.satisfaction.avg,30m)<{$UNIFI.SITE.SATISFACTION.MIN} and last(/UniFi Network by API/unifi.clients.wifi)>=5",
                 "recovery_mode": "RECOVERY_EXPRESSION",
-                "recovery_expression": "avg(/UniFi Network 10.6 by API/unifi.clients.satisfaction.avg,1h)>={$UNIFI.SITE.SATISFACTION.MIN}+5 or max(/UniFi Network 10.6 by API/unifi.clients.wifi,1h)<5",
+                "recovery_expression": "avg(/UniFi Network by API/unifi.clients.satisfaction.avg,1h)>={$UNIFI.SITE.SATISFACTION.MIN}+5 or max(/UniFi Network by API/unifi.clients.wifi,1h)<5",
                 "name": "UniFi: satisfação média dos clientes baixa",
                 "opdata": "{ITEM.LASTVALUE1}",
                 "priority": "WARNING",
                 "description": "Satisfação média dos clientes Wi-Fi abaixo de {$UNIFI.SITE.SATISFACTION.MIN}% em 30 minutos.",
                 "manual_close": "YES",
                 "tags": [
+                    {
+                        "tag": "glpi",
+                        "value": "nao"
+                    },
                     {
                         "tag": "scope",
                         "value": "performance"

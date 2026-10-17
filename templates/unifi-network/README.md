@@ -1,4 +1,4 @@
-# UniFi Network 10.6 by API
+# UniFi Network by API
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.4-D40000?style=flat-square&logoColor=white)
 ![Version](https://img.shields.io/badge/Version-1.0-7F13EC?style=flat-square)
@@ -12,7 +12,7 @@
 <a id="pt-br"></a>
 ## 🇧🇷 Português
 
-Template Zabbix para o **UniFi Network 10.x** com **chave de API**: funciona com o UniFi OS (console UniFi ou UniFi OS Server) e com a Network Application standalone (Docker/Linux). Foi feito para Wi-Fi com reclamação de usuários, como hotéis e escritórios: mostra onde a rede está ruim e por quê.
+Template Zabbix para o **UniFi Network** (aplicação Network 10.x) com **chave de API**: funciona com o UniFi OS (console UniFi ou UniFi OS Server) e com a Network Application standalone (Docker/Linux). Foi feito para Wi-Fi com reclamação de usuários, como hotéis e escritórios: mostra onde a rede está ruim e por quê.
 
 **Coleta:** dois itens mestres do tipo Script.
 
@@ -65,6 +65,8 @@ A mesma chave dá acesso às APIs de integração (v1), clássica (`/api/s/<site
 
 ### Triggers
 
+- **Validado em:** UniFi OS Server 5.1 com Network 10.6. Na Network Application standalone os caminhos da API foram conferidos, mas a coleta ainda não foi validada.
+- **Todos têm a tag `glpi: nao`**, para quem usa integração com helpdesk e não quer chamado por Wi-Fi: basta excluir a tag na ação.
 - **Todos aceitam fechamento manual.**
 - **Os de qualidade têm recuperação com folga** (histerese) para não oscilar perto do limite: CPU, memória, clientes e satisfação por AP; canal, interferência e retransmissões por rádio; e, no site, experiência, sinal fraco, satisfação e vizinhança.
 - **Destaques:**
@@ -79,7 +81,7 @@ A mesma chave dá acesso às APIs de integração (v1), clássica (`/api/s/<site
 <a id="en-us"></a>
 ## 🇺🇸 English
 
-Zabbix template for **UniFi Network 10.x** using an **API key**. It works with UniFi OS (UniFi consoles or UniFi OS Server) and with the standalone Network Application (Docker/Linux). It was built for Wi-Fi with user complaints, such as hotels and offices: it shows where the network is bad and why.
+Zabbix template for **UniFi Network** (Network application 10.x) using an **API key**. It works with UniFi OS (UniFi consoles or UniFi OS Server) and with the standalone Network Application (Docker/Linux). It was built for Wi-Fi with user complaints, such as hotels and offices: it shows where the network is bad and why.
 
 **Collection:** two Script master items.
 
@@ -102,4 +104,4 @@ One key covers the Integration (v1), classic (`/api/s/<site>`) and v2 APIs. The 
 
 `{$UNIFI.AP.EOL.ALERT}=0` disables the per-AP end-of-life alert; the count stays in `unifi.aps.eol`.
 
-All triggers can be closed manually. Quality triggers use recovery expressions with hysteresis, so they don't flap around the threshold.
+Validated on UniFi OS Server 5.1 with Network 10.6; on the standalone Network Application the API paths were checked, but collection is not validated yet. All triggers carry the tag `glpi: nao` (exclude it in your helpdesk action) and can be closed manually. Quality triggers use recovery expressions with hysteresis, so they don't flap around the threshold.
